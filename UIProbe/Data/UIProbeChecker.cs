@@ -68,7 +68,8 @@ namespace UIProbe
                         new UnnecessaryRaycastTargetRule(),
                         new BadNamingRule(),
                         new EmptyTextRule(),
-                        new MissingCanvasGroupRule()
+                        new MissingCanvasGroupRule(),
+                        new DuplicateNameRule()
                     };
                 }
                 return _rules;

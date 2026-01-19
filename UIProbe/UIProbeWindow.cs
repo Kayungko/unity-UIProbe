@@ -27,11 +27,12 @@ namespace UIProbe
             Indexer,
             Recorder,
             Browser,
+            DuplicateChecker,
             Settings
         }
 
         private Tab currentTab = Tab.Picker;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "设置" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "设置" };
 
         private void OnEnable()
         {
@@ -69,6 +70,9 @@ namespace UIProbe
                 case Tab.Browser:
                     DrawBrowserTab();
                     break;
+                case Tab.DuplicateChecker:
+                    DrawDuplicateCheckerTab();
+                    break;
                 case Tab.Settings:
                     DrawSettingsTab();
                     break;
@@ -88,6 +92,7 @@ namespace UIProbe
             DrawSidebarButton(Tab.Indexer, "预制体索引");
             DrawSidebarButton(Tab.Recorder, "界面记录");
             DrawSidebarButton(Tab.Browser, "历史浏览");
+            DrawSidebarButton(Tab.DuplicateChecker, "重名检测");
             
             GUILayout.FlexibleSpace();
             

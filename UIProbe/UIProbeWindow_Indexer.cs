@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -19,6 +20,10 @@ namespace UIProbe
         // Batch Operation State
         private bool isIndexerBatchMode = false;
         private HashSet<string> selectedPrefabPaths = new HashSet<string>();
+        
+        // Batch Duplicate Detection State
+        private BatchDuplicateResult batchDuplicateResult = null;
+        private bool isBatchDetecting = false;
         
         // Aux State
         private List<string> bookmarks = new List<string>();
@@ -110,9 +115,38 @@ namespace UIProbe
                 {
                     BatchSelectInProject();
                 }
+                
+                if (GUILayout.Button("批量检测重名", EditorStyles.miniButton, GUILayout.Width(100)))
+                {
+                    BatchDetectDuplicates();
+                }
                 GUI.enabled = true;
                 
                 GUILayout.EndHorizontal();
+                
+                // Batch detection results
+                if (batchDuplicateResult != null && batchDuplicateResult.TotalPrefabs > 0)
+                {
+                    EditorGUILayout.Space(5);
+                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                    
+                    EditorGUILayout.LabelField("批量检测结果", EditorStyles.boldLabel);
+                    EditorGUILayout.LabelField(batchDuplicateResult.GetSummary(), EditorStyles.wordWrappedLabel);
+                    
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("导出 CSV", GUILayout.Width(80)))
+                    {
+                        CSVExporter.ExportBatchDuplicateResults(batchDuplicateResult);
+                    }
+                    
+                    if (GUILayout.Button("清除结果", GUILayout.Width(80)))
+                    {
+                        batchDuplicateResult = null;
+                    }
+                    GUILayout.EndHorizontal();
+                    
+                    EditorGUILayout.EndVertical();
+                }
             }
 
             // History
@@ -487,6 +521,100 @@ namespace UIProbe
             {
                 Selection.objects = objects.ToArray();
                 EditorGUIUtility.PingObject(objects[0]);
+            }
+        }
+        
+        /// <summary>
+        /// 批量检测预制体重名节点
+        /// </summary>
+        private void BatchDetectDuplicates()
+        {
+            if (selectedPrefabPaths.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "请先选择要检测的预制体", "确定");
+                return;
+            }
+            
+            // 加载检测设置
+            if (duplicateSettings == null)
+            {
+                string settingsJson = EditorPrefs.GetString("UIProbe_DuplicateSettings", "");
+                if (!string.IsNullOrEmpty(settingsJson))
+                {
+                    try
+                    {
+                        duplicateSettings = JsonUtility.FromJson<DuplicateDetectionSettings>(settingsJson);
+                    }
+                    catch
+                    {
+                        duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                    }
+                }
+                else
+                {
+                    duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                }
+            }
+            
+            batchDuplicateResult = new BatchDuplicateResult();
+            int processedCount = 0;
+            int totalCount = selectedPrefabPaths.Count;
+            
+            try
+            {
+                foreach (var prefabPath in selectedPrefabPaths)
+                {
+                    processedCount++;
+                    
+                    // 显示进度条
+                    float progress = (float)processedCount / totalCount;
+                    if (EditorUtility.DisplayCancelableProgressBar(
+                        "批量检测重名", 
+                        $"正在检测: {Path.GetFileNameWithoutExtension(prefabPath)} ({processedCount}/{totalCount})", 
+                        progress))
+                    {
+                        break; // 用户取消
+                    }
+                    
+                    // 加载预制体
+                    GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                    if (prefabAsset == null)
+                        continue;
+                    
+                    // 执行重名检测（使用设置中配置的范围）
+                    DuplicateDetectionMode scope = duplicateSettings.DetectionScope;
+                    DuplicateNameResult result = DuplicateNameRule.DetectDuplicates(
+                        prefabAsset, 
+                        scope, 
+                        duplicateSettings
+                    );
+                    
+                    // 记录结果
+                    string folderPath = Path.GetDirectoryName(prefabPath);
+                    string prefabName = Path.GetFileNameWithoutExtension(prefabPath);
+                    
+                    batchDuplicateResult.AddResult(new PrefabDuplicateResult(
+                        prefabPath,
+                        prefabName,
+                        folderPath,
+                        result
+                    ));
+                }
+                
+                EditorUtility.ClearProgressBar();
+                
+                // 显示结果摘要
+                string summary = batchDuplicateResult.GetSummary();
+                EditorUtility.DisplayDialog("检测完成", summary, "确定");
+                
+                Debug.Log($"[UIProbe] 批量检测完成: {summary}");
+                
+            }
+            catch (Exception e)
+            {
+                EditorUtility.ClearProgressBar();
+                EditorUtility.DisplayDialog("检测失败", $"批量检测失败: {e.Message}", "确定");
+                Debug.LogError($"[UIProbe] 批量检测失败: {e}");
             }
         }
     }

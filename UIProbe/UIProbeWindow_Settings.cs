@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System.IO;
 
 namespace UIProbe
 {
@@ -9,25 +10,70 @@ namespace UIProbe
         private string recordStoragePath = "";
         private string newRuleKeyword = "";
         private string newRuleTag = "新标签";
+        private Vector2 settingsScrollPosition;
+        
+        // Foldout states for settings sections
+        private bool showDetectionRules = true;
+        private bool showStoragePath = false;
+        private bool showIndexRoot = false;
+        private bool showCustomTags = false;
+        private bool showDataManagement = false;
+        
+        // Duplicate Detection Settings
+        private DuplicateDetectionSettings duplicateSettings;
+        private string newWhitelistName = "";
+        private string newBlacklistName = "";
+        private string newPrefixName = "";
         
         private void LoadSettingsData()
         {
             recordStoragePath = EditorPrefs.GetString("UIProbe_StoragePath", "");
+            
+            // Load duplicate detection settings
+            string settingsJson = EditorPrefs.GetString("UIProbe_DuplicateSettings", "");
+            if (!string.IsNullOrEmpty(settingsJson))
+            {
+                try
+                {
+                    duplicateSettings = JsonUtility.FromJson<DuplicateDetectionSettings>(settingsJson);
+                }
+                catch
+                {
+                    duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                }
+            }
+            else
+            {
+                duplicateSettings = DuplicateDetectionSettings.GetDefault();
+            }
         }
         
         private void SaveSettingsData()
         {
             EditorPrefs.SetString("UIProbe_StoragePath", recordStoragePath);
+            
+            // Save duplicate detection settings
+            if (duplicateSettings != null)
+            {
+                string settingsJson = JsonUtility.ToJson(duplicateSettings);
+                EditorPrefs.SetString("UIProbe_DuplicateSettings", settingsJson);
+            }
         }
         
         private void DrawSettingsTab()
         {
             EditorGUILayout.LabelField("设置 (Settings)", EditorStyles.boldLabel);
             EditorGUILayout.Space();
+            
+            // Add ScrollView for entire settings content
+            settingsScrollPosition = EditorGUILayout.BeginScrollView(settingsScrollPosition);
 
-            // Problem Detection Rules
+            // ===== Problem Detection Rules =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("问题检测规则 (Detection Rules)", EditorStyles.boldLabel);
+            showDetectionRules = EditorGUILayout.Foldout(showDetectionRules, "问题检测规则 (Detection Rules)", true, EditorStyles.foldoutHeader);
+            
+            if (showDetectionRules)
+            {
             
             foreach (var rule in UIProbeChecker.Rules)
             {
@@ -38,57 +84,81 @@ namespace UIProbe
                 GUILayout.EndHorizontal();
             }
             
+            }  // End of showDetectionRules if block
+            
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space();
 
-            // Storage Path Settings
+            // ===== Storage Path Settings =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("存储路径 (Storage Path)", EditorStyles.boldLabel);
+            showStoragePath = EditorGUILayout.Foldout(showStoragePath, "【通用】存储路径 (Storage Path)", true, EditorStyles.foldoutHeader);
             
-            GUILayout.BeginHorizontal();
-            EditorGUILayout.TextField("当前路径:", string.IsNullOrEmpty(recordStoragePath) ? "(默认: AppData)" : recordStoragePath);
-            GUILayout.EndHorizontal();
+            if (showStoragePath)
+            {
+            
+            string currentMainPath = UIProbeStorage.GetMainFolderPath();
+            string defaultMainPath = UIProbeStorage.GetDefaultMainPath();
+            bool isUsingCustomPath = currentMainPath != defaultMainPath;
+            
+            EditorGUILayout.LabelField("主文件夹路径:", EditorStyles.boldLabel);
+            EditorGUILayout.TextField(isUsingCustomPath ? currentMainPath : "(默认: AppData)", EditorStyles.miniLabel);
             
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("选择文件夹"))
             {
-                string newPath = EditorUtility.OpenFolderPanel("选择记录存储路径", recordStoragePath, "");
+                string startPath = Path.GetDirectoryName(currentMainPath);
+                string newPath = EditorUtility.OpenFolderPanel("选择 UIProbe 主文件夹位置", startPath, "");
                 if (!string.IsNullOrEmpty(newPath))
                 {
-                    recordStoragePath = newPath;
-                    SaveSettingsData();
-                    EditorUtility.DisplayDialog("提示", $"存储路径已设置为:\n{newPath}", "OK");
+                    UIProbeStorage.SetCustomMainPath(newPath);
+                    EditorUtility.DisplayDialog("提示", $"主文件夹已设置为：\n{Path.Combine(newPath, "UIProbe")}", "确定");
                 }
             }
             
-            if (GUILayout.Button("使用默认路径"))
+            if (GUILayout.Button("使用默认路径 (AppData)"))
             {
-                recordStoragePath = "";
-                SaveSettingsData();
-                EditorUtility.DisplayDialog("提示", $"已恢复默认路径:\n{UIRecordStorage.GetDefaultStoragePath()}", "OK");
+                UIProbeStorage.SetCustomMainPath("");
+                EditorUtility.DisplayDialog("提示", $"已恢复默认路径：\n{defaultMainPath}", "确定");
+            }
+            
+            if (GUILayout.Button("打开文件夹"))
+            {
+                if (Directory.Exists(currentMainPath))
+                {
+                    EditorUtility.RevealInFinder(currentMainPath);
+                }
+                else
+                {
+                    Directory.CreateDirectory(currentMainPath);
+                    EditorUtility.RevealInFinder(currentMainPath);
+                }
             }
             GUILayout.EndHorizontal();
             
-            // Show current effective path
-            string effectivePath = string.IsNullOrEmpty(recordStoragePath) 
-                ? UIRecordStorage.GetDefaultStoragePath() 
-                : recordStoragePath;
-            EditorGUILayout.LabelField($"实际路径: {effectivePath}", EditorStyles.miniLabel);
+            // 显示文件夹结构
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("文件夹结构:", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(UIProbeStorage.GetFolderStructureDescription(), MessageType.None);
             
             // Warning for project-internal paths
-            if (!string.IsNullOrEmpty(recordStoragePath) && recordStoragePath.Contains(Application.dataPath))
+            if (currentMainPath.Contains(Application.dataPath))
             {
-                EditorGUILayout.HelpBox("注意: 此路径在项目内，可能会被 Git 提交。", MessageType.Warning);
+                EditorGUILayout.HelpBox("⚠ 注意：当前路径在项目内，可能会被 Git 提交！建议使用默认路径或项目外路径。", MessageType.Warning);
             }
+            
+            }  // End of showStoragePath if block
             
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space();
 
-            // Prefab Index Root Path Settings
+            // ===== Prefab Index Root Path Settings =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("预制体索引根目录 (Prefab Index Root)", EditorStyles.boldLabel);
+            showIndexRoot = EditorGUILayout.Foldout(showIndexRoot, "预制体索引根目录 (Prefab Index Root)", true, EditorStyles.foldoutHeader);
+            
+            if (showIndexRoot)
+            {
             
             string indexRoot = EditorPrefs.GetString("UIProbe_IndexRootPath", "");
             GUILayout.BeginHorizontal();
@@ -121,13 +191,23 @@ namespace UIProbe
             
             EditorGUILayout.HelpBox("设置后只索引该目录下的预制体，减少大项目的加载时间。", MessageType.Info);
             
+            }  // End of showIndexRoot if block
+            
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space();
+            
+            // Duplicate Detection Settings
+            DrawDuplicateDetectionSettings();
 
-            // Custom Tag Rules
+            EditorGUILayout.Space();
+
+            // ===== Custom Tag Rules =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("自定义标签规则 (Custom Tag Rules)", EditorStyles.boldLabel);
+            showCustomTags = EditorGUILayout.Foldout(showCustomTags, "自定义标签规则 (Custom Tag Rules)", true, EditorStyles.foldoutHeader);
+            
+            if (showCustomTags)
+            {
             EditorGUILayout.HelpBox("规则按顺序匹配，优先于内置规则。包含关键字即可匹配。", MessageType.None);
             
             var rules = UITagInferrer.GetCustomRules();
@@ -201,13 +281,18 @@ namespace UIProbe
             GUILayout.EndHorizontal();
             EditorGUILayout.LabelField("关键字 (小写)", EditorStyles.miniLabel);
             
+            }  // End of showCustomTags if block
+            
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space();
 
-            // Data Management
+            // ===== Data Management =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("数据管理 (Data Management)", EditorStyles.boldLabel);
+            showDataManagement = EditorGUILayout.Foldout(showDataManagement, "数据管理 (Data Management)", true, EditorStyles.foldoutHeader);
+            
+            if (showDataManagement)
+            {
             
             if (GUILayout.Button("清除搜索历史 (Clear Search History)"))
             {
@@ -251,6 +336,9 @@ namespace UIProbe
                     EditorUtility.DisplayDialog("提示", "文件夹不存在，请先保存一次记录。", "OK");
                 }
             }
+            
+            }  // End of showDataManagement if block
+            
             EditorGUILayout.EndVertical();
 
             // Push About to bottom
@@ -259,9 +347,12 @@ namespace UIProbe
             // Version & Credits (at the very bottom)
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Version: 1.0");
+            EditorGUILayout.LabelField("ToolName:UIProbe Version: 1.3");
             EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天");
             EditorGUILayout.EndVertical();
+            
+            // End ScrollView
+            EditorGUILayout.EndScrollView();
         }
         
         private string GetConfiguredStoragePath()
