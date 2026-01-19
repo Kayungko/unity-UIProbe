@@ -166,7 +166,7 @@ namespace UIProbe
         }
         
         /// <summary>
-        /// 导出批量检测结果到 CSV（所属文件夹 | 预制体名称 | 命名重复节点）
+        /// 导出批量检测结果到 CSV（所属文件夹 | 预制体名称 | 是否存在重复命名 | 重复节点详情）
         /// </summary>
         public static void ExportBatchDuplicateResults(BatchDuplicateResult batchResult)
         {
@@ -183,16 +183,17 @@ namespace UIProbe
             StringBuilder csv = new StringBuilder();
             
             // 表头
-            csv.AppendLine("所属文件夹,预制体名称,命名重复节点");
+            csv.AppendLine("所属文件夹,预制体名称,是否存在重复命名,重复节点详情");
             
             // 数据行
             foreach (var result in batchResult.Results)
             {
                 string folder = EscapeCSV(result.FolderPath);
                 string prefabName = EscapeCSV(result.PrefabName);
+                string hasDuplicates = result.HasDuplicates ? "是" : "否";
                 string duplicates = EscapeCSV(result.GetDuplicateSummary());
                 
-                csv.AppendLine($"{folder},{prefabName},{duplicates}");
+                csv.AppendLine($"{folder},{prefabName},{hasDuplicates},{duplicates}");
             }
             
             try

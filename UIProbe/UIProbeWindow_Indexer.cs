@@ -16,6 +16,7 @@ namespace UIProbe
         private List<PrefabIndexItem> allPrefabs = new List<PrefabIndexItem>();
         private bool isIndexBuilt = false;
         private string indexRootPath = "";  // Configured in Settings
+        private string lastIndexUpdateTime = "";
         
         // Batch Operation State
         private bool isIndexerBatchMode = false;
@@ -67,6 +68,17 @@ namespace UIProbe
             {
                 AddToHistory(searchString);
                 ExpandMatchingFolders();
+            }
+            
+            // Clear search button
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                if (GUILayout.Button("✕", EditorStyles.toolbarButton, GUILayout.Width(25)))
+                {
+                    searchString = "";
+                    CollapseAllFolders();
+                    GUI.FocusControl(null);
+                }
             }
             
             if (GUILayout.Button("刷新", EditorStyles.toolbarButton, GUILayout.Width(50)))
@@ -180,7 +192,7 @@ namespace UIProbe
             // Index status
             if (!isIndexBuilt)
             {
-                EditorGUILayout.HelpBox("索引未构建，请点击刷新。", MessageType.Info);
+                EditorGUILayout.HelpBox("索引未加载。", MessageType.Info);
                 if (GUILayout.Button("立即构建索引"))
                 {
                     RefreshIndexWithTree();
@@ -188,9 +200,15 @@ namespace UIProbe
                 return;
             }
 
-            // Show root path info
+            // Show root path info with last update time
             string displayRoot = string.IsNullOrEmpty(indexRootPath) ? "Assets/" : indexRootPath;
+            GUILayout.BeginHorizontal();
             EditorGUILayout.LabelField($"索引根目录: {displayRoot} | 共 {allPrefabs.Count} 个预制体", EditorStyles.miniLabel);
+            if (!string.IsNullOrEmpty(lastIndexUpdateTime))
+            {
+                EditorGUILayout.LabelField($"上次更新: {lastIndexUpdateTime}", EditorStyles.miniLabel, GUILayout.Width(200));
+            }
+            GUILayout.EndHorizontal();
 
             // Folder tree
             indexerScrollPosition = EditorGUILayout.BeginScrollView(indexerScrollPosition);
@@ -357,6 +375,9 @@ namespace UIProbe
             }
             
             isIndexBuilt = true;
+            
+            // 保存索引缓存
+            SaveIndexCache();
         }
 
         private void AddToFolderTree(PrefabIndexItem item, string folderPath)
@@ -464,6 +485,161 @@ namespace UIProbe
             {
                 CollapseFolder(sub);
             }
+        }
+        
+        /// <summary>
+        /// 获取索引缓存文件路径
+        /// </summary>
+        private string GetIndexCachePath()
+        {
+            string cachePath = System.IO.Path.Combine(
+                UIProbeStorage.GetMainFolderPath(), 
+                "IndexCache.json"
+            );
+            return cachePath;
+        }
+        
+        /// <summary>
+        /// 保存索引到磁盘
+        /// </summary>
+        private void SaveIndexCache()
+        {
+            try
+            {
+                var cache = new PrefabIndexCache
+                {
+                    IndexRootPath = indexRootPath,
+                    LastUpdateTime = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    TotalPrefabCount = allPrefabs.Count,
+                    AllPrefabs = allPrefabs.Select(ConvertToSerializable).ToList(),
+                    RootFolders = folderTree.Values.Select(ConvertFolderToSerializable).ToList()
+                };
+                
+                string json = JsonUtility.ToJson(cache, true);
+                string cachePath = GetIndexCachePath();
+                
+                string dir = System.IO.Path.GetDirectoryName(cachePath);
+                if (!System.IO.Directory.Exists(dir))
+                    System.IO.Directory.CreateDirectory(dir);
+                    
+                System.IO.File.WriteAllText(cachePath, json);
+                lastIndexUpdateTime = cache.LastUpdateTime;
+                
+                Debug.Log($"[UIProbe] 索引已保存: {allPrefabs.Count} 个预制体");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[UIProbe] 保存索引失败: {e.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 转换为可序列化的预制体索引项
+        /// </summary>
+        private SerializablePrefabIndexItem ConvertToSerializable(PrefabIndexItem item)
+        {
+            return new SerializablePrefabIndexItem
+            {
+                Name = item.Name,
+                Path = item.Path,
+                Guid = item.Guid,
+                FolderPath = item.FolderPath
+            };
+        }
+        
+        /// <summary>
+        /// 转换为可序列化的文件夹节点
+        /// </summary>
+        private SerializableFolderNode ConvertFolderToSerializable(FolderNode folder)
+        {
+            return new SerializableFolderNode
+            {
+                Name = folder.Name,
+                FullPath = folder.FullPath,
+                IsExpanded = folder.IsExpanded,
+                TotalPrefabCount = folder.TotalPrefabCount,
+                SubFolders = folder.SubFolders.Select(ConvertFolderToSerializable).ToList(),
+                Prefabs = folder.Prefabs.Select(ConvertToSerializable).ToList()
+            };
+        }
+        
+        /// <summary>
+        /// 从磁盘加载索引
+        /// </summary>
+        private bool LoadIndexCache()
+        {
+            try
+            {
+                string cachePath = GetIndexCachePath();
+                if (!System.IO.File.Exists(cachePath))
+                {
+                    Debug.Log("[UIProbe] 索引缓存不存在");
+                    return false;
+                }
+                
+                string json = System.IO.File.ReadAllText(cachePath);
+                var cache = JsonUtility.FromJson<PrefabIndexCache>(json);
+                
+                // 检查索引根路径是否变化
+                string currentRootPath = EditorPrefs.GetString("UIProbe_IndexRootPath", "");
+                if (cache.IndexRootPath != currentRootPath)
+                {
+                    Debug.Log("[UIProbe] 索引根路径已变化，需要刷新");
+                    return false;
+                }
+                
+                // 恢复数据
+                indexRootPath = cache.IndexRootPath;
+                lastIndexUpdateTime = cache.LastUpdateTime;
+                allPrefabs = cache.AllPrefabs.Select(ConvertFromSerializable).ToList();
+                
+                // 重建文件夹树
+                folderTree.Clear();
+                foreach (var rootFolder in cache.RootFolders)
+                {
+                    folderTree[rootFolder.Name] = ConvertFolderFromSerializable(rootFolder);
+                }
+                
+                isIndexBuilt = true;
+                
+                Debug.Log($"[UIProbe] 索引已加载: {allPrefabs.Count} 个预制体 (上次更新: {lastIndexUpdateTime})");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[UIProbe] 加载索引失败: {e.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 从可序列化对象转换回预制体索引项
+        /// </summary>
+        private PrefabIndexItem ConvertFromSerializable(SerializablePrefabIndexItem item)
+        {
+            return new PrefabIndexItem
+            {
+                Name = item.Name,
+                Path = item.Path,
+                Guid = item.Guid,
+                FolderPath = item.FolderPath
+            };
+        }
+        
+        /// <summary>
+        /// 从可序列化对象转换回文件夹节点
+        /// </summary>
+        private FolderNode ConvertFolderFromSerializable(SerializableFolderNode folder)
+        {
+            return new FolderNode
+            {
+                Name = folder.Name,
+                FullPath = folder.FullPath,
+                IsExpanded = folder.IsExpanded,
+                TotalPrefabCount = folder.TotalPrefabCount,
+                SubFolders = folder.SubFolders.Select(ConvertFolderFromSerializable).ToList(),
+                Prefabs = folder.Prefabs.Select(ConvertFromSerializable).ToList()
+            };
         }
 
         private void LoadAuxData()

@@ -40,6 +40,9 @@ namespace UIProbe
             LoadSettingsData();
             RefreshSessionList();
             InitPickerAutoMode();
+            
+            // 尝试加载索引缓存
+            LoadIndexCache();
         }
 
         private void OnDisable()
