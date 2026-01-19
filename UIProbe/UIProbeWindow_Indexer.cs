@@ -167,9 +167,14 @@ namespace UIProbe
                 // ...
                 GUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("历史:", GUILayout.Width(35));
+                
+                string historyToRemove = null;
+                
                 for (int i = 0; i < Mathf.Min(5, searchHistory.Count); i++)
                 {
                     var hist = searchHistory[i];
+                    
+                    // 搜索历史按钮
                     if (GUILayout.Button(hist, EditorStyles.miniButton, GUILayout.MaxWidth(80)))
                     {
                         searchString = hist;
@@ -177,7 +182,21 @@ namespace UIProbe
                         ExpandMatchingFolders();
                         GUI.FocusControl(null); 
                     }
+                    
+                    // 删除按钮
+                    if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(18)))
+                    {
+                        historyToRemove = hist;
+                    }
                 }
+                
+                // 执行删除操作
+                if (historyToRemove != null)
+                {
+                    searchHistory.Remove(historyToRemove);
+                    SaveAuxData();
+                }
+                
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
             }
@@ -330,7 +349,7 @@ namespace UIProbe
                     var obj = AssetDatabase.LoadAssetAtPath<GameObject>(bm);
                     if (obj != null) EditorGUIUtility.PingObject(obj);
                 }
-                if (GUILayout.Button("X", EditorStyles.miniButton, GUILayout.Width(20)))
+                if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
                 {
                     ToggleBookmark(bm);
                 }
@@ -779,9 +798,47 @@ namespace UIProbe
                 
                 EditorUtility.ClearProgressBar();
                 
+                // 保存JSON结果到Batch_Results文件夹
+                string jsonPath = "";
+                try
+                {
+                    jsonPath = System.IO.Path.Combine(
+                        UIProbeStorage.GetBatchResultsPath(),
+                        $"BatchDuplicateCheck_{System.DateTime.Now:yyyyMMdd_HHmmss}.json"
+                    );
+                    string json = JsonUtility.ToJson(batchDuplicateResult, true);
+                    System.IO.File.WriteAllText(jsonPath, json);
+                    Debug.Log($"[UIProbe] 批量检测结果已保存到: {jsonPath}");
+                }
+                catch (Exception saveEx)
+                {
+                    Debug.LogWarning($"[UIProbe] JSON保存失败: {saveEx.Message}");
+                }
+                
                 // 显示结果摘要
                 string summary = batchDuplicateResult.GetSummary();
-                EditorUtility.DisplayDialog("检测完成", summary, "确定");
+                
+                // 如果有重名，询问是否切换到重名检测页面
+                if (batchDuplicateResult.PrefabsWithDuplicates > 0)
+                {
+                    bool switchTab = EditorUtility.DisplayDialog(
+                        "批量检测完成",
+                        $"{summary}\n\n发现 {batchDuplicateResult.PrefabsWithDuplicates} 个预制体存在重名。\n\n是否切换到重名检测页面进行处理？",
+                        "是，切换",
+                        "稍后处理"
+                    );
+                    
+                    if (switchTab)
+                    {
+                        // 切换到重名检测标签页
+                        currentTab = Tab.DuplicateChecker;
+                        LoadBatchResultIntoCheckerWithPath(batchDuplicateResult, jsonPath);
+                    }
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("检测完成", summary, "确定");
+                }
                 
                 Debug.Log($"[UIProbe] 批量检测完成: {summary}");
                 
@@ -793,5 +850,24 @@ namespace UIProbe
                 Debug.LogError($"[UIProbe] 批量检测失败: {e}");
             }
         }
+        
+        /// <summary>
+        /// 加载批量检测结果到重名检测页面（带JSON路径）
+        /// </summary>
+        private void LoadBatchResultIntoCheckerWithPath(BatchDuplicateResult result, string jsonPath)
+        {
+            // 调用partial方法
+            LoadBatchResultIntoChecker(result);
+            
+            // 在UIProbeWindow_DuplicateCheckerBatch.cs中会设置currentBatchResult
+            // 这里我们需要另外设置路径
+            currentBatchResultPath = jsonPath;
+        }
+        
+        /// <summary>
+        /// 加载批量检测结果到重名检测页面
+        /// (此方法在UIProbeWindow_DuplicateChecker.cs中实现)
+        /// </summary>
+        partial void LoadBatchResultIntoChecker(BatchDuplicateResult result);
     }
 }

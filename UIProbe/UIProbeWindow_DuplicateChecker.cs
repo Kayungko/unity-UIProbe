@@ -15,6 +15,20 @@ namespace UIProbe
         private DuplicateDetectionMode duplicateDetectionMode = DuplicateDetectionMode.Global;
         private Dictionary<string, bool> duplicateGroupFoldouts = new Dictionary<string, bool>();
         private Dictionary<GameObject, string> renameInputs = new Dictionary<GameObject, string>();
+        private int duplicateCheckerSubTab = 0;  // 0=检测功能, 1=历史记录
+        
+        // Batch Mode State
+        private bool isBatchMode = false;
+        private BatchDuplicateResult currentBatchResult = null;
+        private int batchCardPageIndex = 0;
+        private bool batchShowOnlyDuplicates = true;
+        private const int CARDS_PER_PAGE = 5;
+        private Vector2 batchScrollPosition;
+        
+        // Batch Mode Context (for return functionality)
+        private string currentBatchResultPath = "";  // JSON文件路径
+        private PrefabDuplicateResult currentProcessingItem = null;  // 当前处理的项
+        private bool isFromBatchMode = false;  // 是否来自批量模式
         
         // Shared with Settings tab - declared in UIProbeWindow_Settings.cs
         // private DuplicateDetectionSettings duplicateSettings;
@@ -28,13 +42,113 @@ namespace UIProbe
         /// </summary>
         private void DrawDuplicateCheckerTab()
         {
-            EditorGUILayout.LabelField("重名节点检测 (Duplicate Name Checker)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("重名节点检测", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
+            
+            // 子标签工具栏 - 在检测功能和历史记录之间切换
+            GUILayout.BeginHorizontal(EditorStyles.toolbar);
+            
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 0, "检测功能", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 0;
+            }
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 1, "历史记录", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 1;
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
+            // 根据子标签显示不同内容
+            if (duplicateCheckerSubTab == 0)
+            {
+                // 检测功能标签
+                DrawDetectionSubTab();
+            }
+            else
+            {
+                // 历史记录标签
+                DrawHistorySubTab();
+            }
+        }
+        
+        /// <summary>
+        /// 绘制检测功能子标签
+        /// </summary>
+        private void DrawDetectionSubTab()
+        {
+            // 模式切换区域
+            GUILayout.BeginHorizontal();
+            
+            if (isBatchMode)
+            {
+                EditorGUILayout.HelpBox($"批量模式: {currentBatchResult.TotalPrefabs} 个预制体，{currentBatchResult.PrefabsWithDuplicates} 个存在重名", MessageType.Info);
+                if (GUILayout.Button("返回单个检测模式", GUILayout.Width(120)))
+                {
+                    ClearBatchMode();
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("检测配置在「设置」标签页中配置", MessageType.Info, true);
+                GUILayout.FlexibleSpace();
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
+            // 根据模式绘制不同内容
+            if (isBatchMode)
+            {
+                // 批量模式UI（使用主scrollview）
+                duplicateCheckerScrollPosition = EditorGUILayout.BeginScrollView(duplicateCheckerScrollPosition);
+                DrawBatchModeUI();
+                EditorGUILayout.EndScrollView();
+            }
+            else
+            {
+                // 单个检测模式UI
+                DrawSingleDetectionUI();
+            }
+        }
+        
+        /// <summary>
+        /// 绘制历史记录子标签
+        /// </summary>
+        private void DrawHistorySubTab()
+        {
+            DrawRenameHistorySection();
+        }
+        
+        /// <summary>
+        /// 绘制单个检测模式UI
+        /// </summary>
+        private void DrawSingleDetectionUI()
+        {
+            // 如果来自批量模式，显示返回按钮
+            if (isFromBatchMode && currentProcessingItem != null)
+            {
+                GUILayout.BeginHorizontal(EditorStyles.helpBox);
+                if (GUILayout.Button("← 返回批量结果", GUILayout.Width(110)))
+                {
+                    ReturnToBatchMode();
+                }
+                EditorGUILayout.LabelField($"当前: {currentProcessingItem.PrefabName}", EditorStyles.boldLabel);
+                GUILayout.EndHorizontal();
+                EditorGUILayout.Space(5);
+            }
             
             // Detection button
             GUILayout.BeginHorizontal();
             
-            EditorGUILayout.HelpBox("检测配置在「设置」标签页中配置", MessageType.Info, true);
+            // 导入批量结果按钮
+            if (GUILayout.Button("导入批量结果", GUILayout.Width(100)))
+            {
+                ImportBatchResult();
+            }
             
             GUILayout.FlexibleSpace();
             
@@ -63,11 +177,6 @@ namespace UIProbe
                 EditorGUILayout.Space(10);
                 EditorGUILayout.HelpBox("请在预制体编辑模式下点击 '检测当前预制体' 按钮开始检测。\n\n步骤：\n1. 在 Project 窗口中双击打开一个预制体\n2. 选择检测模式（全局或同级）\n3. 点击上方的 '检测当前预制体' 按钮", MessageType.None);
             }
-            
-            EditorGUILayout.Space(10);
-            
-            // Rename History Section
-            DrawRenameHistorySection();
             
             // End main ScrollView
             EditorGUILayout.EndScrollView();
@@ -116,11 +225,8 @@ namespace UIProbe
             currentDuplicateResult = DuplicateNameRule.DetectDuplicates(prefabRoot, scope, duplicateSettings);
             duplicateGroupFoldouts.Clear();
             
-            // Auto-expand all groups
-            foreach (var group in currentDuplicateResult.Groups)
-            {
-                duplicateGroupFoldouts[group.NodeName] = true;
-            }
+            // 默认收起所有组，不再自动展开
+            // 用户可以按需展开查看
             
             Repaint();
         }
@@ -455,7 +561,6 @@ namespace UIProbe
             DetectCurrentPrefab();
             
             Debug.Log($"[UIProbe] Renamed: {oldName} → {newName}");
-            EditorUtility.DisplayDialog("重命名成功", $"已将 '{oldName}' 重命名为 '{newName}'\n\n操作已记录到历史", "确定");
         }
     }
 }

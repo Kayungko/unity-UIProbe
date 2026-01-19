@@ -176,9 +176,9 @@ namespace UIProbe
                 return;
             }
             
-            string savePath = GetSaveFilePath("BatchDuplicateCheck");
-            if (string.IsNullOrEmpty(savePath))
-                return;
+            // 直接保存到CSV_Exports目录，不弹出对话框
+            string fileName = $"BatchDuplicateCheck_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            string savePath = Path.Combine(UIProbeStorage.GetCSVExportPath(), fileName);
             
             StringBuilder csv = new StringBuilder();
             

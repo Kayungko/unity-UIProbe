@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace UIProbe
@@ -14,6 +15,9 @@ namespace UIProbe
         public string PrefabName;           // 预制体名称
         public string FolderPath;           // 所属文件夹
         public DuplicateNameResult Result;  // 检测结果
+        public bool IsProcessed;            // 是否已处理
+        public string ProcessedTime;        // 处理时间
+        
         public bool HasDuplicates => Result != null && Result.GroupCount > 0;
         
         public PrefabDuplicateResult(string path, string name, string folder, DuplicateNameResult result)
@@ -22,6 +26,8 @@ namespace UIProbe
             PrefabName = name;
             FolderPath = folder;
             Result = result;
+            IsProcessed = false;
+            ProcessedTime = "";
         }
         
         /// <summary>
@@ -49,8 +55,16 @@ namespace UIProbe
     public class BatchDuplicateResult
     {
         public List<PrefabDuplicateResult> Results = new List<PrefabDuplicateResult>();
+        public string LastCheckTime;  // 检测时间
+        
         public int TotalPrefabs => Results.Count;
         public int PrefabsWithDuplicates => Results.FindAll(r => r.HasDuplicates).Count;
+        public int ProcessedCount => Results.Count(r => r.IsProcessed);
+        
+        public BatchDuplicateResult()
+        {
+            LastCheckTime = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        }
         
         public void AddResult(PrefabDuplicateResult result)
         {

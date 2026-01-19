@@ -16,6 +16,7 @@ namespace UIProbe
         private const string UI_HISTORY_FOLDER = "UI_Interface_History";
         private const string RENAME_HISTORY_FOLDER = "Rename_History";
         private const string CSV_EXPORTS_FOLDER = "CSV_Exports";
+        private const string BATCH_RESULTS_FOLDER = "Batch_Results";
         private const string SETTINGS_FOLDER = "Settings";
 
         /// <summary>
@@ -75,6 +76,16 @@ namespace UIProbe
         }
 
         /// <summary>
+        /// 获取批量检测结果存储路径
+        /// </summary>
+        public static string GetBatchResultsPath()
+        {
+            string path = Path.Combine(GetMainFolderPath(), BATCH_RESULTS_FOLDER);
+            EnsureDirectoryExists(path);
+            return path;
+        }
+
+        /// <summary>
         /// 获取设置数据存储路径
         /// </summary>
         public static string GetSettingsPath()
@@ -119,9 +130,11 @@ namespace UIProbe
         {
             return $@"UIProbe 文件夹结构：
 {GetMainFolderPath()}/
+├── IndexCache.json              (索引缓存)
 ├── {UI_HISTORY_FOLDER}/          (界面记录)
 ├── {RENAME_HISTORY_FOLDER}/      (重命名历史)
 ├── {CSV_EXPORTS_FOLDER}/         (CSV导出)
+├── {BATCH_RESULTS_FOLDER}/       (批量检测结果)
 └── {SETTINGS_FOLDER}/            (设置数据)";
         }
     }
