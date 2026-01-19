@@ -1,12 +1,15 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace UIProbe
 {
     public partial class UIProbeWindow
     {
+        private Dictionary<string, bool> historyPrefabFoldouts = new Dictionary<string, bool>();
+        
         /// <summary>
         /// 绘制重命名历史记录区域
         /// </summary>
@@ -74,9 +77,12 @@ namespace UIProbe
                 historyDateFoldouts[group.Date] = false;
             }
             
+            // 按预制体分组统计
+            var prefabGroups = group.Records.GroupBy(r => r.PrefabName).ToList();
+            
             historyDateFoldouts[group.Date] = EditorGUILayout.Foldout(
                 historyDateFoldouts[group.Date],
-               $"📅 {group.Date} ({group.Records.Count} 条)",
+                $"📅 {group.Date} ({prefabGroups.Count} 个预制体, 共 {group.Records.Count} 条)",
                 true
             );
             
@@ -93,17 +99,71 @@ namespace UIProbe
             
             GUILayout.EndHorizontal();
             
-            // 显示记录
+            // 显示预制体分组
             if (historyDateFoldouts[group.Date])
             {
-                foreach (var record in group.Records)
+                EditorGUI.indentLevel++;
+                
+                foreach (var prefabGroup in prefabGroups)
                 {
-                    DrawHistoryRecord(record);
+                    DrawPrefabGroup(prefabGroup.Key, prefabGroup.ToList());
                 }
+                
+                EditorGUI.indentLevel--;
             }
             
             EditorGUILayout.EndVertical();
             EditorGUILayout.Space(3);
+        }
+        
+        /// <summary>
+        /// 绘制预制体分组
+        /// </summary>
+        private void DrawPrefabGroup(string prefabName, List<RenameRecord> records)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
+            // 预制体折叠标题
+            GUILayout.BeginHorizontal();
+            
+            string prefabKey = $"prefab_{prefabName}";
+            if (!historyPrefabFoldouts.ContainsKey(prefabKey))
+            {
+                historyPrefabFoldouts[prefabKey] = false;
+            }
+            
+            historyPrefabFoldouts[prefabKey] = EditorGUILayout.Foldout(
+                historyPrefabFoldouts[prefabKey],
+                $"📦 {prefabName} ({records.Count} 条记录)",
+                true
+            );
+            
+            GUILayout.FlexibleSpace();
+            
+            // 删除该预制体的所有记录（删除JSON文件）
+            if (records.Count > 0 && GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
+            {
+                if (EditorUtility.DisplayDialog("确认", $"确定要删除 {prefabName} 的所有记录吗？", "确定", "取消"))
+                {
+                    // 删除JSON文件（所有记录共享同一个FilePath）
+                    string filePath = records[0].FilePath;
+                    RenameHistoryManager.DeleteRecord(filePath);
+                }
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            // 显示记录列表
+            if (historyPrefabFoldouts[prefabKey])
+            {
+                for (int i = 0; i < records.Count; i++)
+                {
+                    DrawHistoryRecordCompact(records[i], i + 1);
+                }
+            }
+            
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(2);
         }
         
         /// <summary>
@@ -203,6 +263,61 @@ namespace UIProbe
             
             EditorGUILayout.EndVertical();
             GUILayout.Space(5);
+        }
+        
+        /// <summary>
+        /// 绘制紧凑版历史记录（用于预制体分组内）
+        /// </summary>
+        private void DrawHistoryRecordCompact(RenameRecord record, int index)
+        {
+            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+            
+            // 序号
+            EditorGUILayout.LabelField($"{index}.", GUILayout.Width(30));
+            
+            // 时间
+            string time = record.Timestamp.Split(' ').Length > 1 ? record.Timestamp.Split(' ')[1] : record.Timestamp;
+            EditorGUILayout.LabelField($"🕐 {time}", EditorStyles.miniLabel, GUILayout.Width(80));
+            
+            // 节点路径（简化显示）
+            string shortPath = record.NodePath.Contains("/") 
+                ? ".../" + record.NodePath.Split('/').Last() 
+                : record.NodePath;
+            EditorGUILayout.LabelField(shortPath, EditorStyles.miniLabel, GUILayout.Width(120));
+            
+            // 旧名 → 新名
+            EditorGUILayout.LabelField(record.OldName, GUILayout.Width(100));
+            EditorGUILayout.LabelField("→", GUILayout.Width(20));
+            EditorGUILayout.LabelField(record.NewName, EditorStyles.boldLabel, GUILayout.Width(100));
+            
+            GUILayout.FlexibleSpace();
+            
+            // 回滚按钮
+            GUI.enabled = record.CanRollback;
+            if (GUILayout.Button("回滚", EditorStyles.miniButton, GUILayout.Width(40)))
+            {
+                if (EditorUtility.DisplayDialog("确认回滚", 
+                    $"确定要回滚此重命名操作吗?\n\n{record.NewName} → {record.OldName}", 
+                    "确定", "取消"))
+                {
+                    bool success = RenameHistoryManager.RollbackRename(record);
+                    if (success)
+                    {
+                        // 刷新检测结果
+                        if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+                        {
+                            DetectCurrentPrefab();
+                        }
+                    }
+                    else
+                    {
+                        EditorUtility.DisplayDialog("回滚失败", "无法回滚：预制体或节点可能已被修改或删除", "确定");
+                    }
+                }
+            }
+            GUI.enabled = true;
+            
+            EditorGUILayout.EndHorizontal();
         }
     }
 }

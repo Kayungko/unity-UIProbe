@@ -52,6 +52,18 @@ namespace UIProbe
             IsExpanded = false;
         }
     }
+    
+    /// <summary>
+    /// 预制体每日记录（同一预制体在同一天的所有重命名记录）
+    /// </summary>
+    [Serializable]
+    public class PrefabDailyRecords
+    {
+        public string PrefabName;               // 预制体名称
+        public List<RenameRecord> Records = new List<RenameRecord>();
+        
+        public int RecordCount => Records != null ? Records.Count : 0;
+    }
 
     /// <summary>
     /// 重命名历史记录集合
@@ -168,7 +180,7 @@ namespace UIProbe
         }
         
         /// <summary>
-        /// 保存单条记录到文件
+        /// 保存单条记录到文件（追加到预制体对应的JSON）
         /// </summary>
         private static void SaveRecordToFile(RenameRecord record)
         {
@@ -185,12 +197,33 @@ namespace UIProbe
                     Directory.CreateDirectory(dateFolderPath);
                 }
                 
-                // 生成文件名：预制体名_HHmmss.json
-                string fileName = $"{record.PrefabName}_{now:HHmmss}.json";
+                // 文件名：预制体名.json（不带时间戳）
+                string fileName = $"{record.PrefabName}.json";
                 string filePath = Path.Combine(dateFolderPath, fileName);
                 
+                // 加载现有记录或创建新列表
+                PrefabDailyRecords dailyRecords;
+                if (File.Exists(filePath))
+                {
+                    // 文件存在，加载并追加
+                    string existingJson = File.ReadAllText(filePath);
+                    dailyRecords = JsonUtility.FromJson<PrefabDailyRecords>(existingJson);
+                    if (dailyRecords == null || dailyRecords.Records == null)
+                    {
+                        dailyRecords = new PrefabDailyRecords { PrefabName = record.PrefabName };
+                    }
+                }
+                else
+                {
+                    // 新文件
+                    dailyRecords = new PrefabDailyRecords { PrefabName = record.PrefabName };
+                }
+                
+                // 追加新记录到列表顶部（最新的在前）
+                dailyRecords.Records.Insert(0, record);
+                
                 // 保存JSON
-                string json = JsonUtility.ToJson(record, true);
+                string json = JsonUtility.ToJson(dailyRecords, true);
                 File.WriteAllText(filePath, json);
                 
                 Debug.Log($"[UIProbe] Saved record to: {filePath}");
@@ -257,20 +290,25 @@ namespace UIProbe
             try
             {
                 var jsonFiles = Directory.GetFiles(folderPath, "*.json")
-                    .OrderByDescending(f => f);  // 最新的在前
+                    .OrderBy(f => Path.GetFileNameWithoutExtension(f));  // 按预制体名排序
                 
                 foreach (var filePath in jsonFiles)
                 {
                     try
                     {
                         string json = File.ReadAllText(filePath);
-                        var record = JsonUtility.FromJson<RenameRecord>(json);
+                        var dailyRecords = JsonUtility.FromJson<PrefabDailyRecords>(json);
                         
-                        if (record != null)
+                        if (dailyRecords != null && dailyRecords.Records != null)
                         {
-                            // 添加文件路径信息用于删除
-                            record.FilePath = filePath;
-                            records.Add(record);
+                            // 添加所有记录到列表
+                            foreach (var record in dailyRecords.Records)
+                            {
+                                // 添加文件路径信息用于删除
+                                record.FilePath = filePath;
+                                record.PrefabName = dailyRecords.PrefabName;  // 确保PrefabName正确
+                                records.Add(record);
+                            }
                         }
                     }
                     catch (Exception e)
