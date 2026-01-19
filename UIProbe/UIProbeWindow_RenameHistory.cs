@@ -14,16 +14,16 @@ namespace UIProbe
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             
-            // Header with foldout
-            var history = RenameHistoryManager.LoadHistory();
-            int recordCount = history.GetRecordCount();
+            // Header
+            var dateGroups = RenameHistoryManager.LoadHistoryGroupedByDate();
+            int totalCount = dateGroups.Sum(g => g.Records.Count);
             
             GUILayout.BeginHorizontal();
-            showRenameHistory = EditorGUILayout.Foldout(showRenameHistory, $"📜 重命名历史记录 ({recordCount} 条)", true, EditorStyles.foldoutHeader);
+            EditorGUILayout.LabelField($"📜 重命名历史记录 ({totalCount} 条)", EditorStyles.boldLabel);
             
             GUILayout.FlexibleSpace();
             
-            if (recordCount > 0 && GUILayout.Button("清空历史", EditorStyles.miniButton, GUILayout.Width(70)))
+            if (totalCount > 0 && GUILayout.Button("清空全部", EditorStyles.miniButton, GUILayout.Width(70)))
             {
                 if (EditorUtility.DisplayDialog("确认", "确定要清空所有重命名历史记录吗？", "确定", "取消"))
                 {
@@ -33,32 +33,77 @@ namespace UIProbe
             
             GUILayout.EndHorizontal();
             
-            if (showRenameHistory)
+            EditorGUILayout.Space(5);
+            
+            if (totalCount == 0)
             {
-                EditorGUILayout.Space(5);
+                EditorGUILayout.HelpBox("暂无重命名历史记录", MessageType.Info);
+            }
+            else
+            {
+                // Scroll view for history
+                renameHistoryScrollPosition = EditorGUILayout.BeginScrollView(
+                    renameHistoryScrollPosition, 
+                    GUILayout.MaxHeight(400)
+                );
                 
-                if (recordCount == 0)
+                // 按日期分组显示
+                foreach (var group in dateGroups)
                 {
-                    EditorGUILayout.HelpBox("暂无重命名历史记录", MessageType.Info);
+                    DrawDateGroup(group);
                 }
-                else
+                
+                EditorGUILayout.EndScrollView();
+            }
+            
+            EditorGUILayout.EndVertical();
+        }
+        
+        /// <summary>
+        /// 绘制日期分组
+        /// </summary>
+        private void DrawDateGroup(DateFolderGroup group)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
+            // 日期折叠标题
+            GUILayout.BeginHorizontal();
+            
+            if (!historyDateFoldouts.ContainsKey(group.Date))
+            {
+                historyDateFoldouts[group.Date] = false;
+            }
+            
+            historyDateFoldouts[group.Date] = EditorGUILayout.Foldout(
+                historyDateFoldouts[group.Date],
+               $"📅 {group.Date} ({group.Records.Count} 条)",
+                true
+            );
+            
+            GUILayout.FlexibleSpace();
+            
+            // 删除该日期所有记录
+            if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
+            {
+                if (EditorUtility.DisplayDialog("确认", $"确定要删除 {group.Date} 的所有记录吗？", "确定", "取消"))
                 {
-                    // Scroll view for history
-                    renameHistoryScrollPosition = EditorGUILayout.BeginScrollView(
-                        renameHistoryScrollPosition, 
-                        GUILayout.MaxHeight(300)
-                    );
-                    
-                    foreach (var record in history.Records.ToArray())
-                    {
-                        DrawHistoryRecord(record);
-                    }
-                    
-                    EditorGUILayout.EndScrollView();
+                    RenameHistoryManager.DeleteDateFolder(group.Date);
+                }
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            // 显示记录
+            if (historyDateFoldouts[group.Date])
+            {
+                foreach (var record in group.Records)
+                {
+                    DrawHistoryRecord(record);
                 }
             }
             
             EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(3);
         }
         
         /// <summary>
@@ -104,6 +149,20 @@ namespace UIProbe
             GUILayout.EndVertical();
             
             GUILayout.FlexibleSpace();
+            
+            // Delete button
+            GUILayout.BeginVertical(GUILayout.Width(25));
+            GUILayout.Space(5);
+            if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
+            {
+                if (EditorUtility.DisplayDialog("确认删除", 
+                    $"确定要删除这条重命名记录吗？\n\n{record.OldName} → {record.NewName}", 
+                    "删除", "取消"))
+                {
+                    RenameHistoryManager.DeleteRecord(record.FilePath);
+                }
+            }
+            GUILayout.EndVertical();
             
             // Rollback button
             GUILayout.BeginVertical(GUILayout.Width(60));

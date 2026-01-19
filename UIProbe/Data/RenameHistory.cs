@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace UIProbe
@@ -19,6 +20,9 @@ namespace UIProbe
         public string NewName;             // 新名称
         public string Operator;            // 操作者（编辑器用户名）
         public bool CanRollback;           // 是否可回滚（节点是否还存在）
+        
+        [NonSerialized]
+        public string FilePath;            // JSON文件路径（用于删除）
 
         public RenameRecord()
         {
@@ -30,6 +34,22 @@ namespace UIProbe
         public string GetDisplayText()
         {
             return $"[{Timestamp}] {PrefabName} | {NodePath}: {OldName} → {NewName}";
+        }
+    }
+    
+    /// <summary>
+    /// 日期文件夹分组
+    /// </summary>
+    public class DateFolderGroup
+    {
+        public string Date;                     // 日期，如 "2026-01-19"
+        public List<RenameRecord> Records;      // 该日期的所有记录
+        public bool IsExpanded;                 // 是否展开（用于UI）
+        
+        public DateFolderGroup()
+        {
+            Records = new List<RenameRecord>();
+            IsExpanded = false;
         }
     }
 
@@ -128,12 +148,10 @@ namespace UIProbe
         }
 
         /// <summary>
-        /// 添加重命名记录
+        /// 添加重命名记录（保存为独立JSON文件）
         /// </summary>
         public static void AddRecord(GameObject obj, string oldName, string newName, string prefabPath)
         {
-            var history = LoadHistory();
-            
             var record = new RenameRecord
             {
                 PrefabPath = prefabPath,
@@ -143,10 +161,175 @@ namespace UIProbe
                 NewName = newName
             };
 
-            history.AddRecord(record);
-            SaveHistory();
+            // 保存为独立JSON文件
+            SaveRecordToFile(record);
 
             Debug.Log($"[UIProbe] Rename recorded: {record.GetDisplayText()}");
+        }
+        
+        /// <summary>
+        /// 保存单条记录到文件
+        /// </summary>
+        private static void SaveRecordToFile(RenameRecord record)
+        {
+            try
+            {
+                // 获取日期文件夹路径（yyyy-MM-dd）
+                DateTime now = DateTime.Parse(record.Timestamp);
+                string dateFolder = now.ToString("yyyy-MM-dd");
+                string dateFolderPath = Path.Combine(UIProbeStorage.GetRenameHistoryPath(), dateFolder);
+                
+                // 确保日期文件夹存在
+                if (!Directory.Exists(dateFolderPath))
+                {
+                    Directory.CreateDirectory(dateFolderPath);
+                }
+                
+                // 生成文件名：预制体名_HHmmss.json
+                string fileName = $"{record.PrefabName}_{now:HHmmss}.json";
+                string filePath = Path.Combine(dateFolderPath, fileName);
+                
+                // 保存JSON
+                string json = JsonUtility.ToJson(record, true);
+                File.WriteAllText(filePath, json);
+                
+                Debug.Log($"[UIProbe] Saved record to: {filePath}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[UIProbe] Failed to save record: {e.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 按日期分组加载历史记录
+        /// </summary>
+        public static List<DateFolderGroup> LoadHistoryGroupedByDate()
+        {
+            var groups = new List<DateFolderGroup>();
+            string historyPath = UIProbeStorage.GetRenameHistoryPath();
+            
+            if (!Directory.Exists(historyPath))
+                return groups;
+            
+            try
+            {
+                // 获取所有日期文件夹
+                var dateFolders = Directory.GetDirectories(historyPath)
+                    .Select(Path.GetFileName)
+                    .Where(name => System.Text.RegularExpressions.Regex.IsMatch(name, @"^\d{4}-\d{2}-\d{2}$"))
+                    .OrderByDescending(d => d)  // 最新日期在前
+                    .ToList();
+                
+                foreach (var dateFolder in dateFolders)
+                {
+                    var group = new DateFolderGroup
+                    {
+                        Date = dateFolder,
+                        Records = LoadRecordsFromDateFolder(dateFolder)
+                    };
+                    
+                    if (group.Records.Count > 0)
+                    {
+                        groups.Add(group);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[UIProbe] Failed to load history groups: {e.Message}");
+            }
+            
+            return groups;
+        }
+        
+        /// <summary>
+        /// 从日期文件夹加载所有记录
+        /// </summary>
+        private static List<RenameRecord> LoadRecordsFromDateFolder(string dateFolder)
+        {
+            var records = new List<RenameRecord>();
+            string folderPath = Path.Combine(UIProbeStorage.GetRenameHistoryPath(), dateFolder);
+            
+            if (!Directory.Exists(folderPath))
+                return records;
+            
+            try
+            {
+                var jsonFiles = Directory.GetFiles(folderPath, "*.json")
+                    .OrderByDescending(f => f);  // 最新的在前
+                
+                foreach (var filePath in jsonFiles)
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(filePath);
+                        var record = JsonUtility.FromJson<RenameRecord>(json);
+                        
+                        if (record != null)
+                        {
+                            // 添加文件路径信息用于删除
+                            record.FilePath = filePath;
+                            records.Add(record);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[UIProbe] Failed to load record from {filePath}: {e.Message}");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[UIProbe] Failed to read date folder {dateFolder}: {e.Message}");
+            }
+            
+            return records;
+        }
+        
+        /// <summary>
+        /// 删除单条记录
+        /// </summary>
+        public static bool DeleteRecord(string filePath)
+        {
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    Debug.Log($"[UIProbe] Deleted record: {filePath}");
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[UIProbe] Failed to delete record: {e.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 删除整个日期文件夹
+        /// </summary>
+        public static bool DeleteDateFolder(string dateFolder)
+        {
+            try
+            {
+                string folderPath = Path.Combine(UIProbeStorage.GetRenameHistoryPath(), dateFolder);
+                if (Directory.Exists(folderPath))
+                {
+                    Directory.Delete(folderPath, true);
+                    Debug.Log($"[UIProbe] Deleted date folder: {dateFolder}");
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[UIProbe] Failed to delete date folder: {e.Message}");
+                return false;
+            }
         }
 
         /// <summary>

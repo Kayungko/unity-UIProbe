@@ -16,6 +16,7 @@ namespace UIProbe
         private Dictionary<string, bool> duplicateGroupFoldouts = new Dictionary<string, bool>();
         private Dictionary<GameObject, string> renameInputs = new Dictionary<GameObject, string>();
         private int duplicateCheckerSubTab = 0;  // 0=检测功能, 1=历史记录
+        private string lastRenamedNodeName = "";  // 最后重命名的节点名（用于保持焦点）
         
         // Batch Mode State
         private bool isBatchMode = false;
@@ -36,6 +37,7 @@ namespace UIProbe
         // Rename History State
         private bool showRenameHistory = false;
         private Vector2 renameHistoryScrollPosition;
+        private Dictionary<string, bool> historyDateFoldouts = new Dictionary<string, bool>();
         
         /// <summary>
         /// 绘制重名检测标签页
@@ -227,6 +229,35 @@ namespace UIProbe
             
             // 默认收起所有组，不再自动展开
             // 用户可以按需展开查看
+            
+            // 如果有刚重命名的节点，自动展开对应的组
+            if (!string.IsNullOrEmpty(lastRenamedNodeName))
+            {
+                bool foundGroup = false;
+                
+                // 检查该组是否还存在
+                foreach (var group in currentDuplicateResult.Groups)
+                {
+                    if (group.NodeName == lastRenamedNodeName)
+                    {
+                        // 自动展开该组，方便用户继续处理
+                        duplicateGroupFoldouts[group.NodeName] = true;
+                        foundGroup = true;
+                        break;
+                    }
+                }
+                
+                // 如果组不存在了（重命名后无重名），显示提示
+                if (!foundGroup && currentDuplicateResult.Groups.Count > 0)
+                {
+                    // 只在还有其他重名组的情况下显示提示
+                    // 避免在完全解决所有重名时显示
+                    Debug.Log($"[UIProbe] '{lastRenamedNodeName}' 已无重名节点");
+                }
+                
+                // 清除记录
+                lastRenamedNodeName = "";
+            }
             
             Repaint();
         }
@@ -534,6 +565,9 @@ namespace UIProbe
             }
 
             string oldName = obj.name;
+            
+            // 记录重命名的节点名称（用于保持焦点）
+            lastRenamedNodeName = oldName;
             
             // 获取预制体路径
             string prefabPath = "";

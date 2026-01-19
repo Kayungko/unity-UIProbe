@@ -35,7 +35,12 @@ namespace UIProbe
                 
                 // 检测范围
                 EditorGUILayout.LabelField("检测范围:", EditorStyles.boldLabel);
-                duplicateSettings.DetectionScope = (DuplicateDetectionMode)EditorGUILayout.EnumPopup("范围:", duplicateSettings.DetectionScope);
+                var newScope = (DuplicateDetectionMode)EditorGUILayout.EnumPopup("范围:", duplicateSettings.DetectionScope);
+                if (newScope != duplicateSettings.DetectionScope)
+                {
+                    duplicateSettings.DetectionScope = newScope;
+                    SaveSettingsData();
+                }
                 string scopeDesc = duplicateSettings.DetectionScope == DuplicateDetectionMode.Global
                     ? "全局：检测整个预制体中所有同名节点"
                     : "同级：仅检测同一父节点下的同名节点";
@@ -45,7 +50,12 @@ namespace UIProbe
                 
                 // 过滤模式
                 EditorGUILayout.LabelField("过滤规则:", EditorStyles.boldLabel);
-                duplicateSettings.Mode = (DetectionMode)EditorGUILayout.EnumPopup("模式:", duplicateSettings.Mode);
+                var newMode = (DetectionMode)EditorGUILayout.EnumPopup("模式:", duplicateSettings.Mode);
+                if (newMode != duplicateSettings.Mode)
+                {
+                    duplicateSettings.Mode = newMode;
+                    SaveSettingsData();
+                }
                 if (duplicateSettings.Mode == DetectionMode.Strict)
                 {
                     EditorGUILayout.HelpBox("严格模式：检测并报告所有重名节点（忽略以下规则）", MessageType.Info);
