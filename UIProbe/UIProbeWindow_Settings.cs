@@ -347,8 +347,14 @@ namespace UIProbe
             // Version & Credits (at the very bottom)
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("ToolName:UIProbe Version: 1.3");
-            EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天");
+            EditorGUILayout.LabelField("UIProbe - Unity UI 界面探针工具");
+            EditorGUILayout.LabelField("Version: 1.4.0", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天", EditorStyles.miniLabel);
+            
+            EditorGUILayout.Space(3);
+            EditorGUILayout.LabelField("核心功能:", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("• 运行时拾取 • 预制体索引 • 界面记录", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 重名检测 • 批量操作 • 历史管理", EditorStyles.miniLabel);
             EditorGUILayout.EndVertical();
             
             // End ScrollView
