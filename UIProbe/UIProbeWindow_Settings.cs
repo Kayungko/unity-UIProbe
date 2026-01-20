@@ -140,8 +140,25 @@ namespace UIProbe
             EditorGUILayout.Space(5);
             EditorGUILayout.LabelField("文件夹结构:", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(UIProbeStorage.GetFolderStructureDescription(), MessageType.None);
+
             
-            // Warning for project-internal paths
+            // 快速打开子文件夹按钮
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("打开修改日志", EditorStyles.miniButton))
+            {
+                EditorUtility.RevealInFinder(UIProbeStorage.GetModificationLogsPath());
+            }
+            if (GUILayout.Button("打开重命名历史", EditorStyles.miniButton))
+            {
+                EditorUtility.RevealInFinder(UIProbeStorage.GetRenameHistoryPath());
+            }
+            if (GUILayout.Button("打开CSV导出", EditorStyles.miniButton))
+            {
+                EditorUtility.RevealInFinder(UIProbeStorage.GetCSVExportPath());
+            }
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(2);
             if (currentMainPath.Contains(Application.dataPath))
             {
                 EditorGUILayout.HelpBox("⚠ 注意：当前路径在项目内，可能会被 Git 提交！建议使用默认路径或项目外路径。", MessageType.Warning);
@@ -379,7 +396,7 @@ namespace UIProbe
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("UIProbe - Unity UI 界面探针工具");
-            EditorGUILayout.LabelField("Version: 1.7.7", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("Version: 1.7.8", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天", EditorStyles.miniLabel);
             
             EditorGUILayout.Space(3);

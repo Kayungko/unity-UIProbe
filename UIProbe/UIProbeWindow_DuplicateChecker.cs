@@ -159,6 +159,21 @@ namespace UIProbe
             
             GUILayout.FlexibleSpace();
             
+            // 完成修改按钮 (仅当有修改记录时显示)
+            if (ModificationLogManager.HasLogs())
+            {
+                Color originalColor = GUI.backgroundColor;
+                GUI.backgroundColor = Color.green;
+                
+                if (GUILayout.Button("完成修改并生成日志", GUILayout.Width(150), GUILayout.Height(30)))
+                {
+                    FinishModification();
+                }
+                
+                GUI.backgroundColor = originalColor;
+                GUILayout.Space(10);
+            }
+            
             // Auto-detect current prefab
             GUI.enabled = PrefabStageUtility.GetCurrentPrefabStage() != null;
             if (GUILayout.Button("检测当前预制体", GUILayout.Width(120), GUILayout.Height(30)))
@@ -599,6 +614,22 @@ namespace UIProbe
             if (!string.IsNullOrEmpty(prefabPath))
             {
                 RenameHistoryManager.AddRecord(obj, oldName, newName, prefabPath);
+                
+                // 记录到本次会话日志，用于生成CSV
+                string prefabName = "";
+                if (prefabRoot != null)
+                {
+                    prefabName = prefabRoot.name;
+                }
+                else
+                {
+                    prefabName = Path.GetFileNameWithoutExtension(prefabPath);
+                }
+                
+                // 获取节点路径
+                string nodePath = AnimationPathRepair.GetRelativePath(prefabRoot != null ? prefabRoot.transform : null, obj.transform);
+                
+                ModificationLogManager.AddLog(prefabName, oldName, newName, nodePath);
             }
             
             // 清除输入框状态，避免残留旧文本
@@ -611,6 +642,42 @@ namespace UIProbe
             DetectCurrentPrefab();
             
             Debug.Log($"[UIProbe] Renamed: {oldName} → {newName}");
+        }
+        
+        /// <summary>
+        /// 完成修改并生成日志
+        /// </summary>
+        private void FinishModification()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            string prefabName = "Unknown";
+            
+            if (prefabStage != null)
+            {
+                prefabName = prefabStage.prefabContentsRoot.name;
+            }
+            else if (lastCheckedPrefab != null)
+            {
+                prefabName = lastCheckedPrefab.name;
+            }
+            
+            string csvPath = ModificationLogManager.GenerateCSV(prefabName);
+            
+            if (!string.IsNullOrEmpty(csvPath))
+            {
+                EditorUtility.DisplayDialog("成功", $"修改日志已生成:\n{csvPath}", "确定");
+                
+                // 如果是从批量模式进入的，自动返回，并标记当前项已处理
+                if (isFromBatchMode)
+                {
+                    if (currentProcessingItem != null)
+                    {
+                        currentProcessingItem.IsProcessed = true;
+                        currentProcessingItem.ProcessedTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    }
+                    ReturnToBatchMode();
+                }
+            }
         }
     }
 }

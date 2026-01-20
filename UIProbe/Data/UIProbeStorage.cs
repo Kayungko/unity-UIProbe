@@ -15,9 +15,18 @@ namespace UIProbe
         // 子文件夹名称
         private const string UI_HISTORY_FOLDER = "UI_Interface_History";
         private const string RENAME_HISTORY_FOLDER = "Rename_History";
+        private const string MODIFICATION_LOGS_FOLDER = "Modification_Logs";
         private const string CSV_EXPORTS_FOLDER = "CSV_Exports";
         private const string BATCH_RESULTS_FOLDER = "Batch_Results";
         private const string SETTINGS_FOLDER = "Settings";
+
+        /// <summary>
+        /// 获取主文件夹路径 (GetStoragePath 别名)
+        /// </summary>
+        public static string GetStoragePath()
+        {
+            return GetMainFolderPath();
+        }
 
         /// <summary>
         /// 获取主文件夹路径
@@ -61,6 +70,16 @@ namespace UIProbe
         public static string GetRenameHistoryPath()
         {
             string path = Path.Combine(GetMainFolderPath(), RENAME_HISTORY_FOLDER);
+            EnsureDirectoryExists(path);
+            return path;
+        }
+
+        /// <summary>
+        /// 获取修改日志存储路径
+        /// </summary>
+        public static string GetModificationLogsPath()
+        {
+            string path = Path.Combine(GetMainFolderPath(), MODIFICATION_LOGS_FOLDER);
             EnsureDirectoryExists(path);
             return path;
         }
@@ -133,7 +152,8 @@ namespace UIProbe
 ├── IndexCache.json              (索引缓存)
 ├── {UI_HISTORY_FOLDER}/          (界面记录)
 ├── {RENAME_HISTORY_FOLDER}/      (重命名历史)
-├── {CSV_EXPORTS_FOLDER}/         (CSV导出)
+├── {MODIFICATION_LOGS_FOLDER}/   (CSV修改日志-新增)
+├── {CSV_EXPORTS_FOLDER}/         (检测结果导出)
 ├── {BATCH_RESULTS_FOLDER}/       (批量检测结果)
 └── {SETTINGS_FOLDER}/            (设置数据)";
         }
