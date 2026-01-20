@@ -146,9 +146,14 @@ namespace UIProbe
                     EditorGUILayout.LabelField(batchDuplicateResult.GetSummary(), EditorStyles.wordWrappedLabel);
                     
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("导出 CSV", GUILayout.Width(80)))
+                    if (GUILayout.Button("导出CSV(简化)", GUILayout.Width(100)))
                     {
-                        CSVExporter.ExportBatchDuplicateResults(batchDuplicateResult);
+                        CSVExporter.ExportBatchDuplicateResults(batchDuplicateResult, false);
+                    }
+                    
+                    if (GUILayout.Button("导出CSV(详细)", GUILayout.Width(100)))
+                    {
+                        CSVExporter.ExportBatchDuplicateResults(batchDuplicateResult, true);
                     }
                     
                     if (GUILayout.Button("清除结果", GUILayout.Width(80)))
@@ -156,6 +161,8 @@ namespace UIProbe
                         batchDuplicateResult = null;
                     }
                     GUILayout.EndHorizontal();
+                    
+                    EditorGUILayout.LabelField("简化: 预制体+汇总 | 详细: 每个重复路径单独一行", EditorStyles.miniLabel);
                     
                     EditorGUILayout.EndVertical();
                 }

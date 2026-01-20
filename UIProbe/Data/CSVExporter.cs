@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEditor;
@@ -166,9 +167,19 @@ namespace UIProbe
         }
         
         /// <summary>
-        /// 导出批量检测结果到 CSV（所属文件夹 | 预制体名称 | 是否存在重复命名 | 重复节点详情 | 是否已处理 | 是否已弃用）
+        /// 导出批量检测结果到 CSV（简化版：名称+数量）
         /// </summary>
         public static void ExportBatchDuplicateResults(BatchDuplicateResult batchResult)
+        {
+            ExportBatchDuplicateResults(batchResult, false);
+        }
+        
+        /// <summary>
+        /// 导出批量检测结果到 CSV
+        /// </summary>
+        /// <param name="batchResult">批量检测结果</param>
+        /// <param name="detailedPaths">是否启用详细路径模式（每个重复节点路径单独一行）</param>
+        public static void ExportBatchDuplicateResults(BatchDuplicateResult batchResult, bool detailedPaths)
         {
             if (batchResult == null || batchResult.TotalPrefabs == 0)
             {
@@ -176,35 +187,74 @@ namespace UIProbe
                 return;
             }
             
-            // 直接保存到CSV_Exports目录，不弹出对话框
-            string fileName = $"BatchDuplicateCheck_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            // 过滤只保留有重复的预制体
+            var resultsWithDuplicates = batchResult.Results.Where(r => r.HasDuplicates).ToList();
+            
+            if (resultsWithDuplicates.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有存在重复命名的预制体", "确定");
+                return;
+            }
+            
+            string fileName = detailedPaths 
+                ? $"BatchDuplicateCheck_Detailed_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv"
+                : $"BatchDuplicateCheck_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv";
             string savePath = Path.Combine(UIProbeStorage.GetCSVExportPath(), fileName);
             
             StringBuilder csv = new StringBuilder();
+            int exportedRows = 0;
             
-            // 表头
-            csv.AppendLine("所属文件夹,预制体名称,是否存在重复命名,重复节点详情,是否已处理,处理时间,是否已弃用,弃用时间");
-            
-            // 数据行
-            foreach (var result in batchResult.Results)
+            if (detailedPaths)
             {
-                string folder = EscapeCSV(result.FolderPath);
-                string prefabName = EscapeCSV(result.PrefabName);
-                string hasDuplicates = result.HasDuplicates ? "是" : "否";
-                string duplicates = EscapeCSV(result.GetDuplicateSummary());
-                string isProcessed = result.IsProcessed ? "是" : "否";
-                string processedTime = EscapeCSV(result.ProcessedTime ?? "");
-                string isDeprecated = result.IsDeprecated ? "是" : "否";
-                string deprecatedTime = EscapeCSV(result.DeprecatedTime ?? "");
+                // 详细模式：每个重复节点路径一行
+                csv.AppendLine("所属文件夹,预制体名称,重复节点名称,节点完整路径");
                 
-                csv.AppendLine($"{folder},{prefabName},{hasDuplicates},{duplicates},{isProcessed},{processedTime},{isDeprecated},{deprecatedTime}");
+                foreach (var result in resultsWithDuplicates)
+                {
+                    // 使用FolderPath而非PrefabPath，因为预制体名称已经有单独的列
+                    string folderPath = EscapeCSV(result.FolderPath);
+                    string prefabName = EscapeCSV(result.PrefabName);
+                    
+                    if (result.Result != null && result.Result.Groups != null)
+                    {
+                        foreach (var group in result.Result.Groups)
+                        {
+                            foreach (var nodePath in group.Paths)
+                            {
+                                csv.AppendLine($"{folderPath},{prefabName},{EscapeCSV(group.NodeName)},{EscapeCSV(nodePath)}");
+                                exportedRows++;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // 简化模式：汇总信息
+                csv.AppendLine("预制体路径,预制体名称,重复节点汇总,是否已处理,处理时间,是否已弃用,弃用时间");
+                
+                foreach (var result in resultsWithDuplicates)
+                {
+                    string prefabPath = EscapeCSV(result.PrefabPath);
+                    string prefabName = EscapeCSV(result.PrefabName);
+                    string duplicates = EscapeCSV(result.GetDuplicateSummary());
+                    string isProcessed = result.IsProcessed ? "是" : "否";
+                    string processedTime = EscapeCSV(result.ProcessedTime ?? "");
+                    string isDeprecated = result.IsDeprecated ? "是" : "否";
+                    string deprecatedTime = EscapeCSV(result.DeprecatedTime ?? "");
+                    
+                    csv.AppendLine($"{prefabPath},{prefabName},{duplicates},{isProcessed},{processedTime},{isDeprecated},{deprecatedTime}");
+                    exportedRows++;
+                }
             }
             
             try
             {
                 File.WriteAllText(savePath, csv.ToString(), Encoding.UTF8);
+                
+                string modeText = detailedPaths ? "详细路径模式" : "简化模式";
                 EditorUtility.DisplayDialog("导出成功", 
-                    $"批量检测结果已导出到:\n{savePath}\n\n共 {batchResult.TotalPrefabs} 个预制体，{batchResult.PrefabsWithDuplicates} 个存在重名", 
+                    $"批量检测结果已导出到:\n{savePath}\n\n模式: {modeText}\n导出预制体: {resultsWithDuplicates.Count} 个\n导出行数: {exportedRows} 行", 
                     "确定");
                 EditorUtility.RevealInFinder(savePath);
             }

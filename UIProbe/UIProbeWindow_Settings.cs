@@ -340,6 +340,37 @@ namespace UIProbe
             }  // End of showDataManagement if block
             
             EditorGUILayout.EndVertical();
+            
+            // ===== 保存/重置设置区域 =====
+            EditorGUILayout.Space(10);
+            EditorGUILayout.BeginHorizontal();
+            
+            GUILayout.FlexibleSpace();
+            
+            // 重置默认按钮
+            if (GUILayout.Button("重置为默认", GUILayout.Width(100), GUILayout.Height(28)))
+            {
+                if (EditorUtility.DisplayDialog("确认重置", "确定要将所有设置重置为默认值吗？", "确定", "取消"))
+                {
+                    duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                    recordStoragePath = "";
+                    SaveSettingsData();
+                    Debug.Log("[UIProbe] 设置已重置为默认值");
+                }
+            }
+            
+            GUILayout.Space(10);
+            
+            // 保存设置按钮
+            GUI.backgroundColor = new Color(0.4f, 0.8f, 0.4f);
+            if (GUILayout.Button("💾 保存设置", GUILayout.Width(120), GUILayout.Height(28)))
+            {
+                SaveSettingsData();
+                EditorUtility.DisplayDialog("保存成功", "设置已保存", "确定");
+            }
+            GUI.backgroundColor = Color.white;
+            
+            EditorGUILayout.EndHorizontal();
 
             // Push About to bottom
             GUILayout.FlexibleSpace();
@@ -348,13 +379,12 @@ namespace UIProbe
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("UIProbe - Unity UI 界面探针工具");
-            EditorGUILayout.LabelField("Version: 1.7.3", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("Version: 1.7.4", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天", EditorStyles.miniLabel);
             
             EditorGUILayout.Space(3);
             EditorGUILayout.LabelField("核心功能:", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("• 运行时拾取 • 预制体索引 • 界面记录", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("• 重名检测 • 批量操作 • 历史管理", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 运行时拾取 • 预制体索引 • 界面记录• 重名检测 • 批量操作 • 历史管理", EditorStyles.miniLabel);
             EditorGUILayout.EndVertical();
             
             // End ScrollView
