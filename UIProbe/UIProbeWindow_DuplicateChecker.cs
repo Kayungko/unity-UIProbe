@@ -573,12 +573,21 @@ namespace UIProbe
             // 记录重命名的节点名称（用于保持焦点）
             lastRenamedNodeName = oldName;
             
-            // 获取预制体路径
+            // 获取预制体路径和根节点
             string prefabPath = "";
+            GameObject prefabRoot = null;
             var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
             if (prefabStage != null)
             {
                 prefabPath = prefabStage.assetPath;
+                prefabRoot = prefabStage.prefabContentsRoot;
+            }
+            
+            // 检查并修复动画引用
+            if (prefabRoot != null && !AnimationPathRepair.CheckAndRepairForRename(prefabRoot, obj, newName))
+            {
+                // 用户取消了操作
+                return;
             }
             
             // 使用 Undo 支持撤销
