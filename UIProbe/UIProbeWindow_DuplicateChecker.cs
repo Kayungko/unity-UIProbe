@@ -383,7 +383,6 @@ namespace UIProbe
             }
             
             EditorGUILayout.EndVertical();
-            EditorGUILayout.Space(3);
         }
         
         /// <summary>

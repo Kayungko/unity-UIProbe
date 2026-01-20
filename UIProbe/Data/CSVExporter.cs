@@ -166,7 +166,7 @@ namespace UIProbe
         }
         
         /// <summary>
-        /// 导出批量检测结果到 CSV（所属文件夹 | 预制体名称 | 是否存在重复命名 | 重复节点详情）
+        /// 导出批量检测结果到 CSV（所属文件夹 | 预制体名称 | 是否存在重复命名 | 重复节点详情 | 是否已处理 | 是否已弃用）
         /// </summary>
         public static void ExportBatchDuplicateResults(BatchDuplicateResult batchResult)
         {
@@ -183,7 +183,7 @@ namespace UIProbe
             StringBuilder csv = new StringBuilder();
             
             // 表头
-            csv.AppendLine("所属文件夹,预制体名称,是否存在重复命名,重复节点详情");
+            csv.AppendLine("所属文件夹,预制体名称,是否存在重复命名,重复节点详情,是否已处理,处理时间,是否已弃用,弃用时间");
             
             // 数据行
             foreach (var result in batchResult.Results)
@@ -192,8 +192,12 @@ namespace UIProbe
                 string prefabName = EscapeCSV(result.PrefabName);
                 string hasDuplicates = result.HasDuplicates ? "是" : "否";
                 string duplicates = EscapeCSV(result.GetDuplicateSummary());
+                string isProcessed = result.IsProcessed ? "是" : "否";
+                string processedTime = EscapeCSV(result.ProcessedTime ?? "");
+                string isDeprecated = result.IsDeprecated ? "是" : "否";
+                string deprecatedTime = EscapeCSV(result.DeprecatedTime ?? "");
                 
-                csv.AppendLine($"{folder},{prefabName},{hasDuplicates},{duplicates}");
+                csv.AppendLine($"{folder},{prefabName},{hasDuplicates},{duplicates},{isProcessed},{processedTime},{isDeprecated},{deprecatedTime}");
             }
             
             try

@@ -223,7 +223,7 @@ namespace UIProbe
             if (!result.IsProcessed)
             {
                 string deprecateLabel = result.IsDeprecated ? "恢复" : "弃用";
-                if (GUILayout.Button(deprecateLabel, EditorStyles.miniButton, GUILayout.Width(40)))
+                if (GUILayout.Button(deprecateLabel, EditorStyles.miniButton, GUILayout.Width(50)))
                 {
                     result.IsDeprecated = !result.IsDeprecated;
                     result.DeprecatedTime = result.IsDeprecated ? 

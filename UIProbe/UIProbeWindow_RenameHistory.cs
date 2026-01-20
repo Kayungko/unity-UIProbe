@@ -273,22 +273,22 @@ namespace UIProbe
             EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
             
             // 序号
-            EditorGUILayout.LabelField($"{index}.", GUILayout.Width(30));
+            EditorGUILayout.LabelField($"{index}.", GUILayout.Width(25));
             
             // 时间
             string time = record.Timestamp.Split(' ').Length > 1 ? record.Timestamp.Split(' ')[1] : record.Timestamp;
-            EditorGUILayout.LabelField($"🕐 {time}", EditorStyles.miniLabel, GUILayout.Width(80));
+            EditorGUILayout.LabelField($"🕐 {time}", EditorStyles.miniLabel, GUILayout.Width(75));
             
-            // 节点路径（简化显示）
+            // 节点路径（简化显示，增加宽度）
             string shortPath = record.NodePath.Contains("/") 
                 ? ".../" + record.NodePath.Split('/').Last() 
                 : record.NodePath;
-            EditorGUILayout.LabelField(shortPath, EditorStyles.miniLabel, GUILayout.Width(120));
+            EditorGUILayout.LabelField(shortPath, EditorStyles.miniLabel, GUILayout.Width(150));
             
-            // 旧名 → 新名
-            EditorGUILayout.LabelField(record.OldName, GUILayout.Width(100));
+            // 旧名 → 新名（增加宽度）
+            EditorGUILayout.LabelField(record.OldName, GUILayout.Width(120));
             EditorGUILayout.LabelField("→", GUILayout.Width(20));
-            EditorGUILayout.LabelField(record.NewName, EditorStyles.boldLabel, GUILayout.Width(100));
+            EditorGUILayout.LabelField(record.NewName, EditorStyles.boldLabel, GUILayout.Width(120));
             
             GUILayout.FlexibleSpace();
             

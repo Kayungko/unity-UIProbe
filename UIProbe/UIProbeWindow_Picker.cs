@@ -270,19 +270,30 @@ namespace UIProbe
 
         private void HandlePickerInput()
         {
+            // 支持鼠标点击
             if (Input.GetMouseButtonDown(0))
             {
-                PickUIElement();
+                PickUIElement(Input.mousePosition);
+            }
+            
+            // 支持触摸输入（Device Simulator）
+            if (Input.touchCount > 0)
+            {
+                Touch touch = Input.GetTouch(0);
+                if (touch.phase == TouchPhase.Began)
+                {
+                    PickUIElement(touch.position);
+                }
             }
         }
 
-        private void PickUIElement()
+        private void PickUIElement(Vector2 screenPosition)
         {
             if (UnityEngine.EventSystems.EventSystem.current == null) return;
 
             var pointerData = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
             {
-                position = Input.mousePosition
+                position = screenPosition
             };
 
             var results = new List<UnityEngine.EventSystems.RaycastResult>();
