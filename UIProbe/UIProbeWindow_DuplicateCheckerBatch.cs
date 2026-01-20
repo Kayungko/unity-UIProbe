@@ -29,6 +29,10 @@ namespace UIProbe
             currentBatchResult = result;
             batchCardPageIndex = 0;
             
+            // 加载排除设置并更新文件夹统计
+            LoadExcludedFolders();
+            UpdateFolderCounts();
+            
             // 切换到检测功能子标签
             duplicateCheckerSubTab = 0;
             
@@ -103,12 +107,32 @@ namespace UIProbe
                 batchCardPageIndex = 0;
             }
             
+            // 文件夹过滤按钮
+            string filterLabel = excludedFolders.Count > 0 
+                ? $"📁 文件夹过滤 ({excludedFolders.Count})" 
+                : "📁 文件夹过滤";
+            bool newShowFolderFilter = GUILayout.Toggle(
+                showFolderFilter, 
+                filterLabel, 
+                EditorStyles.toolbarButton,
+                GUILayout.Width(120)
+            );
+            if (newShowFolderFilter != showFolderFilter)
+            {
+                showFolderFilter = newShowFolderFilter;
+                if (showFolderFilter)
+                {
+                    UpdateFolderCounts();
+                }
+            }
+            
             GUILayout.FlexibleSpace();
             
             // 显示处理进度
-            int processedDuplicates = currentBatchResult.Results.Count(r => r.HasDuplicates && r.IsProcessed);
+            int processedDuplicates = currentBatchResult.Results.Count(r => r.HasDuplicates && r.IsProcessed && !excludedFolders.Contains(GetFolderName(r.FolderPath)));
+            int totalDuplicates = currentBatchResult.Results.Count(r => r.HasDuplicates && !excludedFolders.Contains(GetFolderName(r.FolderPath)));
             EditorGUILayout.LabelField(
-                $"已处理: {processedDuplicates}/{currentBatchResult.PrefabsWithDuplicates}", 
+                $"已处理: {processedDuplicates}/{totalDuplicates}", 
                 EditorStyles.miniLabel, 
                 GUILayout.Width(100)
             );
@@ -121,12 +145,19 @@ namespace UIProbe
             
             GUILayout.EndHorizontal();
             
+            // 文件夹过滤面板
+            if (showFolderFilter)
+            {
+                DrawFolderFilterPanel();
+            }
+            
             EditorGUILayout.Space(5);
             
-            // 获取过滤后的预制体列表
-            var displayResults = batchShowOnlyDuplicates 
-                ? currentBatchResult.Results.Where(r => r.HasDuplicates).ToList()
-                : currentBatchResult.Results;
+            // 获取过滤后的预制体列表（应用文件夹排除）
+            var displayResults = currentBatchResult.Results
+                .Where(r => !excludedFolders.Contains(GetFolderName(r.FolderPath)))
+                .Where(r => !batchShowOnlyDuplicates || r.HasDuplicates)
+                .ToList();
             
             if (displayResults.Count == 0)
             {
@@ -366,6 +397,154 @@ namespace UIProbe
             catch (System.Exception e)
             {
                 EditorUtility.DisplayDialog("错误", $"导入失败:\n{e.Message}", "确定");
+            }
+        }
+        
+        /// <summary>
+        /// 获取文件夹名称（从完整路径提取最后一级文件夹名）
+        /// </summary>
+        private string GetFolderName(string folderPath)
+        {
+            if (string.IsNullOrEmpty(folderPath))
+                return "";
+            
+            // 标准化路径分隔符
+            string normalized = folderPath.Replace("\\", "/");
+            
+            // 获取最后一级文件夹名
+            string[] parts = normalized.Split('/');
+            return parts.Length > 0 ? parts[parts.Length - 1] : folderPath;
+        }
+        
+        /// <summary>
+        /// 更新各文件夹的预制体数量统计
+        /// </summary>
+        private void UpdateFolderCounts()
+        {
+            folderPrefabCounts.Clear();
+            
+            if (currentBatchResult == null)
+                return;
+            
+            foreach (var result in currentBatchResult.Results)
+            {
+                if (!result.HasDuplicates)
+                    continue;
+                    
+                string folderName = GetFolderName(result.FolderPath);
+                if (string.IsNullOrEmpty(folderName))
+                    continue;
+                
+                if (folderPrefabCounts.ContainsKey(folderName))
+                    folderPrefabCounts[folderName]++;
+                else
+                    folderPrefabCounts[folderName] = 1;
+            }
+        }
+        
+        /// <summary>
+        /// 绘制文件夹过滤面板
+        /// </summary>
+        private void DrawFolderFilterPanel()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
+            // 标题栏
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("📁 文件夹过滤", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            
+            if (GUILayout.Button("全选", EditorStyles.miniButton, GUILayout.Width(50)))
+            {
+                excludedFolders.Clear();
+                batchCardPageIndex = 0;
+                SaveExcludedFolders();
+            }
+            
+            if (GUILayout.Button("全不选", EditorStyles.miniButton, GUILayout.Width(50)))
+            {
+                excludedFolders.Clear();
+                foreach (var folder in folderPrefabCounts.Keys)
+                {
+                    excludedFolders.Add(folder);
+                }
+                batchCardPageIndex = 0;
+                SaveExcludedFolders();
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.LabelField("勾选要显示的文件夹，取消勾选排除:", EditorStyles.miniLabel);
+            
+            EditorGUILayout.Space(3);
+            
+            // 文件夹列表
+            var sortedFolders = folderPrefabCounts.OrderByDescending(kv => kv.Value).ToList();
+            
+            foreach (var kv in sortedFolders)
+            {
+                string folderName = kv.Key;
+                int count = kv.Value;
+                bool isIncluded = !excludedFolders.Contains(folderName);
+                
+                GUILayout.BeginHorizontal();
+                
+                bool newIncluded = EditorGUILayout.Toggle(isIncluded, GUILayout.Width(20));
+                EditorGUILayout.LabelField($"{folderName}", GUILayout.ExpandWidth(true));
+                EditorGUILayout.LabelField($"({count}个问题)", EditorStyles.miniLabel, GUILayout.Width(70));
+                
+                GUILayout.EndHorizontal();
+                
+                if (newIncluded != isIncluded)
+                {
+                    if (newIncluded)
+                        excludedFolders.Remove(folderName);
+                    else
+                        excludedFolders.Add(folderName);
+                    
+                    batchCardPageIndex = 0;
+                    SaveExcludedFolders();
+                }
+            }
+            
+            EditorGUILayout.Space(3);
+            
+            // 统计信息
+            int totalFolders = folderPrefabCounts.Count;
+            int includedFolders = totalFolders - excludedFolders.Count;
+            EditorGUILayout.LabelField(
+                $"显示 {includedFolders}/{totalFolders} 个文件夹", 
+                EditorStyles.centeredGreyMiniLabel
+            );
+            
+            EditorGUILayout.EndVertical();
+        }
+        
+        /// <summary>
+        /// 保存排除的文件夹列表到EditorPrefs
+        /// </summary>
+        private void SaveExcludedFolders()
+        {
+            string json = string.Join(",", excludedFolders);
+            EditorPrefs.SetString("UIProbe_ExcludedFolders", json);
+        }
+        
+        /// <summary>
+        /// 加载排除的文件夹列表
+        /// </summary>
+        private void LoadExcludedFolders()
+        {
+            string json = EditorPrefs.GetString("UIProbe_ExcludedFolders", "");
+            excludedFolders.Clear();
+            
+            if (!string.IsNullOrEmpty(json))
+            {
+                string[] folders = json.Split(',');
+                foreach (string folder in folders)
+                {
+                    if (!string.IsNullOrEmpty(folder))
+                        excludedFolders.Add(folder);
+                }
             }
         }
     }

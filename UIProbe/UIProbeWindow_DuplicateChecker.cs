@@ -26,6 +26,11 @@ namespace UIProbe
         private const int CARDS_PER_PAGE = 5;
         private Vector2 batchScrollPosition;
         
+        // Folder Exclusion Filter State
+        private HashSet<string> excludedFolders = new HashSet<string>();  // 当前排除的文件夹
+        private bool showFolderFilter = false;  // 是否显示文件夹过滤面板
+        private Dictionary<string, int> folderPrefabCounts = new Dictionary<string, int>();  // 各文件夹的预制体数量
+        
         // Batch Mode Context (for return functionality)
         private string currentBatchResultPath = "";  // JSON文件路径
         private PrefabDuplicateResult currentProcessingItem = null;  // 当前处理的项
