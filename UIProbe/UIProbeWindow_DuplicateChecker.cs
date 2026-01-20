@@ -584,7 +584,7 @@ namespace UIProbe
             }
             
             // 检查并修复动画引用
-            if (prefabRoot != null && !AnimationPathRepair.CheckAndRepairForRename(prefabRoot, obj, newName))
+            if (prefabRoot != null && !AnimationPathRepair.CheckAndRepairForRename(prefabRoot, obj.transform, newName))
             {
                 // 用户取消了操作
                 return;
