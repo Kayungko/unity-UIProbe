@@ -588,8 +588,11 @@ namespace UIProbe
                 RenameHistoryManager.AddRecord(obj, oldName, newName, prefabPath);
             }
             
-            // 更新输入框
-            renameInputs[obj] = newName;
+            // 清除输入框状态，避免残留旧文本
+            renameInputs.Remove(obj);
+            
+            // 清除当前焦点，避免输入框保持激活状态
+            GUI.FocusControl(null);
             
             // 重新检测以更新结果
             DetectCurrentPrefab();

@@ -13,13 +13,24 @@ namespace UIProbe
         /// </summary>
         partial void LoadBatchResultIntoChecker(BatchDuplicateResult result)
         {
+            if (result == null)
+                return;
+            
+            // 过滤掉已弃用的项
+            int deprecatedCount = result.Results.Count(r => r.IsDeprecated);
+            if (deprecatedCount > 0)
+            {
+                result.Results.RemoveAll(r => r.IsDeprecated);
+                Debug.Log($"[UIProbe] 已过滤 {deprecatedCount} 个已弃用的预制体");
+            }
+            
+            // 切换到批量模式
             isBatchMode = true;
             currentBatchResult = result;
             batchCardPageIndex = 0;
             
-            // 清除来自批量模式标记（因为这是重新进入批量模式）
-            isFromBatchMode = false;
-            currentProcessingItem = null;
+            // 切换到检测功能子标签
+            duplicateCheckerSubTab = 0;
             
             Repaint();
         }
@@ -176,7 +187,11 @@ namespace UIProbe
         private void DrawPrefabCard(PrefabDuplicateResult result)
         {
             // 根据状态设置背景色
-            if (result.IsProcessed)
+            if (result.IsDeprecated)
+            {
+                GUI.backgroundColor = new Color(0.7f, 0.7f, 0.7f);  // 灰色（已弃用）
+            }
+            else if (result.IsProcessed)
             {
                 GUI.backgroundColor = new Color(0.85f, 1f, 0.85f);  // 淡绿色
             }
@@ -187,17 +202,38 @@ namespace UIProbe
             GUILayout.BeginHorizontal();
             
             // 状态图标
-            string statusIcon = result.IsProcessed ? "✅" : 
+            string statusIcon = result.IsDeprecated ? "⛔" :
+                                result.IsProcessed ? "✅" : 
                                 result.HasDuplicates ? "🔴" : "✅";
             GUILayout.Label(statusIcon, GUILayout.Width(25));
             
             // 预制体名称
-            EditorGUILayout.LabelField(result.PrefabName, EditorStyles.boldLabel);
+            if (result.IsDeprecated)
+            {
+                EditorGUILayout.LabelField($"{result.PrefabName} (已弃用)", EditorStyles.boldLabel);
+            }
+            else
+            {
+                EditorGUILayout.LabelField(result.PrefabName, EditorStyles.boldLabel);
+            }
             
             GUILayout.FlexibleSpace();
             
+            // 弃用切换按钮
+            if (!result.IsProcessed)
+            {
+                string deprecateLabel = result.IsDeprecated ? "恢复" : "弃用";
+                if (GUILayout.Button(deprecateLabel, EditorStyles.miniButton, GUILayout.Width(40)))
+                {
+                    result.IsDeprecated = !result.IsDeprecated;
+                    result.DeprecatedTime = result.IsDeprecated ? 
+                        System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") : "";
+                    SaveBatchResult();
+                }
+            }
+            
             // 操作按钮
-            if (!result.IsProcessed && result.HasDuplicates)
+            if (!result.IsDeprecated && !result.IsProcessed && result.HasDuplicates)
             {
                 if (GUILayout.Button("打开", GUILayout.Width(50)))
                 {
@@ -214,8 +250,14 @@ namespace UIProbe
             // 路径
             EditorGUILayout.LabelField($"📂 {result.FolderPath}", EditorStyles.miniLabel);
             
+            // 弃用信息
+            if (result.IsDeprecated && !string.IsNullOrEmpty(result.DeprecatedTime))
+            {
+                EditorGUILayout.LabelField($"⛔ 已弃用于: {result.DeprecatedTime}", EditorStyles.miniLabel);
+            }
+            
             // 重名信息
-            if (result.HasDuplicates)
+            if (result.HasDuplicates && !result.IsDeprecated)
             {
                 EditorGUILayout.Space(3);
                 string duplicateInfo = result.GetDuplicateSummary();
@@ -230,7 +272,7 @@ namespace UIProbe
                     );
                 }
             }
-            else
+            else if (!result.IsDeprecated)
             {
                 EditorGUILayout.Space(3);
                 EditorGUILayout.LabelField("✅ 无重名节点", EditorStyles.miniLabel);

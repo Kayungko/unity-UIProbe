@@ -17,6 +17,8 @@ namespace UIProbe
         public DuplicateNameResult Result;  // 检测结果
         public bool IsProcessed;            // 是否已处理
         public string ProcessedTime;        // 处理时间
+        public bool IsDeprecated;           // 是否已弃用
+        public string DeprecatedTime;       // 弃用时间
         
         public bool HasDuplicates => Result != null && Result.GroupCount > 0;
         
