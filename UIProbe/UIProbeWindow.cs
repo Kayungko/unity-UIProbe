@@ -49,7 +49,7 @@ namespace UIProbe
                 config = UIProbeConfigManager.MigrateFromEditorPrefs();
             }
             
-            LoadAuxData();
+            ApplyIndexerConfig(); // Was LoadAuxData
             LoadSettingsData();
             RefreshSessionList();
             InitPickerAutoMode();
@@ -63,7 +63,7 @@ namespace UIProbe
 
         private void OnDisable()
         {
-            SaveAuxData();
+            CollectIndexerConfig(); // Was SaveAuxData
             
             // 收集并保存配置
             CollectImageNormalizerConfig();

@@ -34,6 +34,29 @@ namespace UIProbe
         public bool checkUIElements = true;
         public bool checkComponents = true;
         public string[] excludedFolders = new string[0];
+        
+        // Settings from DuplicateDetectionSettings
+        public string mode = "Smart"; // DetectionMode enum as string
+        public string detectionScope = "Global"; // DuplicateDetectionMode enum as string
+        
+        public bool enableWhitelist = true;
+        public string[] allowedDuplicateNames = new string[] {
+            "Viewport", "Content", "Scrollbar", "Scrollbar Horizontal", 
+            "Scrollbar Vertical", "Sliding Area", "Handle"
+        };
+        
+        public bool checkUGUIComponentNames = true;
+        public string[] uguiComponentsToCheck = new string[] {
+            "Image", "Text", "Button", "Toggle"
+        };
+        
+        public bool enablePrefixFilter = false;
+        public string[] requiredPrefixes = new string[] {
+            "c_", "m_"
+        };
+        
+        // Blacklist (Forbidden)
+        public string[] forbiddenDuplicateNames = new string[0];
     }
     
     /// <summary>

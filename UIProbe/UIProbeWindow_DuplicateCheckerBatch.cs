@@ -30,7 +30,7 @@ namespace UIProbe
             batchCardPageIndex = 0;
             
             // 加载排除设置并更新文件夹统计
-            LoadExcludedFolders();
+            ApplyDuplicateCheckerConfig();
             UpdateFolderCounts();
             
             // 切换到检测功能子标签
@@ -523,27 +523,29 @@ namespace UIProbe
         /// <summary>
         /// 保存排除的文件夹列表到EditorPrefs
         /// </summary>
-        private void SaveExcludedFolders()
+        private void CollectDuplicateCheckerConfig()
         {
-            string json = string.Join(",", excludedFolders);
-            EditorPrefs.SetString("UIProbe_ExcludedFolders", json);
+            if (config == null) return;
+            if (config.duplicateChecker == null) config.duplicateChecker = new DuplicateCheckerConfig();
+            
+            config.duplicateChecker.excludedFolders = excludedFolders.ToArray();
+            
+            // Note: checkUIElements and checkComponents are updated in duplicateSettings
+            // We might need to sync them if we want them in the central config.
+            // Currently duplicateSettings is managed separately via JsonUtility and EditorPrefs in UIProbeWindow_DuplicateSettings.cs
+            // We should integrate that too.
         }
         
-        /// <summary>
-        /// 加载排除的文件夹列表
-        /// </summary>
-        private void LoadExcludedFolders()
+        private void ApplyDuplicateCheckerConfig()
         {
-            string json = EditorPrefs.GetString("UIProbe_ExcludedFolders", "");
-            excludedFolders.Clear();
+            if (config == null || config.duplicateChecker == null) return;
             
-            if (!string.IsNullOrEmpty(json))
+            excludedFolders.Clear();
+            if (config.duplicateChecker.excludedFolders != null)
             {
-                string[] folders = json.Split(',');
-                foreach (string folder in folders)
+                foreach (var folder in config.duplicateChecker.excludedFolders)
                 {
-                    if (!string.IsNullOrEmpty(folder))
-                        excludedFolders.Add(folder);
+                    excludedFolders.Add(folder);
                 }
             }
         }

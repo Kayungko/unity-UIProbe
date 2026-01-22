@@ -446,7 +446,6 @@ namespace UIProbe
             folderTree.Clear();
             
             // Load configured root path
-            indexRootPath = EditorPrefs.GetString("UIProbe_IndexRootPath", "");
             string searchPath = string.IsNullOrEmpty(indexRootPath) ? "Assets" : indexRootPath;
             
             // Find all prefabs
@@ -746,21 +745,32 @@ namespace UIProbe
             };
         }
 
-        private void LoadAuxData()
+        private void ApplyIndexerConfig()
         {
-            string bookmarksStr = EditorPrefs.GetString("UIProbe_Bookmarks", "");
-            if (!string.IsNullOrEmpty(bookmarksStr)) 
-                bookmarks = new List<string>(bookmarksStr.Split(new[] { ';' }, System.StringSplitOptions.RemoveEmptyEntries));
+            if (config == null || config.indexer == null) return;
             
-            string historyStr = EditorPrefs.GetString("UIProbe_History", "");
-            if (!string.IsNullOrEmpty(historyStr)) 
-                searchHistory = new List<string>(historyStr.Split(new[] { ';' }, System.StringSplitOptions.RemoveEmptyEntries));
+            indexRootPath = config.indexer.rootPath;
+            
+            if (config.indexer.bookmarks != null)
+                bookmarks = new List<string>(config.indexer.bookmarks);
+            else
+                bookmarks = new List<string>();
+                
+            if (config.indexer.searchHistory != null)
+                searchHistory = new List<string>(config.indexer.searchHistory);
+            else
+                searchHistory = new List<string>();
         }
 
-        private void SaveAuxData()
+        private void CollectIndexerConfig()
         {
-            EditorPrefs.SetString("UIProbe_Bookmarks", string.Join(";", bookmarks));
-            EditorPrefs.SetString("UIProbe_History", string.Join(";", searchHistory));
+            if (config == null) return;
+            
+            if (config.indexer == null) config.indexer = new IndexerConfig();
+            
+            config.indexer.rootPath = indexRootPath;
+            config.indexer.bookmarks = bookmarks.ToArray();
+            config.indexer.searchHistory = searchHistory.ToArray();
         }
 
         private void AddToHistory(string query)

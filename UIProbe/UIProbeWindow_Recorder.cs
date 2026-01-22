@@ -337,8 +337,13 @@ namespace UIProbe
             maxSize = new Vector2(400, 220);
             
             // Load configured path from Settings
-            storagePath = EditorPrefs.GetString("UIProbe_StoragePath", "");
-            if (string.IsNullOrEmpty(storagePath))
+            // Load configured path from Settings
+            var config = UIProbeConfigManager.Load();
+            if (config != null && config.recorder != null && !string.IsNullOrEmpty(config.recorder.storagePath))
+            {
+                storagePath = config.recorder.storagePath;
+            }
+            else
             {
                 storagePath = UIRecordStorage.GetDefaultStoragePath();
             }

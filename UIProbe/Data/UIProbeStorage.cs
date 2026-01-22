@@ -114,15 +114,7 @@ namespace UIProbe
             return path;
         }
 
-        /// <summary>
-        /// 获取设置数据存储路径
-        /// </summary>
-        public static string GetSettingsPath()
-        {
-            string path = Path.Combine(GetMainFolderPath(), SETTINGS_FOLDER);
-            EnsureDirectoryExists(path);
-            return path;
-        }
+
 
         /// <summary>
         /// 设置自定义主文件夹路径

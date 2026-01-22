@@ -27,37 +27,69 @@ namespace UIProbe
         
         private void LoadSettingsData()
         {
-            recordStoragePath = EditorPrefs.GetString("UIProbe_StoragePath", "");
+            if (config == null) return;
             
-            // Load duplicate detection settings
-            string settingsJson = EditorPrefs.GetString("UIProbe_DuplicateSettings", "");
-            if (!string.IsNullOrEmpty(settingsJson))
+            // Recorder Settings
+            if (config.recorder != null)
+                recordStoragePath = config.recorder.storagePath;
+            
+            // Duplicate Settings
+            if (duplicateSettings == null) duplicateSettings = new DuplicateDetectionSettings();
+            
+            if (config.duplicateChecker != null)
             {
-                try
-                {
-                    duplicateSettings = JsonUtility.FromJson<DuplicateDetectionSettings>(settingsJson);
-                }
-                catch
-                {
-                    duplicateSettings = DuplicateDetectionSettings.GetDefault();
-                }
-            }
-            else
-            {
-                duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                // Map config to settings object
+                try { duplicateSettings.Mode = (DetectionMode)System.Enum.Parse(typeof(DetectionMode), config.duplicateChecker.mode); } catch {}
+                try { duplicateSettings.DetectionScope = (DuplicateDetectionMode)System.Enum.Parse(typeof(DuplicateDetectionMode), config.duplicateChecker.detectionScope); } catch {}
+                
+                duplicateSettings.EnableWhitelist = config.duplicateChecker.enableWhitelist;
+                if (config.duplicateChecker.allowedDuplicateNames != null)
+                    duplicateSettings.AllowedDuplicateNames = new System.Collections.Generic.List<string>(config.duplicateChecker.allowedDuplicateNames);
+                    
+                duplicateSettings.CheckUGUIComponentNames = config.duplicateChecker.checkUGUIComponentNames;
+                if (config.duplicateChecker.uguiComponentsToCheck != null)
+                    duplicateSettings.UGUIComponentsToCheck = new System.Collections.Generic.List<string>(config.duplicateChecker.uguiComponentsToCheck);
+                    
+                duplicateSettings.EnablePrefixFilter = config.duplicateChecker.enablePrefixFilter;
+                if (config.duplicateChecker.requiredPrefixes != null)
+                    duplicateSettings.RequiredPrefixes = new System.Collections.Generic.List<string>(config.duplicateChecker.requiredPrefixes);
+                    
+                if (config.duplicateChecker.forbiddenDuplicateNames != null)
+                    duplicateSettings.ForbiddenDuplicateNames = new System.Collections.Generic.List<string>(config.duplicateChecker.forbiddenDuplicateNames);
             }
         }
         
         private void SaveSettingsData()
         {
-            EditorPrefs.SetString("UIProbe_StoragePath", recordStoragePath);
+            if (config == null) return;
             
-            // Save duplicate detection settings
+            // Recorder Settings
+            if (config.recorder == null) config.recorder = new RecorderConfig();
+            config.recorder.storagePath = recordStoragePath;
+            
+            // Duplicate Settings
             if (duplicateSettings != null)
             {
-                string settingsJson = JsonUtility.ToJson(duplicateSettings);
-                EditorPrefs.SetString("UIProbe_DuplicateSettings", settingsJson);
+                if (config.duplicateChecker == null) config.duplicateChecker = new DuplicateCheckerConfig();
+                
+                config.duplicateChecker.mode = duplicateSettings.Mode.ToString();
+                config.duplicateChecker.detectionScope = duplicateSettings.DetectionScope.ToString();
+                
+                config.duplicateChecker.enableWhitelist = duplicateSettings.EnableWhitelist;
+                config.duplicateChecker.allowedDuplicateNames = duplicateSettings.AllowedDuplicateNames.ToArray();
+                
+                config.duplicateChecker.checkUGUIComponentNames = duplicateSettings.CheckUGUIComponentNames;
+                config.duplicateChecker.uguiComponentsToCheck = duplicateSettings.UGUIComponentsToCheck.ToArray();
+                
+                config.duplicateChecker.enablePrefixFilter = duplicateSettings.EnablePrefixFilter;
+                config.duplicateChecker.requiredPrefixes = duplicateSettings.RequiredPrefixes.ToArray();
+                
+                config.duplicateChecker.forbiddenDuplicateNames = duplicateSettings.ForbiddenDuplicateNames.ToArray();
             }
+            
+            // Save config
+            UIProbeConfigManager.Save(config);
+        }
         }
         
         private void DrawSettingsTab()

@@ -18,7 +18,7 @@ namespace UIProbe
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
             
             // Load saved preference
-            autoPickerMode = EditorPrefs.GetBool("UIProbe_AutoPickerMode", false);
+            ApplyPickerConfig();
         }
 
         private void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -60,7 +60,8 @@ namespace UIProbe
             if (newAutoMode != autoPickerMode)
             {
                 autoPickerMode = newAutoMode;
-                EditorPrefs.SetBool("UIProbe_AutoPickerMode", autoPickerMode);
+                // Config will be saved on disable
+                if (config != null) config.picker.autoMode = autoPickerMode;
                 
                 if (autoPickerMode && Application.isPlaying)
                 {
@@ -312,6 +313,25 @@ namespace UIProbe
             Selection.activeGameObject = obj;
             EditorGUIUtility.PingObject(obj);
             Repaint();
+        }
+            Repaint();
+        }
+        
+        private void ApplyPickerConfig()
+        {
+            if (config != null && config.picker != null)
+            {
+                autoPickerMode = config.picker.autoMode;
+            }
+        }
+        
+        private void CollectPickerConfig()
+        {
+            if (config != null)
+            {
+                if (config.picker == null) config.picker = new PickerConfig();
+                config.picker.autoMode = autoPickerMode;
+            }
         }
     }
 }
