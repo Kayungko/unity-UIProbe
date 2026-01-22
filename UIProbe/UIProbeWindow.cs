@@ -35,9 +35,20 @@ namespace UIProbe
 
         private Tab currentTab = Tab.Picker;
         private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "设置" };
+        
+        // 统一配置
+        private UIProbeConfig config;
 
         private void OnEnable()
         {
+            // 加载统一配置
+            config = UIProbeConfigManager.Load();
+            if (config == null)
+            {
+                // 首次运行，从EditorPrefs迁移
+                config = UIProbeConfigManager.MigrateFromEditorPrefs();
+            }
+            
             LoadAuxData();
             LoadSettingsData();
             RefreshSessionList();
@@ -45,11 +56,21 @@ namespace UIProbe
             
             // 尝试加载索引缓存
             LoadIndexCache();
+            
+            // 应用配置到图片规范化工具
+            ApplyImageNormalizerConfig();
         }
 
         private void OnDisable()
         {
             SaveAuxData();
+            
+            // 收集并保存配置
+            CollectImageNormalizerConfig();
+            if (config != null)
+            {
+                UIProbeConfigManager.Save(config);
+            }
         }
 
         private void OnGUI()

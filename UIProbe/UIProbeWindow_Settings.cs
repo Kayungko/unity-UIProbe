@@ -396,7 +396,7 @@ namespace UIProbe
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("UIProbe - Unity UIProbe 界面探针工具");
-            EditorGUILayout.LabelField("Version: 1.9.0", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("Version: 2.0.0", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天", EditorStyles.miniLabel);
             
             EditorGUILayout.Space(3);

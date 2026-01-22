@@ -2,7 +2,24 @@
 
 Unity UI 界面探针工具，提供预制体索引、界面快照记录、重名检测等功能。
 
-## ✨ 最新更新 (v1.9.0)
+## ✨ 最新更新 (v2.0.0)
+
+### 统一配置系统 🎯
+- **文件化配置**：所有设置保存到 `UIProbe/Settings/config.json`，脱离Unity EditorPrefs
+- **跨项目共享**：配置文件独立于Unity项目，可在不同项目间共享
+- **便于备份**：配置文件可直接拷贝、备份或纳入版本控制
+- **自动迁移**：首次运行自动从EditorPrefs迁移，无需手动操作
+- **JSON格式**：配置文件可读可编辑，方便手动调整
+
+### 配置文件位置
+```
+Windows: C:\Users\<用户名>\AppData\Roaming\UIProbe\Settings\config.json
+macOS: ~/Library/Application Support/UIProbe/Settings/config.json
+```
+
+---
+
+## ✨ v1.9.0 功能
 
 ### 图片规范化工具
 - **统一尺寸**：将不同尺寸的图片批量规范化到统一尺寸

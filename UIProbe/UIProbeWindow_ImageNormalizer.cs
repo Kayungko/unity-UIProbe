@@ -260,5 +260,50 @@ namespace UIProbe
                 UnityEditor.AssetDatabase.Refresh();
             }
         }
+        
+        /// <summary>
+        /// 从配置应用到UI
+        /// </summary>
+        private void ApplyImageNormalizerConfig()
+        {
+            if (config == null || config.imageNormalizer == null) return;
+            
+            normalizerSourceFolder = config.imageNormalizer.lastSourceFolder;
+            normalizerIncludeSubfolders = config.imageNormalizer.includeSubfolders;
+            normalizerTargetWidth = config.imageNormalizer.targetWidth;
+            normalizerTargetHeight = config.imageNormalizer.targetHeight;
+            normalizerForceSquare = config.imageNormalizer.forceSquare;
+            
+            // 解析对齐方式
+            if (config.imageNormalizer.alignment == "Center")
+                normalizerAlignment = ContentAlignment.Center;
+            else if (config.imageNormalizer.alignment == "KeepOriginal")
+                normalizerAlignment = ContentAlignment.KeepOriginal;
+            
+            normalizerOverwrite = config.imageNormalizer.overwrite;
+            normalizerNamingSuffix = config.imageNormalizer.namingSuffix;
+        }
+        
+        /// <summary>
+        /// 从UI收集到配置
+        /// </summary>
+        private void CollectImageNormalizerConfig()
+        {
+            if (config == null) return;
+            
+            if (config.imageNormalizer == null)
+            {
+                config.imageNormalizer = new ImageNormalizerConfig();
+            }
+            
+            config.imageNormalizer.lastSourceFolder = normalizerSourceFolder;
+            config.imageNormalizer.includeSubfolders = normalizerIncludeSubfolders;
+            config.imageNormalizer.targetWidth = normalizerTargetWidth;
+            config.imageNormalizer.targetHeight = normalizerTargetHeight;
+            config.imageNormalizer.forceSquare = normalizerForceSquare;
+            config.imageNormalizer.alignment = normalizerAlignment.ToString();
+            config.imageNormalizer.overwrite = normalizerOverwrite;
+            config.imageNormalizer.namingSuffix = normalizerNamingSuffix;
+        }
     }
 }
