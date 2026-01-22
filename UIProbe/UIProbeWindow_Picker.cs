@@ -314,8 +314,6 @@ namespace UIProbe
             EditorGUIUtility.PingObject(obj);
             Repaint();
         }
-            Repaint();
-        }
         
         private void ApplyPickerConfig()
         {

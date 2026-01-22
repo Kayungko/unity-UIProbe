@@ -90,7 +90,6 @@ namespace UIProbe
             // Save config
             UIProbeConfigManager.Save(config);
         }
-        }
         
         private void DrawSettingsTab()
         {
