@@ -212,7 +212,6 @@ namespace UIProbe
                 if (historyToRemove != null)
                 {
                     searchHistory.Remove(historyToRemove);
-                    SaveAuxData();
                 }
                 
                 GUILayout.FlexibleSpace();
@@ -779,14 +778,12 @@ namespace UIProbe
             if (searchHistory.Contains(query)) searchHistory.Remove(query);
             searchHistory.Insert(0, query);
             if (searchHistory.Count > 10) searchHistory.RemoveAt(searchHistory.Count - 1);
-            SaveAuxData();
         }
 
         private void ToggleBookmark(string path)
         {
             if (bookmarks.Contains(path)) bookmarks.Remove(path);
             else bookmarks.Add(path);
-            SaveAuxData();
         }
 
         private void SelectAllPrefabs()

@@ -458,7 +458,6 @@ namespace UIProbe
             {
                 excludedFolders.Clear();
                 batchCardPageIndex = 0;
-                SaveExcludedFolders();
             }
             
             if (GUILayout.Button("全不选", EditorStyles.miniButton, GUILayout.Width(50)))
@@ -469,7 +468,6 @@ namespace UIProbe
                     excludedFolders.Add(folder);
                 }
                 batchCardPageIndex = 0;
-                SaveExcludedFolders();
             }
             
             GUILayout.EndHorizontal();
@@ -503,7 +501,6 @@ namespace UIProbe
                         excludedFolders.Add(folderName);
                     
                     batchCardPageIndex = 0;
-                    SaveExcludedFolders();
                 }
             }
             

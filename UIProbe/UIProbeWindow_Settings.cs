@@ -345,14 +345,12 @@ namespace UIProbe
             if (GUILayout.Button("清除搜索历史 (Clear Search History)"))
             {
                 searchHistory.Clear();
-                SaveAuxData();
                 EditorUtility.DisplayDialog("提示", "搜索历史已清除。", "OK");
             }
             
             if (GUILayout.Button("清除收藏夹 (Clear Bookmarks)"))
             {
                 bookmarks.Clear();
-                SaveAuxData();
                 EditorUtility.DisplayDialog("提示", "收藏夹已清除。", "OK");
             }
 
@@ -363,7 +361,6 @@ namespace UIProbe
                     searchHistory.Clear();
                     bookmarks.Clear();
                     recordStoragePath = "";
-                    SaveAuxData();
                     SaveSettingsData();
                     Debug.Log("UI Probe 数据已重置");
                 }
