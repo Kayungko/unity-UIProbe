@@ -386,7 +386,7 @@ namespace UIProbe
                 string displayName = imageRef.AssetName;
                 if (GUILayout.Button(displayName, EditorStyles.linkLabel, GUILayout.Width(150)))
                 {
-                    var asset = AssetDatabase.LoadAssetAtPath<Object>(imageRef.AssetPath);
+                    var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(imageRef.AssetPath);
                     if (asset != null) EditorGUIUtility.PingObject(asset);
                 }
                 
