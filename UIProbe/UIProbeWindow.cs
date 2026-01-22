@@ -29,11 +29,12 @@ namespace UIProbe
             Browser,
             DuplicateChecker,
             AssetReferences,
+            ImageNormalizer,
             Settings
         }
 
         private Tab currentTab = Tab.Picker;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "设置" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "设置" };
 
         private void OnEnable()
         {
@@ -80,6 +81,9 @@ namespace UIProbe
                 case Tab.AssetReferences:
                     DrawAssetReferencesTab();
                     break;
+                case Tab.ImageNormalizer:
+                    DrawImageNormalizerTab();
+                    break;
                 case Tab.Settings:
                     DrawSettingsTab();
                     break;
@@ -101,6 +105,7 @@ namespace UIProbe
             DrawSidebarButton(Tab.Browser, "历史浏览");
             DrawSidebarButton(Tab.DuplicateChecker, "重名检测");
             DrawSidebarButton(Tab.AssetReferences, "资源引用");
+            DrawSidebarButton(Tab.ImageNormalizer, "图片规范化");
             
             GUILayout.FlexibleSpace();
             
