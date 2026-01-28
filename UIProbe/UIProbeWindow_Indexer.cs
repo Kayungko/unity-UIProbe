@@ -75,6 +75,7 @@ namespace UIProbe
             public string Name;
             public string FullPath;
             public bool IsExpanded = false;
+            public FolderNode Parent;  // 添加父节点引用
             public List<FolderNode> SubFolders = new List<FolderNode>();
             public List<PrefabIndexItem> Prefabs = new List<PrefabIndexItem>();
             public int TotalPrefabCount = 0;
@@ -843,7 +844,7 @@ namespace UIProbe
                 allPrefabs = cache.AllPrefabs.Select(ConvertFromSerializable).ToList();
                 
                 // 重建文件夹树
-                rootFolders = new List<FolderNode>();
+                folderTree.Clear();
                 var folderDict = new Dictionary<string, FolderNode>();
                 
                 // 第一步：创建所有节点
@@ -867,7 +868,8 @@ namespace UIProbe
                     {
                         if (string.IsNullOrEmpty(flatNode.ParentPath))
                         {
-                            rootFolders.Add(folder);
+                            // 根节点添加到 folderTree
+                            folderTree[folder.Name] = folder;
                         }
                         else if (folderDict.TryGetValue(flatNode.ParentPath, out var parent))
                         {
@@ -877,10 +879,13 @@ namespace UIProbe
                         else
                         {
                             // 找不到父节点，作为根节点处理（防止孤儿节点）
-                            rootFolders.Add(folder);
+                            folderTree[folder.Name] = folder;
                         }
                     }
                 }
+                
+                isIndexBuilt = true;
+                Debug.Log($"[UIProbe] 索引已加载: {allPrefabs.Count} 个预制体 (上次更新: {lastIndexUpdateTime})");
                 
                 return true;
             }
@@ -926,21 +931,7 @@ namespace UIProbe
             return prefabItem;
         }
         
-        /// <summary>
-        /// 从可序列化对象转换回文件夹节点
-        /// </summary>
-        private FolderNode ConvertFolderFromSerializable(SerializableFolderNode folder)
-        {
-            return new FolderNode
-            {
-                Name = folder.Name,
-                FullPath = folder.FullPath,
-                IsExpanded = folder.IsExpanded,
-                TotalPrefabCount = folder.TotalPrefabCount,
-                SubFolders = folder.SubFolders.Select(ConvertFolderFromSerializable).ToList(),
-                Prefabs = folder.Prefabs.Select(ConvertFromSerializable).ToList()
-            };
-        }
+
 
         private void ApplyIndexerConfig()
         {
