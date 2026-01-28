@@ -891,6 +891,7 @@ namespace UIProbe
                 try { System.IO.File.Delete(GetIndexCachePath()); } catch {}
                 return false;
             }
+        }
 
         
         /// <summary>
