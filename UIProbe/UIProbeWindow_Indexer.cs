@@ -891,23 +891,7 @@ namespace UIProbe
                 try { System.IO.File.Delete(GetIndexCachePath()); } catch {}
                 return false;
             }
-        }                folderTree.Clear();
-                foreach (var rootFolder in cache.RootFolders)
-                {
-                    folderTree[rootFolder.Name] = ConvertFolderFromSerializable(rootFolder);
-                }
-                
-                isIndexBuilt = true;
-                
-                Debug.Log($"[UIProbe] 索引已加载: {allPrefabs.Count} 个预制体 (上次更新: {lastIndexUpdateTime})");
-                return true;
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[UIProbe] 加载索引失败: {e.Message}");
-                return false;
-            }
-        }
+
         
         /// <summary>
         /// 从可序列化对象转换回预制体索引项
