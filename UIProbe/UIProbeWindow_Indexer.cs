@@ -731,8 +731,11 @@ namespace UIProbe
                     LastUpdateTime = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     TotalPrefabCount = allPrefabs.Count,
                     AllPrefabs = allPrefabs.Select(ConvertToSerializable).ToList(),
-                    RootFolders = folderTree.Values.Select(ConvertFolderToSerializable).ToList()
+                    AllFolders = new List<SerializableFolderNode>()
                 };
+                
+                // 扁平化收集所有文件夹
+                CollectFoldersFlattened(folderTree.Values.ToList(), cache.AllFolders, "");
                 
                 string json = JsonUtility.ToJson(cache, true);
                 string cachePath = GetIndexCachePath();
@@ -782,21 +785,33 @@ namespace UIProbe
         }
         
         /// <summary>
-        /// 转换为可序列化的文件夹节点
+        /// 转换为可序列化的文件夹节点 (扁平化)
         /// </summary>
-        private SerializableFolderNode ConvertFolderToSerializable(FolderNode folder)
+        private SerializableFolderNode ConvertFolderToSerializable(FolderNode folder, string parentPath)
         {
             return new SerializableFolderNode
             {
                 Name = folder.Name,
                 FullPath = folder.FullPath,
+                ParentPath = parentPath,
                 IsExpanded = folder.IsExpanded,
                 TotalPrefabCount = folder.TotalPrefabCount,
-                SubFolders = folder.SubFolders.Select(ConvertFolderToSerializable).ToList(),
                 Prefabs = folder.Prefabs.Select(ConvertToSerializable).ToList()
             };
         }
         
+        /// <summary>
+        /// 递归收集所有文件夹到扁平列表
+        /// </summary>
+        private void CollectFoldersFlattened(List<FolderNode> nodes, List<SerializableFolderNode> targetList, string parentPath)
+        {
+            foreach (var node in nodes)
+            {
+                targetList.Add(ConvertFolderToSerializable(node, parentPath));
+                CollectFoldersFlattened(node.SubFolders, targetList, node.FullPath);
+            }
+        }
+
         /// <summary>
         /// 从磁盘加载索引
         /// </summary>
@@ -828,7 +843,55 @@ namespace UIProbe
                 allPrefabs = cache.AllPrefabs.Select(ConvertFromSerializable).ToList();
                 
                 // 重建文件夹树
-                folderTree.Clear();
+                rootFolders = new List<FolderNode>();
+                var folderDict = new Dictionary<string, FolderNode>();
+                
+                // 第一步：创建所有节点
+                foreach (var flatNode in cache.AllFolders)
+                {
+                    var folder = new FolderNode
+                    {
+                        Name = flatNode.Name,
+                        FullPath = flatNode.FullPath,
+                        IsExpanded = flatNode.IsExpanded,
+                        TotalPrefabCount = flatNode.TotalPrefabCount,
+                        Prefabs = flatNode.Prefabs.Select(ConvertFromSerializable).ToList()
+                    };
+                    folderDict[folder.FullPath] = folder;
+                }
+                
+                // 第二步：构建层级关系
+                foreach (var flatNode in cache.AllFolders)
+                {
+                    if (folderDict.TryGetValue(flatNode.FullPath, out var folder))
+                    {
+                        if (string.IsNullOrEmpty(flatNode.ParentPath))
+                        {
+                            rootFolders.Add(folder);
+                        }
+                        else if (folderDict.TryGetValue(flatNode.ParentPath, out var parent))
+                        {
+                            folder.Parent = parent;
+                            parent.SubFolders.Add(folder);
+                        }
+                        else
+                        {
+                            // 找不到父节点，作为根节点处理（防止孤儿节点）
+                            rootFolders.Add(folder);
+                        }
+                    }
+                }
+                
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[UIProbe] 加载索引失败: {e.Message}");
+                // 如果加载失败，可能是旧格式数据，删除缓存强制刷新
+                try { System.IO.File.Delete(GetIndexCachePath()); } catch {}
+                return false;
+            }
+        }                folderTree.Clear();
                 foreach (var rootFolder in cache.RootFolders)
                 {
                     folderTree[rootFolder.Name] = ConvertFolderFromSerializable(rootFolder);

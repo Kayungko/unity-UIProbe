@@ -41,17 +41,15 @@ namespace UIProbe
         public List<SerializableAssetReference> AssetReferences = new List<SerializableAssetReference>();
     }
 
-    /// <summary>
-    /// 可序列化的文件夹节点
-    /// </summary>
     [Serializable]
     public class SerializableFolderNode
     {
         public string Name;
         public string FullPath;
+        public string ParentPath; // Added for flat hierarchy reconstruction
         public bool IsExpanded;
         public int TotalPrefabCount;
-        public List<SerializableFolderNode> SubFolders = new List<SerializableFolderNode>();
+        // Flattened: SubFolders removed, hierarchy maintained via ParentPath
         public List<SerializablePrefabIndexItem> Prefabs = new List<SerializablePrefabIndexItem>();
     }
 
@@ -65,6 +63,6 @@ namespace UIProbe
         public string LastUpdateTime;
         public int TotalPrefabCount;
         public List<SerializablePrefabIndexItem> AllPrefabs = new List<SerializablePrefabIndexItem>();
-        public List<SerializableFolderNode> RootFolders = new List<SerializableFolderNode>();
+        public List<SerializableFolderNode> AllFolders = new List<SerializableFolderNode>(); // Flattened list
     }
 }

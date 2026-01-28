@@ -9,18 +9,86 @@ namespace UIProbe
     /// <summary>
     /// 界面记录会话，包含一次完整的录制数据
     /// </summary>
+    /// <summary>
+    /// 界面记录会话，包含一次完整的录制数据
+    /// </summary>
     [Serializable]
-    public class UIRecordSession
+    public class UIRecordSession : ISerializationCallbackReceiver
     {
         public string Version = "1.0.0";
         public string Timestamp;
         public string Description;
         public string ScreenshotPath;  // 截图文件路径 (相对于记录文件)
-        public List<UIRecordEvent> Events = new List<UIRecordEvent>();
+        
+        [NonSerialized]
+        public List<UIRecordEvent> Events = new List<UIRecordEvent>(); // Runtime Tree Roots
+        
+        public List<UIRecordEvent> SerializedEvents = new List<UIRecordEvent>(); // Flat List for Serialization
         
         public UIRecordSession()
         {
             Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        public void OnBeforeSerialize()
+        {
+            SerializedEvents.Clear();
+            if (Events != null)
+            {
+                foreach (var evt in Events)
+                {
+                    FlattenEvents(evt, SerializedEvents, null);
+                }
+            }
+        }
+
+        public void OnAfterDeserialize()
+        {
+            Events = new List<UIRecordEvent>();
+            if (SerializedEvents != null)
+            {
+                var eventDict = new Dictionary<string, UIRecordEvent>();
+                foreach (var evt in SerializedEvents)
+                {
+                    evt.Children = new List<UIRecordEvent>(); // Ensure initialized
+                    if (!string.IsNullOrEmpty(evt.Id))
+                    {
+                        eventDict[evt.Id] = evt;
+                    }
+                }
+
+                foreach (var evt in SerializedEvents)
+                {
+                    if (string.IsNullOrEmpty(evt.ParentId))
+                    {
+                        Events.Add(evt);
+                    }
+                    else if (eventDict.TryGetValue(evt.ParentId, out var parent))
+                    {
+                        parent.Children.Add(evt);
+                    }
+                    else
+                    {
+                        // Orphaned node, add to root to avoid data loss
+                        Events.Add(evt);
+                    }
+                }
+            }
+        }
+
+        private void FlattenEvents(UIRecordEvent evt, List<UIRecordEvent> list, string parentId)
+        {
+            if (string.IsNullOrEmpty(evt.Id)) evt.Id = Guid.NewGuid().ToString();
+            evt.ParentId = parentId;
+            list.Add(evt);
+            
+            if (evt.Children != null)
+            {
+                foreach (var child in evt.Children)
+                {
+                    FlattenEvents(child, list, evt.Id);
+                }
+            }
         }
     }
 
@@ -30,6 +98,9 @@ namespace UIProbe
     [Serializable]
     public class UIRecordEvent
     {
+        public string Id = Guid.NewGuid().ToString();
+        public string ParentId;
+        
         public string EventType;      // "Root" / "Instantiate" / "Activate" / "Child"
         public string NodeName;       // GameObject 名称
         public string NodePath;       // 完整路径
@@ -38,6 +109,8 @@ namespace UIProbe
         public string Tag = "";       // "一级界面" / "二级界面" / "弹窗" / "标签页"
         public string Timestamp;
         public bool IsPrefabInstance;
+        
+        [NonSerialized]
         public List<UIRecordEvent> Children = new List<UIRecordEvent>();
         
         // Non-serialized runtime reference
