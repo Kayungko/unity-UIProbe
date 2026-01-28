@@ -12,13 +12,13 @@ namespace UIProbe
         private string assetSearchQuery = "";
         private Vector2 assetReferencesScrollPos;
         private List<PrefabReferenceInfo> assetSearchResults = new List<PrefabReferenceInfo>();
+        private AssetReferenceType selectedAssetType = AssetReferenceType.Image; // 默认搜索图片
         
         private class PrefabReferenceInfo
         {
             public string PrefabName;
             public string PrefabPath;
-            public List<string> NodePaths = new List<string>();
-            public List<string> ComponentTypes = new List<string>();
+            public List<AssetReference> MatchingReferences = new List<AssetReference>();
         }
         
         /// <summary>
@@ -35,9 +35,29 @@ namespace UIProbe
                 return;
             }
             
+            // 资源类型选择
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("资源类型:", GUILayout.Width(70));
+            
+            var newType = (AssetReferenceType)EditorGUILayout.EnumPopup(selectedAssetType, GUILayout.Width(150));
+            if (newType != selectedAssetType)
+            {
+                selectedAssetType = newType;
+                if (!string.IsNullOrEmpty(assetSearchQuery))
+                {
+                    SearchAssetReferences();
+                }
+            }
+            
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
             // 搜索框
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("搜索图片资源:", GUILayout.Width(100));
+            string searchLabel = GetSearchLabelByType(selectedAssetType);
+            EditorGUILayout.LabelField(searchLabel, GUILayout.Width(100));
             
             EditorGUI.BeginChangeCheck();
             assetSearchQuery = EditorGUILayout.TextField(assetSearchQuery, EditorStyles.toolbarSearchField);
@@ -66,7 +86,8 @@ namespace UIProbe
             // 搜索结果
             if (string.IsNullOrEmpty(assetSearchQuery))
             {
-                EditorGUILayout.HelpBox("请输入图片文件名或路径进行搜索。\n\n例如: \"icon_gold.png\" 或 \"UI/Icons/\"", MessageType.None);
+                string helpText = GetHelpTextByType(selectedAssetType);
+                EditorGUILayout.HelpBox(helpText, MessageType.None);
             }
             else if (assetSearchResults.Count == 0)
             {
@@ -89,6 +110,48 @@ namespace UIProbe
         }
         
         /// <summary>
+        /// 根据资源类型获取搜索标签
+        /// </summary>
+        private string GetSearchLabelByType(AssetReferenceType type)
+        {
+            switch (type)
+            {
+                case AssetReferenceType.Image:
+                case AssetReferenceType.RawImage:
+                    return "搜索图片资源:";
+                case AssetReferenceType.Prefab:
+                    return "搜索预制体:";
+                case AssetReferenceType.Material:
+                    return "搜索材质:";
+                case AssetReferenceType.Font:
+                    return "搜索字体:";
+                default:
+                    return "搜索资源:";
+            }
+        }
+        
+        /// <summary>
+        /// 根据资源类型获取帮助文本
+        /// </summary>
+        private string GetHelpTextByType(AssetReferenceType type)
+        {
+            switch (type)
+            {
+                case AssetReferenceType.Image:
+                case AssetReferenceType.RawImage:
+                    return "请输入图片文件名或路径进行搜索。\n\n例如: \"icon_gold.png\" 或 \"UI/Icons/\"";
+                case AssetReferenceType.Prefab:
+                    return "请输入预制体文件名或路径进行搜索。\n\n例如: \"Button.prefab\" 或 \"UI/Prefabs/\"";
+                case AssetReferenceType.Material:
+                    return "请输入材质文件名或路径进行搜索。\n\n例如: \"Glass.mat\" 或 \"Materials/\"";
+                case AssetReferenceType.Font:
+                    return "请输入字体文件名或路径进行搜索。\n\n例如: \"Arial.ttf\" 或 \"Fonts/\"";
+                default:
+                    return "请输入资源文件名或路径进行搜索。";
+            }
+        }
+        
+        /// <summary>
         /// 搜索资源引用
         /// </summary>
         private void SearchAssetReferences()
@@ -103,15 +166,32 @@ namespace UIProbe
             // 遍历所有预制体
             foreach (var prefab in allPrefabs)
             {
-                var matchingRefs = new List<ImageReference>();
+                var matchingRefs = new List<AssetReference>();
                 
-                foreach (var imageRef in prefab.ImageReferences)
+                // 根据选择的资源类型过滤引用
+                foreach (var assetRef in prefab.AssetReferences)
                 {
-                    // 检查资源路径或文件名是否匹配
-                    if (imageRef.AssetPath.ToLower().Contains(query) || 
-                        imageRef.AssetName.ToLower().Contains(query))
+                    // 类型匹配检查
+                    bool typeMatches = false;
+                    if (selectedAssetType == AssetReferenceType.Image)
                     {
-                        matchingRefs.Add(imageRef);
+                        // 搜索图片时同时包含 Image 和 RawImage
+                        typeMatches = (assetRef.Type == AssetReferenceType.Image || 
+                                      assetRef.Type == AssetReferenceType.RawImage);
+                    }
+                    else
+                    {
+                        typeMatches = (assetRef.Type == selectedAssetType);
+                    }
+                    
+                    if (!typeMatches)
+                        continue;
+                    
+                    // 检查资源路径或文件名是否匹配
+                    if (assetRef.AssetPath.ToLower().Contains(query) || 
+                        assetRef.AssetName.ToLower().Contains(query))
+                    {
+                        matchingRefs.Add(assetRef);
                     }
                 }
                 
@@ -121,13 +201,15 @@ namespace UIProbe
                     {
                         PrefabName = prefab.Name,
                         PrefabPath = prefab.Path,
-                        NodePaths = matchingRefs.Select(r => r.NodePath).ToList(),
-                        ComponentTypes = matchingRefs.Select(r => r.ComponentType).ToList()
+                        MatchingReferences = matchingRefs
                     };
                     
                     assetSearchResults.Add(info);
                 }
             }
+            
+            // 按预制体名称排序
+            assetSearchResults = assetSearchResults.OrderBy(r => r.PrefabName).ToList();
         }
         
         /// <summary>
@@ -161,14 +243,41 @@ namespace UIProbe
             
             // 引用位置
             EditorGUILayout.Space(3);
-            EditorGUILayout.LabelField($"引用位置 ({info.NodePaths.Count} 处):", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField($"引用位置 ({info.MatchingReferences.Count} 处):", EditorStyles.miniLabel);
             
-            for (int i = 0; i < info.NodePaths.Count; i++)
+            foreach (var reference in info.MatchingReferences)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(10);
-                EditorGUILayout.LabelField($"📍 {info.NodePaths[i]}", EditorStyles.miniLabel);
-                EditorGUILayout.LabelField($"({info.ComponentTypes[i]})", EditorStyles.miniLabel, GUILayout.Width(80));
+                
+                // 资源类型图标
+                string icon = GetAssetTypeIcon(reference.Type);
+                EditorGUILayout.LabelField(icon, GUILayout.Width(20));
+                
+                // 节点路径
+                EditorGUILayout.LabelField($"{reference.NodePath}", EditorStyles.miniLabel);
+                
+                // 资源名称（可点击）
+                if (GUILayout.Button(reference.AssetName, EditorStyles.linkLabel, GUILayout.Width(150)))
+                {
+                    var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(reference.AssetPath);
+                    if (asset != null)
+                    {
+                        EditorGUIUtility.PingObject(asset);
+                        // 如果是预制体，选中它
+                        if (reference.Type == AssetReferenceType.Prefab)
+                        {
+                            Selection.activeObject = asset;
+                        }
+                    }
+                }
+                
+                // 额外信息
+                if (!string.IsNullOrEmpty(reference.ExtraInfo))
+                {
+                    EditorGUILayout.LabelField($"({reference.ExtraInfo})", EditorStyles.miniLabel, GUILayout.Width(80));
+                }
+                
                 GUILayout.EndHorizontal();
             }
             

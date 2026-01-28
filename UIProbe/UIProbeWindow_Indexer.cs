@@ -33,12 +33,13 @@ namespace UIProbe
         private Dictionary<string, bool> prefabDetailsExpanded = new Dictionary<string, bool>();  // 追踪预制体详情展开状态
 
         [Serializable]
-        private class ImageReference
+        private class AssetReference
         {
-            public string AssetPath;       // Sprite/Texture 资源路径
-            public string NodePath;        // 使用该图片的节点路径
-            public string ComponentType;   // "Image" 或 "RawImage"
-            public string AssetName;       // 资源文件名（用于快速显示）
+            public string AssetPath;             // 资源路径
+            public string NodePath;              // 使用该资源的节点路径
+            public AssetReferenceType Type;      // 引用类型
+            public string AssetName;             // 资源文件名（用于快速显示）
+            public string ExtraInfo;             // 额外信息（如组件类型、预制体GUID等）
         }
         
         private class PrefabIndexItem
@@ -47,7 +48,26 @@ namespace UIProbe
             public string Path;
             public string Guid;
             public string FolderPath;
-            public List<ImageReference> ImageReferences = new List<ImageReference>();
+            public List<AssetReference> AssetReferences = new List<AssetReference>();
+            
+            // 便捷属性：获取特定类型的引用
+            public List<AssetReference> GetReferencesByType(AssetReferenceType type)
+            {
+                return AssetReferences.FindAll(r => r.Type == type);
+            }
+            
+            // 便捷属性：获取引用数量统计
+            public Dictionary<AssetReferenceType, int> GetReferenceCounts()
+            {
+                var counts = new Dictionary<AssetReferenceType, int>();
+                foreach (var reference in AssetReferences)
+                {
+                    if (!counts.ContainsKey(reference.Type))
+                        counts[reference.Type] = 0;
+                    counts[reference.Type]++;
+                }
+                return counts;
+            }
         }
 
         private class FolderNode
@@ -329,10 +349,35 @@ namespace UIProbe
             
             EditorGUILayout.LabelField($"📦 {item.Name}", GUILayout.Width(200));
             
-            // 图片数量提示
-            if (item.ImageReferences.Count > 0)
+            // 资源引用统计
+            if (item.AssetReferences.Count > 0)
             {
-                EditorGUILayout.LabelField($"📸 {item.ImageReferences.Count}", EditorStyles.miniLabel, GUILayout.Width(35));
+                var counts = item.GetReferenceCounts();
+                string statsText = "";
+                
+                if (counts.ContainsKey(AssetReferenceType.Image) || counts.ContainsKey(AssetReferenceType.RawImage))
+                {
+                    int imageCount = (counts.ContainsKey(AssetReferenceType.Image) ? counts[AssetReferenceType.Image] : 0) +
+                                    (counts.ContainsKey(AssetReferenceType.RawImage) ? counts[AssetReferenceType.RawImage] : 0);
+                    statsText += $"🖼 {imageCount} ";
+                }
+                
+                if (counts.ContainsKey(AssetReferenceType.Prefab))
+                {
+                    statsText += $"📦 {counts[AssetReferenceType.Prefab]} ";
+                }
+                
+                if (counts.ContainsKey(AssetReferenceType.Material))
+                {
+                    statsText += $"🎨 {counts[AssetReferenceType.Material]} ";
+                }
+                
+                if (counts.ContainsKey(AssetReferenceType.Font))
+                {
+                    statsText += $"🔤 {counts[AssetReferenceType.Font]} ";
+                }
+                
+                EditorGUILayout.LabelField(statsText.TrimEnd(), EditorStyles.miniLabel, GUILayout.Width(80));
             }
             
             // Bookmark star
@@ -357,54 +402,126 @@ namespace UIProbe
             GUILayout.EndHorizontal();
             
             // 详情面板（展开时显示）
-            if (isExpanded && item.ImageReferences.Count > 0)
+            if (isExpanded && item.AssetReferences.Count > 0)
             {
-                DrawPrefabImageDetails(item, indent);
+                DrawPrefabAssetDetails(item, indent);
             }
         }
         
         /// <summary>
-        /// 绘制预制体图片详情
+        /// 绘制预制体资源详情（按类型分组）
         /// </summary>
-        private void DrawPrefabImageDetails(PrefabIndexItem item, int indent)
+        private void DrawPrefabAssetDetails(PrefabIndexItem item, int indent)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             GUILayout.Space(indent * 15 + 40);
             
-            EditorGUILayout.LabelField($"📸 使用的图片 ({item.ImageReferences.Count})", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField($"📋 使用的资源 ({item.AssetReferences.Count})", EditorStyles.boldLabel);
             
-            foreach (var imageRef in item.ImageReferences)
+            // 按类型分组显示
+            var groupedReferences = item.AssetReferences
+                .GroupBy(r => r.Type)
+                .OrderBy(g => g.Key);
+            
+            foreach (var group in groupedReferences)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(10);
+                AssetReferenceType type = group.Key;
+                var references = group.ToList();
                 
-                // 图片图标
-                EditorGUILayout.LabelField("🖼", GUILayout.Width(20));
+                // 类型标题
+                GUILayout.Space(5);
+                string typeIcon = GetAssetTypeIcon(type);
+                string typeName = GetAssetTypeName(type);
+                EditorGUILayout.LabelField($"{typeIcon} {typeName} ({references.Count})", EditorStyles.boldLabel);
                 
-                // 图片名称（可点击定位）
-                string displayName = imageRef.AssetName;
-                if (GUILayout.Button(displayName, EditorStyles.linkLabel, GUILayout.Width(150)))
+                // 显示每个引用
+                foreach (var assetRef in references)
                 {
-                    var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(imageRef.AssetPath);
-                    if (asset != null) EditorGUIUtility.PingObject(asset);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(10);
+                    
+                    // 资源图标
+                    EditorGUILayout.LabelField(typeIcon, GUILayout.Width(20));
+                    
+                    // 资源名称（可点击定位）
+                    string displayName = assetRef.AssetName;
+                    if (GUILayout.Button(displayName, EditorStyles.linkLabel, GUILayout.Width(150)))
+                    {
+                        var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetRef.AssetPath);
+                        if (asset != null) 
+                        {
+                            EditorGUIUtility.PingObject(asset);
+                            // 如果是预制体，还可以打开它
+                            if (type == AssetReferenceType.Prefab)
+                            {
+                                Selection.activeObject = asset;
+                            }
+                        }
+                    }
+                    
+                    // 额外信息（如果有）
+                    if (!string.IsNullOrEmpty(assetRef.ExtraInfo))
+                    {
+                        EditorGUILayout.LabelField($"({assetRef.ExtraInfo})", EditorStyles.miniLabel, GUILayout.Width(80));
+                    }
+                    
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                    
+                    // 节点路径
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(30);
+                    EditorGUILayout.LabelField($"📍 {assetRef.NodePath}", EditorStyles.miniLabel);
+                    GUILayout.EndHorizontal();
+                    
+                    GUILayout.Space(3);
                 }
-                
-                // 组件类型
-                EditorGUILayout.LabelField($"({imageRef.ComponentType})", EditorStyles.miniLabel, GUILayout.Width(80));
-                
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                
-                // 节点路径
-                GUILayout.BeginHorizontal();
-                GUILayout.Space(30);
-                EditorGUILayout.LabelField($"📍 {imageRef.NodePath}", EditorStyles.miniLabel);
-                GUILayout.EndHorizontal();
-                
-                GUILayout.Space(3);
             }
             
             GUILayout.EndVertical();
+        }
+        
+        /// <summary>
+        /// 获取资源类型图标
+        /// </summary>
+        private string GetAssetTypeIcon(AssetReferenceType type)
+        {
+            switch (type)
+            {
+                case AssetReferenceType.Image:
+                case AssetReferenceType.RawImage:
+                    return "🖼";
+                case AssetReferenceType.Prefab:
+                    return "📦";
+                case AssetReferenceType.Material:
+                    return "🎨";
+                case AssetReferenceType.Font:
+                    return "🔤";
+                default:
+                    return "📄";
+            }
+        }
+        
+        /// <summary>
+        /// 获取资源类型名称
+        /// </summary>
+        private string GetAssetTypeName(AssetReferenceType type)
+        {
+            switch (type)
+            {
+                case AssetReferenceType.Image:
+                    return "图片 (Image)";
+                case AssetReferenceType.RawImage:
+                    return "纹理 (RawImage)";
+                case AssetReferenceType.Prefab:
+                    return "预制体 (Prefab)";
+                case AssetReferenceType.Material:
+                    return "材质 (Material)";
+                case AssetReferenceType.Font:
+                    return "字体 (Font)";
+                default:
+                    return "未知资源";
+            }
         }
 
         private void DrawBookmarks()
@@ -463,8 +580,8 @@ namespace UIProbe
                     FolderPath = folderPath
                 };
                 
-                // 收集图片引用
-                CollectImageReferences(item);
+                // 收集所有资源引用
+                CollectAssetReferences(item);
                 
                 allPrefabs.Add(item);
                 AddToFolderTree(item, folderPath);
@@ -640,13 +757,28 @@ namespace UIProbe
         /// </summary>
         private SerializablePrefabIndexItem ConvertToSerializable(PrefabIndexItem item)
         {
-            return new SerializablePrefabIndexItem
+            var serializable = new SerializablePrefabIndexItem
             {
                 Name = item.Name,
                 Path = item.Path,
                 Guid = item.Guid,
                 FolderPath = item.FolderPath
             };
+            
+            // 转换资源引用
+            foreach (var assetRef in item.AssetReferences)
+            {
+                serializable.AssetReferences.Add(new SerializableAssetReference
+                {
+                    AssetPath = assetRef.AssetPath,
+                    NodePath = assetRef.NodePath,
+                    AssetName = assetRef.AssetName,
+                    Type = (int)assetRef.Type,
+                    ExtraInfo = assetRef.ExtraInfo
+                });
+            }
+            
+            return serializable;
         }
         
         /// <summary>
@@ -719,13 +851,31 @@ namespace UIProbe
         /// </summary>
         private PrefabIndexItem ConvertFromSerializable(SerializablePrefabIndexItem item)
         {
-            return new PrefabIndexItem
+            var prefabItem = new PrefabIndexItem
             {
                 Name = item.Name,
                 Path = item.Path,
                 Guid = item.Guid,
                 FolderPath = item.FolderPath
             };
+            
+            // 转换资源引用（支持向后兼容）
+            if (item.AssetReferences != null)
+            {
+                foreach (var serialRef in item.AssetReferences)
+                {
+                    prefabItem.AssetReferences.Add(new AssetReference
+                    {
+                        AssetPath = serialRef.AssetPath,
+                        NodePath = serialRef.NodePath,
+                        AssetName = serialRef.AssetName,
+                        Type = (AssetReferenceType)serialRef.Type,
+                        ExtraInfo = serialRef.ExtraInfo
+                    });
+                }
+            }
+            
+            return prefabItem;
         }
         
         /// <summary>
@@ -958,16 +1108,28 @@ namespace UIProbe
         
         
         /// <summary>
-        /// 收集预制体中的图片引用
+        /// 收集预制体中的所有资源引用
         /// </summary>
-        private void CollectImageReferences(PrefabIndexItem item)
+        private void CollectAssetReferences(PrefabIndexItem item)
         {
             // 加载预制体
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(item.Path);
             if (prefab == null) return;
             
-            item.ImageReferences.Clear();
+            item.AssetReferences.Clear();
             
+            // 收集各类资源引用
+            CollectImageReferences(item, prefab);
+            CollectPrefabReferences(item, prefab);
+            // 可选：CollectMaterialReferences(item, prefab);
+            // 可选：CollectFontReferences(item, prefab);
+        }
+        
+        /// <summary>
+        /// 收集预制体中的图片引用
+        /// </summary>
+        private void CollectImageReferences(PrefabIndexItem item, GameObject prefab)
+        {
             // 扫描所有 Image 组件
             var images = prefab.GetComponentsInChildren<UnityEngine.UI.Image>(true);
             foreach (var image in images)
@@ -978,12 +1140,13 @@ namespace UIProbe
                     if (!string.IsNullOrEmpty(spritePath))
                     {
                         string nodePath = GetNodePath(prefab.transform, image.transform);
-                        item.ImageReferences.Add(new ImageReference
+                        item.AssetReferences.Add(new AssetReference
                         {
                             AssetPath = spritePath,
                             NodePath = nodePath,
-                            ComponentType = "Image",
-                            AssetName = Path.GetFileName(spritePath)
+                            Type = AssetReferenceType.Image,
+                            AssetName = Path.GetFileName(spritePath),
+                            ExtraInfo = "Image"
                         });
                     }
                 }
@@ -999,13 +1162,61 @@ namespace UIProbe
                     if (!string.IsNullOrEmpty(texturePath))
                     {
                         string nodePath = GetNodePath(prefab.transform, rawImage.transform);
-                        item.ImageReferences.Add(new ImageReference
+                        item.AssetReferences.Add(new AssetReference
                         {
                             AssetPath = texturePath,
                             NodePath = nodePath,
-                            ComponentType = "RawImage",
-                            AssetName = Path.GetFileName(texturePath)
+                            Type = AssetReferenceType.RawImage,
+                            AssetName = Path.GetFileName(texturePath),
+                            ExtraInfo = "RawImage"
                         });
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 收集预制体中嵌套的预制体引用
+        /// </summary>
+        private void CollectPrefabReferences(PrefabIndexItem item, GameObject prefab)
+        {
+            // 遍历所有 Transform，找到嵌套的预制体实例
+            Transform[] allTransforms = prefab.GetComponentsInChildren<Transform>(true);
+            
+            HashSet<GameObject> processedPrefabs = new HashSet<GameObject>();
+            
+            foreach (Transform t in allTransforms)
+            {
+                // 跳过根节点
+                if (t == prefab.transform) continue;
+                
+                // 检查是否是预制体实例根节点
+                GameObject prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(t.gameObject);
+                
+                // 如果这个节点是预制体根，且未处理过
+                if (prefabRoot != null && prefabRoot == t.gameObject && !processedPrefabs.Contains(prefabRoot))
+                {
+                    processedPrefabs.Add(prefabRoot);
+                    
+                    // 获取预制体源资源
+                    GameObject prefabSource = PrefabUtility.GetCorrespondingObjectFromSource(prefabRoot);
+                    if (prefabSource != null)
+                    {
+                        string prefabPath = AssetDatabase.GetAssetPath(prefabSource);
+                        if (!string.IsNullOrEmpty(prefabPath))
+                        {
+                            string nodePath = GetNodePath(prefab.transform, t);
+                            string prefabGuid = AssetDatabase.AssetPathToGUID(prefabPath);
+                            
+                            item.AssetReferences.Add(new AssetReference
+                            {
+                                AssetPath = prefabPath,
+                                NodePath = nodePath,
+                                Type = AssetReferenceType.Prefab,
+                                AssetName = Path.GetFileName(prefabPath),
+                                ExtraInfo = prefabSource.name
+                            });
+                        }
                     }
                 }
             }
