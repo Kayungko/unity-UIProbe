@@ -30,11 +30,12 @@ namespace UIProbe
             DuplicateChecker,
             AssetReferences,
             ImageNormalizer,
+            Screenshot,
             Settings
         }
 
         private Tab currentTab = Tab.Picker;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "设置" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "游戏截屏", "设置" };
         
         // 统一配置
         private UIProbeConfig config;
@@ -105,6 +106,9 @@ namespace UIProbe
                 case Tab.ImageNormalizer:
                     DrawImageNormalizerTab();
                     break;
+                case Tab.Screenshot:
+                    DrawScreenshotTab();
+                    break;
                 case Tab.Settings:
                     DrawSettingsTab();
                     break;
@@ -127,6 +131,7 @@ namespace UIProbe
             DrawSidebarButton(Tab.DuplicateChecker, "重名检测");
             DrawSidebarButton(Tab.AssetReferences, "资源引用");
             DrawSidebarButton(Tab.ImageNormalizer, "图片规范化");
+            DrawSidebarButton(Tab.Screenshot, "游戏截屏");
             
             GUILayout.FlexibleSpace();
             
@@ -151,6 +156,12 @@ namespace UIProbe
             if (isPickerActive && Application.isPlaying)
             {
                 HandlePickerInput();
+            }
+            
+            // 截屏快捷键（仅在 Play 模式且截屏页签激活时）
+            if (Application.isPlaying && currentTab == Tab.Screenshot)
+            {
+                HandleScreenshotInput();
             }
         }
 

@@ -19,6 +19,7 @@ namespace UIProbe
         private const string CSV_EXPORTS_FOLDER = "CSV_Exports";
         private const string BATCH_RESULTS_FOLDER = "Batch_Results";
         private const string SETTINGS_FOLDER = "Settings";
+        private const string SCREENSHOTS_FOLDER = "Screenshots";
 
         /// <summary>
         /// 获取主文件夹路径 (GetStoragePath 别名)
@@ -113,6 +114,16 @@ namespace UIProbe
             EnsureDirectoryExists(path);
             return path;
         }
+        
+        /// <summary>
+        /// 获取截屏文件存储路径
+        /// </summary>
+        public static string GetScreenshotsPath()
+        {
+            string path = Path.Combine(GetMainFolderPath(), SCREENSHOTS_FOLDER);
+            EnsureDirectoryExists(path);
+            return path;
+        }
 
 
 
@@ -157,6 +168,7 @@ namespace UIProbe
 ├── {MODIFICATION_LOGS_FOLDER}/   (CSV修改日志-新增)
 ├── {CSV_EXPORTS_FOLDER}/         (检测结果导出)
 ├── {BATCH_RESULTS_FOLDER}/       (批量检测结果)
+├── {SCREENSHOTS_FOLDER}/         (游戏截屏)
 └── {SETTINGS_FOLDER}/            (设置数据)";
         }
     }
