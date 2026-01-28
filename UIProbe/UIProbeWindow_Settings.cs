@@ -245,6 +245,41 @@ namespace UIProbe
 
             EditorGUILayout.Space();
             
+            // ===== Picker Input Mode Settings =====
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("运行时拾取方式 (Picker Input Mode)", EditorStyles.boldLabel);
+            EditorGUILayout.Space(3);
+            
+            if (config != null && config.picker != null)
+            {
+                EditorGUILayout.HelpBox("选择在 Play 模式下拾取 UI 元素的输入方式。推荐使用右键以避免触发按钮点击。", MessageType.Info);
+                EditorGUILayout.Space(5);
+                
+                PickerInputMode currentMode = (PickerInputMode)config.picker.inputMode;
+                PickerInputMode newMode = (PickerInputMode)EditorGUILayout.EnumPopup("拾取方式:", currentMode);
+                
+                if (newMode != currentMode)
+                {
+                    config.picker.inputMode = (int)newMode;
+                    UIProbeConfigManager.Save(config);
+                }
+                
+                EditorGUILayout.Space(5);
+                
+                // 显示各模式说明
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                EditorGUILayout.LabelField("模式说明:", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField("• 右键: 不会触发按钮，推荐使用", EditorStyles.wordWrappedMiniLabel);
+                EditorGUILayout.LabelField("• Ctrl+左键: 需要双手操作，但逻辑清晰", EditorStyles.wordWrappedMiniLabel);
+                EditorGUILayout.LabelField("• 中键: 不会触发按钮，部分鼠标无中键", EditorStyles.wordWrappedMiniLabel);
+                EditorGUILayout.LabelField("• Alt+左键: 需要双手操作", EditorStyles.wordWrappedMiniLabel);
+                EditorGUILayout.EndVertical();
+            }
+            
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space();
+            
             // Duplicate Detection Settings
             DrawDuplicateDetectionSettings();
 
@@ -424,7 +459,7 @@ namespace UIProbe
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("UIProbe - Unity UIProbe 界面探针工具");
-            EditorGUILayout.LabelField("Version: 2.2.0", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("Version: 2.3.0", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天", EditorStyles.miniLabel);
             
             EditorGUILayout.Space(3);

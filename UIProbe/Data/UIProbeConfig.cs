@@ -17,12 +17,24 @@ namespace UIProbe
     }
     
     /// <summary>
+    /// 拾取输入方式
+    /// </summary>
+    public enum PickerInputMode
+    {
+        RightClick,      // 右键点击（推荐，默认）
+        CtrlLeftClick,   // Ctrl + 左键
+        MiddleClick,     // 中键点击
+        AltLeftClick     // Alt + 左键
+    }
+    
+    /// <summary>
     /// 拾取器配置
     /// </summary>
     [Serializable]
     public class PickerConfig
     {
         public bool autoMode = false;
+        public int inputMode = 0; // PickerInputMode as int (默认 RightClick)
     }
     
     /// <summary>
@@ -90,7 +102,7 @@ namespace UIProbe
     [Serializable]
     public class UIProbeConfig
     {
-        public string version = "2.2.0";
+        public string version = "2.3.0";
         public string lastUpdated = "";
         
         public IndexerConfig indexer = new IndexerConfig();

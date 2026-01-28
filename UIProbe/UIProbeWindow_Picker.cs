@@ -70,6 +70,10 @@ namespace UIProbe
             }
             
             GUILayout.FlexibleSpace();
+            
+            // 显示当前拾取方式
+            string inputModeText = GetPickerInputModeText();
+            EditorGUILayout.LabelField($"拾取方式: {inputModeText}", EditorStyles.miniLabel, GUILayout.Width(150));
             EditorGUILayout.LabelField("快捷键: F1", EditorStyles.miniLabel, GUILayout.Width(70));
             GUILayout.EndHorizontal();
 
@@ -271,8 +275,36 @@ namespace UIProbe
 
         private void HandlePickerInput()
         {
-            // 支持鼠标点击
-            if (Input.GetMouseButtonDown(0))
+            // 获取配置的输入方式
+            PickerInputMode inputMode = PickerInputMode.RightClick;
+            if (config != null && config.picker != null)
+            {
+                inputMode = (PickerInputMode)config.picker.inputMode;
+            }
+            
+            bool shouldPick = false;
+            
+            // 根据配置的方式检测输入
+            switch (inputMode)
+            {
+                case PickerInputMode.RightClick:
+                    shouldPick = Input.GetMouseButtonDown(1); // 右键
+                    break;
+                    
+                case PickerInputMode.CtrlLeftClick:
+                    shouldPick = Input.GetMouseButtonDown(0) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl));
+                    break;
+                    
+                case PickerInputMode.MiddleClick:
+                    shouldPick = Input.GetMouseButtonDown(2); // 中键
+                    break;
+                    
+                case PickerInputMode.AltLeftClick:
+                    shouldPick = Input.GetMouseButtonDown(0) && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt));
+                    break;
+            }
+            
+            if (shouldPick)
             {
                 PickUIElement(Input.mousePosition);
             }
@@ -320,6 +352,29 @@ namespace UIProbe
             if (config != null && config.picker != null)
             {
                 autoPickerMode = config.picker.autoMode;
+            }
+        }
+        
+        /// <summary>
+        /// 获取拾取方式的显示文本
+        /// </summary>
+        private string GetPickerInputModeText()
+        {
+            if (config == null || config.picker == null) return "右键";
+            
+            PickerInputMode mode = (PickerInputMode)config.picker.inputMode;
+            switch (mode)
+            {
+                case PickerInputMode.RightClick:
+                    return "右键";
+                case PickerInputMode.CtrlLeftClick:
+                    return "Ctrl+左键";
+                case PickerInputMode.MiddleClick:
+                    return "中键";
+                case PickerInputMode.AltLeftClick:
+                    return "Alt+左键";
+                default:
+                    return "右键";
             }
         }
         
