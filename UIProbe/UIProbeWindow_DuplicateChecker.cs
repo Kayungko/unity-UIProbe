@@ -654,7 +654,7 @@ namespace UIProbe
                                    new Color(0.3f, 0.8f, 0.8f);
             
             GUI.backgroundColor = indicatorColor;
-            GUILayout.Box("", GUILayout.Width(4), GUILayout.ExpandHeight(true));
+            GUILayout.Box("", GUILayout.Width(4), GUILayout.Height(20));
             GUI.backgroundColor = Color.white;
             
             GUILayout.Space(5);

@@ -77,27 +77,35 @@ namespace UIProbe
                 Directory.CreateDirectory(dateDir);
             }
             
-            // 构建文件名: PrefabName + 时间戳
-            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            string fileName = $"{prefabName}_{timestamp}.csv";
+            // 构建文件名: PrefabName.csv (同一天同一个预制体合并记录)
+            string fileName = $"{prefabName}.csv";
             string filePath = Path.Combine(dateDir, fileName);
             
             try
             {
                 var sb = new StringBuilder();
-                // 写入BOM头，防止中文乱码
-                sb.Append(new byte[] { 0xEF, 0xBB, 0xBF }); // 不对，StringBuilder不能直接append bytes，用Encoding处理
-                
-                // 表头
-                sb.AppendLine("预制体名称,修改前名称,修改后名称,节点路径,修改时间");
+                bool fileExists = File.Exists(filePath);
+
+                if (!fileExists)
+                {
+                    // 只有新文件才写入BOM和表头
+                    // 写入表头
+                    sb.AppendLine("预制体名称,修改前名称,修改后名称,节点路径,修改时间");
+                }
                 
                 foreach (var log in currentSessionLogs)
                 {
                     sb.AppendLine($"{EscapeCSV(log.PrefabName)},{EscapeCSV(log.OldName)},{EscapeCSV(log.NewName)},{EscapeCSV(log.NodePath)},{log.Timestamp}");
                 }
                 
-                // 使用UTF8带BOM编码写入
-                File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+                if (fileExists)
+                {
+                    File.AppendAllText(filePath, sb.ToString(), Encoding.UTF8);
+                }
+                else
+                {
+                    File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+                }
                 
                 // 清空日志
                 ClearLogs();
