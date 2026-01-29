@@ -459,12 +459,12 @@ namespace UIProbe
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("UIProbe - Unity UIProbe 界面探针工具");
-            EditorGUILayout.LabelField("Version: 2.3.0", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("Version: 2.4.0", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天", EditorStyles.miniLabel);
             
             EditorGUILayout.Space(3);
             EditorGUILayout.LabelField("核心功能:", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("• 运行时拾取 • 预制体索引 • 界面记录• 重名检测 • 批量操作 • 历史管理 • 历史管理 • 图片资源引用追踪", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 运行时拾取 • 预制体索引 • 界面记录 • 重名检测 • 批量操作 • 历史管理 • 图片资源引用追踪 • TMP富文本生成", EditorStyles.miniLabel);
             EditorGUILayout.EndVertical();
             
             // End ScrollView
