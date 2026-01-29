@@ -175,8 +175,8 @@ namespace UIProbe
             EditorGUILayout.Space(10);
             
             // 累积模式开关
-            EditorGUILayout.BeginHorizontal();
-            bool newCumulativeMode = EditorGUILayout.Toggle("累积模式", cumulativeMode, GUILayout.Width(100));
+            EditorGUILayout.BeginVertical();
+            bool newCumulativeMode = EditorGUILayout.Toggle("累积模式", cumulativeMode);
             if (newCumulativeMode != cumulativeMode)
             {
                 cumulativeMode = newCumulativeMode;
@@ -186,7 +186,7 @@ namespace UIProbe
                 }
             }
             EditorGUILayout.LabelField("(允许对同一文本多次应用不同格式)", EditorStyles.miniLabel);
-            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
             
             EditorGUILayout.Space(5);
             
