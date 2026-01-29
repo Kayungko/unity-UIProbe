@@ -27,7 +27,7 @@ namespace UIProbe
             // Version
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("版本:", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("2.4.0", GUILayout.Width(100));
+            EditorGUILayout.LabelField("2.5.0", GUILayout.Width(100));
             EditorGUILayout.EndHorizontal();
             
             // Developers
@@ -67,13 +67,13 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v2.4.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v2.5.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• TMP 富文本生成器", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 可视化编辑界面，无需记忆标签语法", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 累积模式：对同一文本多次应用不同格式", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 格式历史记录，支持撤销和删除", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 预制体综合检测", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 集成 Raycast、资源引用、空引用等多种检测规则", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持批量关闭不必要的 Raycast Target", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 全新的过滤和多选交互界面", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             

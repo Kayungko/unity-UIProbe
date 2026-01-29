@@ -24,6 +24,9 @@ namespace UIProbe
         private List<UIProblem> currentGeneralProblems = new List<UIProblem>();
         private Vector2 comprehensiveScrollPosition;
         private GameObject lastComprehensiveCheckedPrefab;
+        private Dictionary<string, bool> ruleVisibility = new Dictionary<string, bool>(); // Filter state
+        private HashSet<UIProblem> selectedProblems = new HashSet<UIProblem>(); // Selection state
+
 
         
         // Batch Mode State
@@ -176,6 +179,11 @@ namespace UIProbe
             
             EditorGUILayout.Space(5);
             
+            if (lastComprehensiveCheckedPrefab != null && currentGeneralProblems.Count > 0)
+            {
+                DrawFilterToolbar();
+            }
+
             // ScrollView
             comprehensiveScrollPosition = EditorGUILayout.BeginScrollView(comprehensiveScrollPosition);
             
@@ -187,11 +195,15 @@ namespace UIProbe
                 }
                 else
                 {
-                    EditorGUILayout.LabelField($"发现 {currentGeneralProblems.Count} 个问题:", EditorStyles.boldLabel);
+                    // Filtered count
+                    int visibleCount = currentGeneralProblems.Count(p => !ruleVisibility.ContainsKey(p.RuleName) || ruleVisibility[p.RuleName]);
+                    
+                    EditorGUILayout.LabelField($"发现 {currentGeneralProblems.Count} 个问题 (显示 {visibleCount} 个):", EditorStyles.boldLabel);
                     EditorGUILayout.Space(5);
                     
                     // Group by rule
                     var groupedProblems = currentGeneralProblems
+                        .Where(p => !ruleVisibility.ContainsKey(p.RuleName) || ruleVisibility[p.RuleName])
                         .GroupBy(p => p.RuleName)
                         .OrderBy(g => g.Key);
                         
@@ -208,16 +220,100 @@ namespace UIProbe
             
             EditorGUILayout.EndScrollView();
         }
+
+        private void DrawFilterToolbar()
+        {
+            var rules = currentGeneralProblems.Select(p => p.RuleName).Distinct().OrderBy(r => r).ToList();
+            if (rules.Count == 0) return;
+
+            GUILayout.BeginHorizontal(EditorStyles.toolbar);
+            GUILayout.Label("筛选:", GUILayout.Width(35));
+            
+            bool changed = false;
+            
+            // "All" button
+            bool allVisible = rules.All(r => !ruleVisibility.ContainsKey(r) || ruleVisibility[r]);
+            if (GUILayout.Button("全部", allVisible ? EditorStyles.toolbarButton : EditorStyles.toolbarButton, GUILayout.Width(40)))
+            {
+                foreach (var r in rules) ruleVisibility[r] = true;
+                changed = true;
+            }
+
+            foreach (var rule in rules)
+            {
+                if (!ruleVisibility.ContainsKey(rule)) ruleVisibility[rule] = true;
+                
+                int count = currentGeneralProblems.Count(p => p.RuleName == rule);
+                string label = $"{rule} ({count})";
+                
+                bool isVisible = ruleVisibility[rule];
+                bool newVisible = GUILayout.Toggle(isVisible, label, EditorStyles.toolbarButton);
+                
+                if (newVisible != isVisible)
+                {
+                    ruleVisibility[rule] = newVisible;
+                    changed = true;
+                }
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            
+            if (changed) Repaint();
+        }
         
         private void DrawProblemGroup(string ruleName, List<UIProblem> problems)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField($"▼ {ruleName} ({problems.Count})", EditorStyles.boldLabel);
             
+            // Header
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"▼ {ruleName} ({problems.Count})", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            
+            // Batch actions for specific rules
+            if (ruleName.Contains("Raycast Target"))
+            {
+                // Check if any in this group are selected
+                int selectedCount = problems.Count(p => selectedProblems.Contains(p));
+                
+                if (GUILayout.Button("全选", EditorStyles.miniButton, GUILayout.Width(40)))
+                {
+                    foreach (var p in problems) selectedProblems.Add(p);
+                }
+                
+                if (selectedCount > 0)
+                {
+                    if (GUILayout.Button("取消", EditorStyles.miniButton, GUILayout.Width(40)))
+                    {
+                        foreach (var p in problems) selectedProblems.Remove(p);
+                    }
+
+                    GUI.backgroundColor = new Color(1f, 0.6f, 0.6f);
+                    if (GUILayout.Button($"关闭选中 ({selectedCount})", EditorStyles.miniButton))
+                    {
+                        BatchFixProblems(problems.Where(p => selectedProblems.Contains(p)).ToList());
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.Space(5); // Add spacing between title and content
+
             foreach (var problem in problems)
             {
                 EditorGUILayout.BeginHorizontal();
                 
+                 // Checkbox
+                bool isSelected = selectedProblems.Contains(problem);
+                bool newSelected = GUILayout.Toggle(isSelected, "", GUILayout.Width(20));
+                if (newSelected != isSelected)
+                {
+                    if (newSelected) selectedProblems.Add(problem);
+                    else selectedProblems.Remove(problem);
+                }
+
                 // Icon
                 GUI.backgroundColor = problem.GetColor();
                 GUILayout.Label(problem.GetIcon(), EditorStyles.miniButton, GUILayout.Width(20));
@@ -229,6 +325,15 @@ namespace UIProbe
                 EditorGUILayout.LabelField(problem.NodePath, EditorStyles.miniLabel);
                 EditorGUILayout.EndVertical();
                 
+                // Close Raycast Button (Specific to Raycast Target rule)
+                if (problem.RuleName.Contains("Raycast Target"))
+                {
+                     if (GUILayout.Button("关闭射线", EditorStyles.miniButton, GUILayout.Width(60)))
+                     {
+                         FixProblem(problem);
+                     }
+                }
+
                 // Locate
                 if (GUILayout.Button("定位", EditorStyles.miniButton, GUILayout.Width(40)))
                 {
@@ -245,6 +350,37 @@ namespace UIProbe
             
             EditorGUILayout.EndVertical();
             GUILayout.Space(5);
+        }
+
+        private void FixProblem(UIProblem problem)
+        {
+            if (problem.Target == null) return;
+            
+            if (problem.RuleName.Contains("Raycast Target"))
+            {
+                var graphic = problem.Target.GetComponent<UnityEngine.UI.Graphic>();
+                if (graphic != null)
+                {
+                    Undo.RecordObject(graphic, "Fix Raycast Target");
+                    graphic.raycastTarget = false;
+                    EditorUtility.SetDirty(problem.Target);
+                    
+                    // Remove from list
+                    currentGeneralProblems.Remove(problem);
+                    selectedProblems.Remove(problem);
+                    
+                    Debug.Log($"[UIProbe] Closed Raycast Target for: {problem.Target.name}");
+                }
+            }
+        }
+
+        private void BatchFixProblems(List<UIProblem> problemsToFix)
+        {
+            foreach (var problem in problemsToFix)
+            {
+                FixProblem(problem);
+            }
+            Repaint();
         }
         
         /// <summary>
@@ -270,6 +406,8 @@ namespace UIProbe
             // For now, let's keep them to be truly comprehensive
             
             currentGeneralProblems = allProblems;
+            ruleVisibility.Clear(); // Reset filters
+            selectedProblems.Clear(); // Reset selection
             
             Repaint();
         }
