@@ -5,6 +5,8 @@ namespace UIProbe
 {
     public partial class UIProbeWindow
     {
+        private Vector2 aboutScrollPosition;
+        
         /// <summary>
         /// 绘制关于标签页
         /// </summary>
@@ -12,6 +14,9 @@ namespace UIProbe
         {
             EditorGUILayout.LabelField("关于 UIProbe", EditorStyles.boldLabel);
             EditorGUILayout.Space(10);
+            
+            // Begin ScrollView
+            aboutScrollPosition = EditorGUILayout.BeginScrollView(aboutScrollPosition, GUILayout.ExpandHeight(true));
             
             // Main info box
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
@@ -101,11 +106,15 @@ namespace UIProbe
             
             EditorGUILayout.EndVertical();
             
+            
             // Footer
             GUILayout.FlexibleSpace();
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("© 2024-2026 UIProbe Team. All Rights Reserved.", EditorStyles.centeredGreyMiniLabel);
             EditorGUILayout.EndVertical();
+            
+            // End ScrollView
+            EditorGUILayout.EndScrollView();
         }
         
         /// <summary>

@@ -153,7 +153,7 @@ namespace UIProbe
             EditorGUILayout.Space();
             
             // Add ScrollView for entire settings content
-            settingsScrollPosition = EditorGUILayout.BeginScrollView(settingsScrollPosition);
+            settingsScrollPosition = EditorGUILayout.BeginScrollView(settingsScrollPosition, GUILayout.ExpandHeight(true));
 
             // ===== Problem Detection Rules =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
