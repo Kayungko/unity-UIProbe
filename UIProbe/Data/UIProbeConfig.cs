@@ -97,6 +97,21 @@ namespace UIProbe
     }
     
     /// <summary>
+    /// 问题检测规则配置
+    /// </summary>
+    [Serializable]
+    public class CheckerRulesConfig
+    {
+        public bool missingImageSprite = true;
+        public bool missingTextFont = true;
+        public bool unnecessaryRaycastTarget = true;
+        public bool badNaming = true;
+        public bool emptyText = true;
+        public bool missingCanvasGroup = true;
+        public bool duplicateName = true;
+    }
+    
+    /// <summary>
     /// UIProbe 统一配置
     /// </summary>
     [Serializable]
@@ -110,6 +125,7 @@ namespace UIProbe
         public DuplicateCheckerConfig duplicateChecker = new DuplicateCheckerConfig();
         public ImageNormalizerConfig imageNormalizer = new ImageNormalizerConfig();
         public RecorderConfig recorder = new RecorderConfig();
+        public CheckerRulesConfig checkerRules = new CheckerRulesConfig();
     }
     
     /// <summary>

@@ -33,6 +33,12 @@ namespace UIProbe
             if (config.recorder != null)
                 recordStoragePath = config.recorder.storagePath;
             
+            // 问题检测规则状态
+            if (config.checkerRules != null)
+            {
+                ApplyCheckerRulesConfig();
+            }
+            
             // Duplicate Settings
             if (duplicateSettings == null) duplicateSettings = new DuplicateDetectionSettings();
             
@@ -59,13 +65,20 @@ namespace UIProbe
             }
         }
         
-        private void SaveSettingsData()
+        /// <summary>
+        /// 收集设置数据到 config 对象
+        /// </summary>
+        private void CollectSettingsData()
         {
             if (config == null) return;
             
             // Recorder Settings
             if (config.recorder == null) config.recorder = new RecorderConfig();
             config.recorder.storagePath = recordStoragePath;
+            
+            // 问题检测规则状态
+            if (config.checkerRules == null) config.checkerRules = new CheckerRulesConfig();
+            CollectCheckerRulesConfig();
             
             // Duplicate Settings
             if (duplicateSettings != null)
@@ -86,9 +99,52 @@ namespace UIProbe
                 
                 config.duplicateChecker.forbiddenDuplicateNames = duplicateSettings.ForbiddenDuplicateNames.ToArray();
             }
+        }
+
+        private void SaveSettingsData()
+        {
+            CollectSettingsData();
             
             // Save config
             UIProbeConfigManager.Save(config);
+        }
+        
+        /// <summary>
+        /// 应用检测规则配置到UIProbeChecker.Rules
+        /// </summary>
+        private void ApplyCheckerRulesConfig()
+        {
+            if (config.checkerRules == null) return;
+            
+            var rules = UIProbeChecker.Rules;
+            if (rules.Count >= 7)
+            {
+                rules[0].IsEnabled = config.checkerRules.missingImageSprite;  // MissingImageSpriteRule
+                rules[1].IsEnabled = config.checkerRules.missingTextFont;     // MissingTextFontRule
+                rules[2].IsEnabled = config.checkerRules.unnecessaryRaycastTarget; // UnnecessaryRaycastTargetRule
+                rules[3].IsEnabled = config.checkerRules.badNaming;            // BadNamingRule
+                rules[4].IsEnabled = config.checkerRules.emptyText;            // EmptyTextRule
+                rules[5].IsEnabled = config.checkerRules.missingCanvasGroup;   // MissingCanvasGroupRule
+                rules[6].IsEnabled = config.checkerRules.duplicateName;        // DuplicateNameRule
+            }
+        }
+        
+        /// <summary>
+        /// 从 UIProbeChecker.Rules 收集配置
+        /// </summary>
+        private void CollectCheckerRulesConfig()
+        {
+            var rules = UIProbeChecker.Rules;
+            if (rules.Count >= 7)
+            {
+                config.checkerRules.missingImageSprite = rules[0].IsEnabled;
+                config.checkerRules.missingTextFont = rules[1].IsEnabled;
+                config.checkerRules.unnecessaryRaycastTarget = rules[2].IsEnabled;
+                config.checkerRules.badNaming = rules[3].IsEnabled;
+                config.checkerRules.emptyText = rules[4].IsEnabled;
+                config.checkerRules.missingCanvasGroup = rules[5].IsEnabled;
+                config.checkerRules.duplicateName = rules[6].IsEnabled;
+            }
         }
         
         private void DrawSettingsTab()
@@ -109,7 +165,13 @@ namespace UIProbe
             foreach (var rule in UIProbeChecker.Rules)
             {
                 GUILayout.BeginHorizontal();
-                rule.IsEnabled = EditorGUILayout.ToggleLeft(rule.RuleName, rule.IsEnabled);
+                bool newEnabled = EditorGUILayout.ToggleLeft(rule.RuleName, rule.IsEnabled);
+                if (newEnabled != rule.IsEnabled)
+                {
+                    rule.IsEnabled = newEnabled;
+                    // 规则状态变化时自动保存
+                    SaveSettingsData();
+                }
                 GUILayout.FlexibleSpace();
                 EditorGUILayout.LabelField(rule.Description, EditorStyles.miniLabel, GUILayout.Width(250));
                 GUILayout.EndHorizontal();
@@ -450,22 +512,6 @@ namespace UIProbe
             }
             GUI.backgroundColor = Color.white;
             
-            EditorGUILayout.EndHorizontal();
-
-            // Push About to bottom
-            GUILayout.FlexibleSpace();
-
-            // Version & Credits (at the very bottom)
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("关于 (About)", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("UIProbe - Unity UIProbe 界面探针工具");
-            EditorGUILayout.LabelField("Version: 2.4.0", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("Design & Dev: 柯家荣, 沈浩天", EditorStyles.miniLabel);
-            
-            EditorGUILayout.Space(3);
-            EditorGUILayout.LabelField("核心功能:", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("• 运行时拾取 • 预制体索引 • 界面记录 • 重名检测 • 批量操作 • 历史管理 • 图片资源引用追踪 • TMP富文本生成", EditorStyles.miniLabel);
-            EditorGUILayout.EndVertical();
             
             // End ScrollView
             EditorGUILayout.EndScrollView();

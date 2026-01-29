@@ -32,11 +32,12 @@ namespace UIProbe
             ImageNormalizer,
             Screenshot,
             RichTextGenerator,
-            Settings
+            Settings,
+            About
         }
 
         private Tab currentTab = Tab.Picker;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "游戏截屏", "富文本生成", "设置" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "游戏截屏", "富文本生成", "设置", "关于" };
         
         // 统一配置
         private UIProbeConfig config;
@@ -76,6 +77,7 @@ namespace UIProbe
             
             // 收集并保存配置
             CollectImageNormalizerConfig();
+            CollectSettingsData();
             if (config != null)
             {
                 UIProbeConfigManager.Save(config);
@@ -123,6 +125,9 @@ namespace UIProbe
                 case Tab.Settings:
                     DrawSettingsTab();
                     break;
+                case Tab.About:
+                    DrawAboutTab();
+                    break;
             }
             
             GUILayout.EndVertical();
@@ -148,6 +153,7 @@ namespace UIProbe
             GUILayout.FlexibleSpace();
             
             DrawSidebarButton(Tab.Settings, "设置");
+            DrawSidebarButton(Tab.About, "关于");
             
             GUILayout.Space(5);
             GUILayout.EndVertical();
