@@ -31,11 +31,12 @@ namespace UIProbe
             AssetReferences,
             ImageNormalizer,
             Screenshot,
+            RichTextGenerator,
             Settings
         }
 
         private Tab currentTab = Tab.Picker;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "游戏截屏", "设置" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "图片规范化", "游戏截屏", "富文本生成", "设置" };
         
         // 统一配置
         private UIProbeConfig config;
@@ -116,6 +117,9 @@ namespace UIProbe
                 case Tab.Screenshot:
                     DrawScreenshotTab();
                     break;
+                case Tab.RichTextGenerator:
+                    DrawRichTextGeneratorTab();
+                    break;
                 case Tab.Settings:
                     DrawSettingsTab();
                     break;
@@ -139,6 +143,7 @@ namespace UIProbe
             DrawSidebarButton(Tab.AssetReferences, "资源引用");
             DrawSidebarButton(Tab.ImageNormalizer, "图片规范化");
             DrawSidebarButton(Tab.Screenshot, "游戏截屏");
+            DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
             
             GUILayout.FlexibleSpace();
             
