@@ -513,6 +513,8 @@ namespace UIProbe
             GUI.backgroundColor = Color.white;
             
             
+            EditorGUILayout.EndHorizontal();
+            
             // End ScrollView
             EditorGUILayout.EndScrollView();
         }

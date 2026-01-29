@@ -51,15 +51,15 @@ namespace UIProbe
             EditorGUILayout.LabelField("核心功能", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            DrawFeatureItem("🎯 运行时拾取", "在Play模式下点击拾取UI元素，查看层级和属性");
-            DrawFeatureItem("📦 预制体索引", "快速索引和搜索项目中的UI预制体");
-            DrawFeatureItem("📸 界面记录", "记录UI界面状态，保存快照和配置");
-            DrawFeatureItem("📜 历史浏览", "查看界面修改历史和快照记录");
-            DrawFeatureItem("🔍 重名检测", "检测预制体中的重名节点，支持批量修复");
-            DrawFeatureItem("🔗 资源引用", "追踪图片、预制体等资源的引用关系");
-            DrawFeatureItem("🖼️ 图片规范化", "批量调整图片尺寸，保持内容不变形");
-            DrawFeatureItem("📷 游戏截屏", "Play模式高质量截屏，支持超采样");
-            DrawFeatureItem("✍️ TMP富文本生成", "可视化生成TextMeshPro富文本代码");
+            DrawFeatureItem("运行时拾取", "在Play模式下点击拾取UI元素，查看层级和属性");
+            DrawFeatureItem("预制体索引", "快速索引和搜索项目中的UI预制体");
+            DrawFeatureItem("界面记录", "记录UI界面状态，保存快照和配置");
+            DrawFeatureItem("历史浏览", "查看界面修改历史和快照记录");
+            DrawFeatureItem("重名检测", "检测预制体中的重名节点，支持批量修复");
+            DrawFeatureItem("资源引用", "追踪图片、预制体等资源的引用关系");
+            DrawFeatureItem("图片规范化", "批量调整图片尺寸，保持内容不变形");
+            DrawFeatureItem("游戏截屏", "Play模式高质量截屏，支持超采样");
+            DrawFeatureItem("TMP富文本生成", "可视化生成TextMeshPro富文本代码");
             
             EditorGUILayout.EndVertical();
             

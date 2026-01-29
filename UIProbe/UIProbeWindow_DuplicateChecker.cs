@@ -26,7 +26,6 @@ namespace UIProbe
         private int batchCardPageIndex = 0;
         private bool batchShowOnlyDuplicates = true;
         private const int CARDS_PER_PAGE = 5;
-        private Vector2 batchScrollPosition;
         
         // Folder Exclusion Filter State
         private HashSet<string> excludedFolders = new HashSet<string>();  // 当前排除的文件夹
@@ -42,7 +41,6 @@ namespace UIProbe
         // private DuplicateDetectionSettings duplicateSettings;
         
         // Rename History State
-        private bool showRenameHistory = false;
         private Vector2 renameHistoryScrollPosition;
         private Dictionary<string, bool> historyDateFoldouts = new Dictionary<string, bool>();
         

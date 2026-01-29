@@ -24,7 +24,6 @@ namespace UIProbe
         
         // Batch Duplicate Detection State
         private BatchDuplicateResult batchDuplicateResult = null;
-        private bool isBatchDetecting = false;
         
         // Aux State
         private List<string> bookmarks = new List<string>();
