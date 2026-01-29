@@ -561,6 +561,9 @@ namespace UIProbe
             allPrefabs.Clear();
             folderTree.Clear();
             
+            // Ensure we use the latest configured path from EditorPrefs (Settings tab writes to this)
+            indexRootPath = EditorPrefs.GetString("UIProbe_IndexRootPath", "");
+
             // Load configured root path
             string searchPath = string.IsNullOrEmpty(indexRootPath) ? "Assets" : indexRootPath;
             
