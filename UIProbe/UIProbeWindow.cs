@@ -60,10 +60,17 @@ namespace UIProbe
             
             // 应用配置到图片规范化工具
             ApplyImageNormalizerConfig();
+            
+            // 注册全局更新回调，使拾取功能在窗口未激活时也能工作
+            EditorApplication.update -= OnEditorUpdate;
+            EditorApplication.update += OnEditorUpdate;
         }
 
         private void OnDisable()
         {
+            // 注销全局更新回调
+            EditorApplication.update -= OnEditorUpdate;
+            
             CollectIndexerConfig(); // Was SaveAuxData
             
             // 收集并保存配置
@@ -151,13 +158,21 @@ namespace UIProbe
             GUI.backgroundColor = Color.white;
         }
 
-        private void Update()
+        /// <summary>
+        /// 全局编辑器更新回调，即使窗口未激活也会被调用
+        /// 用于处理拾取功能的输入检测
+        /// </summary>
+        private void OnEditorUpdate()
         {
+            // 只在拾取激活且游戏运行时处理拾取输入
             if (isPickerActive && Application.isPlaying)
             {
                 HandlePickerInput();
             }
-            
+        }
+        
+        private void Update()
+        {
             // 截屏快捷键（仅在 Play 模式且截屏页签激活时）
             if (Application.isPlaying && currentTab == Tab.Screenshot)
             {
@@ -167,6 +182,9 @@ namespace UIProbe
 
         private void OnDestroy()
         {
+            // 确保注销全局更新回调（双重保险）
+            EditorApplication.update -= OnEditorUpdate;
+            
             RecorderOnDestroy();
         }
     }
