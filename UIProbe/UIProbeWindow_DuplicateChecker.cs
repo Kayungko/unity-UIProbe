@@ -648,17 +648,6 @@ namespace UIProbe
             // Group header
             GUILayout.BeginHorizontal();
             
-            // Color indicator based on count
-            Color indicatorColor = group.Count >= 5 ? new Color(0.9f, 0.3f, 0.3f) :
-                                   group.Count >= 3 ? new Color(0.9f, 0.7f, 0.2f) :
-                                   new Color(0.3f, 0.8f, 0.8f);
-            
-            GUI.backgroundColor = indicatorColor;
-            GUILayout.Box("", GUILayout.Width(4), GUILayout.Height(20));
-            GUI.backgroundColor = Color.white;
-            
-            GUILayout.Space(5);
-            
             duplicateGroupFoldouts[group.NodeName] = EditorGUILayout.Foldout(
                 duplicateGroupFoldouts[group.NodeName],
                 $"\"{group.NodeName}\" ({group.Count} 个重名)",
@@ -696,6 +685,7 @@ namespace UIProbe
             GUILayout.BeginHorizontal();
             
             // Index label
+            GUILayout.Space(5);
             EditorGUILayout.LabelField($"#{index}", GUILayout.Width(30));
             
             // Path
