@@ -144,7 +144,7 @@ namespace UIProbe
             DrawSidebarButton(Tab.Indexer, "预制体索引");
             DrawSidebarButton(Tab.Recorder, "界面记录");
             DrawSidebarButton(Tab.Browser, "历史浏览");
-            DrawSidebarButton(Tab.DuplicateChecker, "重名检测");
+            DrawSidebarButton(Tab.DuplicateChecker, "预制体综合检测");
             DrawSidebarButton(Tab.AssetReferences, "资源引用");
             DrawSidebarButton(Tab.ImageNormalizer, "图片规范化");
             DrawSidebarButton(Tab.Screenshot, "游戏截屏");

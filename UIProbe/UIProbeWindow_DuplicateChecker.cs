@@ -17,8 +17,14 @@ namespace UIProbe
         private DuplicateDetectionMode duplicateDetectionMode = DuplicateDetectionMode.Global;
         private Dictionary<string, bool> duplicateGroupFoldouts = new Dictionary<string, bool>();
         private Dictionary<GameObject, string> renameInputs = new Dictionary<GameObject, string>();
-        private int duplicateCheckerSubTab = 0;  // 0=检测功能, 1=历史记录
+        private int duplicateCheckerSubTab = 0;  // 0=检测功能, 1=综合检查, 2=历史记录
         private string lastRenamedNodeName = "";  // 最后重命名的节点名（用于保持焦点）
+        
+        // Comprehensive Check State
+        private List<UIProblem> currentGeneralProblems = new List<UIProblem>();
+        private Vector2 comprehensiveScrollPosition;
+        private GameObject lastComprehensiveCheckedPrefab;
+
         
         // Batch Mode State
         private bool isBatchMode = false;
@@ -49,19 +55,24 @@ namespace UIProbe
         /// </summary>
         private void DrawDuplicateCheckerTab()
         {
-            EditorGUILayout.LabelField("重名节点检测", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("预制体综合检测 (Prefab Inspector)", EditorStyles.boldLabel);
+
             EditorGUILayout.Space(5);
             
             // 子标签工具栏 - 在检测功能和历史记录之间切换
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
             
-            if (GUILayout.Toggle(duplicateCheckerSubTab == 0, "检测功能", EditorStyles.toolbarButton))
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 0, "综合检测", EditorStyles.toolbarButton))
             {
                 duplicateCheckerSubTab = 0;
             }
-            if (GUILayout.Toggle(duplicateCheckerSubTab == 1, "历史记录", EditorStyles.toolbarButton))
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 1, "重命名修改", EditorStyles.toolbarButton))
             {
                 duplicateCheckerSubTab = 1;
+            }
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 2, "历史记录", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 2;
             }
             
             GUILayout.EndHorizontal();
@@ -71,7 +82,12 @@ namespace UIProbe
             // 根据子标签显示不同内容
             if (duplicateCheckerSubTab == 0)
             {
-                // 检测功能标签
+                // 综合检查标签
+                DrawComprehensiveSubTab();
+            }
+            else if (duplicateCheckerSubTab == 1)
+            {
+                // 重命名修改（原检测功能）标签
                 DrawDetectionSubTab();
             }
             else
@@ -128,6 +144,134 @@ namespace UIProbe
         private void DrawHistorySubTab()
         {
             DrawRenameHistorySection();
+        }
+
+        /// <summary>
+        /// 绘制综合检查子标签
+        /// </summary>
+        private void DrawComprehensiveSubTab()
+        {
+            EditorGUILayout.Space(5);
+            
+            // Auto-detect button
+            GUILayout.BeginHorizontal();
+            GUI.enabled = PrefabStageUtility.GetCurrentPrefabStage() != null;
+            if (GUILayout.Button("检查当前预制体", GUILayout.Width(150), GUILayout.Height(30)))
+            {
+                RunComprehensiveCheck();
+            }
+            GUI.enabled = true;
+            
+            GUILayout.FlexibleSpace();
+            
+            if (currentGeneralProblems.Count > 0)
+            {
+                if (GUILayout.Button("清除结果", GUILayout.Width(80)))
+                {
+                    currentGeneralProblems.Clear();
+                    lastComprehensiveCheckedPrefab = null;
+                }
+            }
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
+            // ScrollView
+            comprehensiveScrollPosition = EditorGUILayout.BeginScrollView(comprehensiveScrollPosition);
+            
+            if (lastComprehensiveCheckedPrefab != null)
+            {
+                if (currentGeneralProblems.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("✓ 未发现任何问题", MessageType.Info);
+                }
+                else
+                {
+                    EditorGUILayout.LabelField($"发现 {currentGeneralProblems.Count} 个问题:", EditorStyles.boldLabel);
+                    EditorGUILayout.Space(5);
+                    
+                    // Group by rule
+                    var groupedProblems = currentGeneralProblems
+                        .GroupBy(p => p.RuleName)
+                        .OrderBy(g => g.Key);
+                        
+                    foreach (var group in groupedProblems)
+                    {
+                        DrawProblemGroup(group.Key, group.ToList());
+                    }
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("请打开预制体并点击上方按钮开始综合检查。\n\n此模式将运行所有启用的检测规则（如缺失图片、字体、RaycastTarget 等）。", MessageType.None);
+            }
+            
+            EditorGUILayout.EndScrollView();
+        }
+        
+        private void DrawProblemGroup(string ruleName, List<UIProblem> problems)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField($"▼ {ruleName} ({problems.Count})", EditorStyles.boldLabel);
+            
+            foreach (var problem in problems)
+            {
+                EditorGUILayout.BeginHorizontal();
+                
+                // Icon
+                GUI.backgroundColor = problem.GetColor();
+                GUILayout.Label(problem.GetIcon(), EditorStyles.miniButton, GUILayout.Width(20));
+                GUI.backgroundColor = Color.white;
+                
+                // Content
+                EditorGUILayout.BeginVertical();
+                EditorGUILayout.LabelField(problem.Description, EditorStyles.wordWrappedLabel);
+                EditorGUILayout.LabelField(problem.NodePath, EditorStyles.miniLabel);
+                EditorGUILayout.EndVertical();
+                
+                // Locate
+                if (GUILayout.Button("定位", EditorStyles.miniButton, GUILayout.Width(40)))
+                {
+                    if (problem.Target != null)
+                    {
+                        Selection.activeGameObject = problem.Target;
+                        EditorGUIUtility.PingObject(problem.Target);
+                    }
+                }
+                
+                EditorGUILayout.EndHorizontal();
+                GUILayout.Space(2);
+            }
+            
+            EditorGUILayout.EndVertical();
+            GUILayout.Space(5);
+        }
+        
+        /// <summary>
+        /// 运行综合检查
+        /// </summary>
+        private void RunComprehensiveCheck()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+            {
+                EditorUtility.DisplayDialog("提示", "请先打开一个预制体进行编辑", "确定");
+                return;
+            }
+            
+            GameObject prefabRoot = prefabStage.prefabContentsRoot;
+            lastComprehensiveCheckedPrefab = prefabRoot;
+            
+            // Run all checks
+            var allProblems = UIProbeChecker.CheckAll(prefabRoot);
+            
+            // Filter out duplicate name results (as they are handled in the other tab)
+            // Optional: keep them if we want "Comprehensive" to truly mean EVERYTHING
+            // For now, let's keep them to be truly comprehensive
+            
+            currentGeneralProblems = allProblems;
+            
+            Repaint();
         }
         
         /// <summary>
