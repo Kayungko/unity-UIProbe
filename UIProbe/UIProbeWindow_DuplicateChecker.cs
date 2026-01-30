@@ -53,6 +53,10 @@ namespace UIProbe
         private Vector2 renameHistoryScrollPosition;
         private Dictionary<string, bool> historyDateFoldouts = new Dictionary<string, bool>();
         
+        // Pre-Rename Mapping State (导入的预重命名映射)
+        private RenameMappingData importedMappingData = null;  // 当前导入的映射数据
+        private HashSet<GameObject> importedRenameObjects = new HashSet<GameObject>();  // 标记哪些对象是从JSON导入的
+        
         /// <summary>
         /// 绘制重名检测标签页
         /// </summary>
@@ -439,6 +443,23 @@ namespace UIProbe
                 ImportBatchResult();
             }
             
+            // 预重命名相关按钮
+            GUILayout.Space(10);
+            if (GUILayout.Button("导出预重命名", GUILayout.Width(100)))
+            {
+                ExportPreRenameMappings();
+            }
+            
+            if (GUILayout.Button("导入预重命名", GUILayout.Width(100)))
+            {
+                ImportPreRenameMappings();
+            }
+            
+            if (importedMappingData != null && GUILayout.Button("清除导入", GUILayout.Width(80)))
+            {
+                ClearImportedMappings();
+            }
+            
             GUILayout.FlexibleSpace();
             
             // 完成修改按钮 (仅当有修改记录时显示)
@@ -465,6 +486,33 @@ namespace UIProbe
             GUI.enabled = true;
             
             GUILayout.EndHorizontal();
+            
+            // 显示导入映射的状态提示
+            if (importedMappingData != null)
+            {
+                EditorGUILayout.Space(5);
+                GUILayout.BeginHorizontal(EditorStyles.helpBox);
+                
+                EditorGUILayout.LabelField($"📋 已导入 {importedMappingData.validMappings} 个重命名映射", EditorStyles.boldLabel);
+                
+                GUILayout.FlexibleSpace();
+                
+                // 批量应用所有按钮
+                if (importedMappingData.validMappings > 0)
+                {
+                    Color originalColor = GUI.backgroundColor;
+                    GUI.backgroundColor = new Color(0.5f, 1f, 0.5f);
+                    
+                    if (GUILayout.Button($"批量应用所有 ({importedMappingData.validMappings})", GUILayout.Width(130)))
+                    {
+                        ApplyAllImportedMappings();
+                    }
+                    
+                    GUI.backgroundColor = originalColor;
+                }
+                
+                GUILayout.EndHorizontal();
+            }
             
             EditorGUILayout.Space(5);
             
@@ -569,6 +617,10 @@ namespace UIProbe
         /// </summary>
         private void DrawDuplicateResult()
         {
+            // 添加null检查，防止在清除结果后访问null对象
+            if (currentDuplicateResult == null)
+                return;
+            
             EditorGUILayout.Space(5);
             
             // Summary
@@ -709,8 +761,26 @@ namespace UIProbe
                 renameInputs[obj] = obj != null ? obj.name : "";
             }
             
+            // 检查是否是导入的重命名
+            bool isImported = importedRenameObjects.Contains(obj);
+            
             GUI.enabled = obj != null;
+            
+            // 如果是导入的，显示蓝色背景
+            if (isImported)
+            {
+                GUI.backgroundColor = new Color(0.7f, 0.9f, 1f);
+            }
+            
             renameInputs[obj] = EditorGUILayout.TextField(renameInputs[obj], GUILayout.Width(200));
+            
+            GUI.backgroundColor = Color.white;
+            
+            // 如果是导入的，显示图标
+            if (isImported)
+            {
+                EditorGUILayout.LabelField("📋", GUILayout.Width(20));
+            }
             
             bool isValidName = IsValidNodeName(renameInputs[obj]);
             GUI.enabled = obj != null && isValidName && renameInputs[obj] != obj.name;
@@ -718,6 +788,13 @@ namespace UIProbe
             if (GUILayout.Button("应用", EditorStyles.miniButton, GUILayout.Width(50)))
             {
                 ApplyRename(obj, renameInputs[obj]);
+            }
+            
+            // 如果是导入的，显示撤销导入按钮
+            GUI.enabled = isImported;
+            if (isImported && GUILayout.Button("撤销导入", EditorStyles.miniButton, GUILayout.Width(70)))
+            {
+                RemoveImportedMapping(obj);
             }
             
             GUI.enabled = true;
@@ -949,6 +1026,199 @@ namespace UIProbe
                     }
                     ReturnToBatchMode();
                 }
+            }
+        }
+        
+        // ==================== 预重命名功能方法 ====================
+        
+        /// <summary>
+        /// 导出预重命名映射
+        /// </summary>
+        private void ExportPreRenameMappings()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+            {
+                EditorUtility.DisplayDialog("错误", "请先打开预制体", "确定");
+                return;
+            }
+            
+            RenameMappingManager.ExportRenameMappings(renameInputs, prefabStage.prefabContentsRoot);
+        }
+        
+        /// <summary>
+        /// 导入预重命名映射
+        /// </summary>
+        private void ImportPreRenameMappings()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+            {
+                EditorUtility.DisplayDialog("错误", "请先打开预制体", "确定");
+                return;
+            }
+            
+            GameObject prefabRoot = prefabStage.prefabContentsRoot;
+            
+            // 导入映射数据
+            RenameMappingData mappingData = RenameMappingManager.ImportRenameMappings(prefabRoot);
+            
+            if (mappingData == null)
+                return; // 用户取消或导入失败
+            
+            // 保存导入的数据
+            importedMappingData = mappingData;
+            importedRenameObjects.Clear();
+            
+            // 填充到输入框
+            foreach (var mapping in mappingData.mappings)
+            {
+                // 查找节点
+                Transform targetNode = prefabRoot.transform.Find(mapping.nodePath);
+                
+                if (targetNode != null && targetNode.name == mapping.oldName)
+                {
+                    GameObject obj = targetNode.gameObject;
+                    
+                    // 填充输入框
+                    renameInputs[obj] = mapping.newName;
+                    
+                    // 标记为导入的
+                    importedRenameObjects.Add(obj);
+                }
+            }
+            
+            // 显示导入结果
+            if (importedMappingData.invalidMappings > 0)
+            {
+                EditorUtility.DisplayDialog("导入完成",
+                    $"成功导入 {importedMappingData.validMappings} 个映射\n跳过 {importedMappingData.invalidMappings} 个无效映射",
+                    "确定");
+            }
+            
+            // 自动检测以显示结果
+            if (currentDuplicateResult == null)
+            {
+                DetectCurrentPrefab();
+            }
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 清除导入的映射
+        /// </summary>
+        private void ClearImportedMappings()
+        {
+            if (!EditorUtility.DisplayDialog("确认", "是否清除所有导入的重命名映射？", "确定", "取消"))
+                return;
+            
+            // 清除导入的输入框内容
+            foreach (var obj in importedRenameObjects.ToList())
+            {
+                if (renameInputs.ContainsKey(obj))
+                {
+                    renameInputs.Remove(obj);
+                }
+            }
+            
+            importedMappingData = null;
+            importedRenameObjects.Clear();
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 移除单个导入的映射
+        /// </summary>
+        private void RemoveImportedMapping(GameObject obj)
+        {
+            if (obj == null)
+                return;
+            
+            importedRenameObjects.Remove(obj);
+            renameInputs.Remove(obj);
+            
+            // 如果没有导入的对象了，清除导入数据
+            if (importedRenameObjects.Count == 0)
+            {
+                importedMappingData = null;
+            }
+            else if (importedMappingData != null)
+            {
+                // 更新有效映射数量
+                importedMappingData.validMappings = importedRenameObjects.Count;
+            }
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 批量应用所有导入的重命名
+        /// </summary>
+        private void ApplyAllImportedMappings()
+        {
+            if (importedMappingData == null || importedRenameObjects.Count == 0)
+                return;
+            
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+                return;
+            
+            GameObject prefabRoot = prefabStage.prefabContentsRoot;
+            
+            // 收集所有要应用的映射
+            List<(GameObject obj, string newName)> pendingRenames = new List<(GameObject, string)>();
+            
+            foreach (var obj in importedRenameObjects)
+            {
+                if (renameInputs.ContainsKey(obj))
+                {
+                    string newName = renameInputs[obj];
+                    if (!string.IsNullOrWhiteSpace(newName) && obj.name != newName)
+                    {
+                        pendingRenames.Add((obj, newName));
+                    }
+                }
+            }
+            
+            if (pendingRenames.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有需要应用的重命名", "确定");
+                return;
+            }
+            
+            // 显示确认对话框
+            string message = $"即将应用 {pendingRenames.Count} 个重命名:\n\n";
+            for (int i = 0; i < Math.Min(5, pendingRenames.Count); i++)
+            {
+                message += $"• {pendingRenames[i].obj.name} → {pendingRenames[i].newName}\n";
+            }
+            if (pendingRenames.Count > 5)
+            {
+                message += $"... 还有 {pendingRenames.Count - 5} 个\n";
+            }
+            message += "\n是否继续？";
+            
+            if (!EditorUtility.DisplayDialog("批量应用确认", message, "应用", "取消"))
+                return;
+            
+            // 批量应用
+            int successCount = 0;
+            foreach (var (obj, newName) in pendingRenames)
+            {
+                // 调用现有的ApplyRename方法（包含动画修复逻辑）
+                ApplyRename(obj, newName);
+                successCount++;
+            }
+            
+            if (successCount > 0)
+            {
+                EditorUtility.DisplayDialog("完成", $"成功应用 {successCount} 个重命名", "确定");
+                
+                // 清除导入状态
+                importedMappingData = null;
+                importedRenameObjects.Clear();
             }
         }
     }

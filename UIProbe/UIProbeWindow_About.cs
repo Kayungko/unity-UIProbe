@@ -70,7 +70,12 @@ namespace UIProbe
             EditorGUILayout.LabelField("最新更新 (v2.5.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 预制体综合检测", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 预重命名功能 (Pre-Rename)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 提前规划节点重命名，保存为JSON文件", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持团队协作，避免代码引用失效", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 可导入、预览、批量应用，保留动画修复机制", EditorStyles.miniLabel);
+            EditorGUILayout.Space(3);
+            EditorGUILayout.LabelField("• 预制体综合检测增强", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 集成 Raycast、资源引用、空引用等多种检测规则", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 支持批量关闭不必要的 Raycast Target", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 全新的过滤和多选交互界面", EditorStyles.miniLabel);
