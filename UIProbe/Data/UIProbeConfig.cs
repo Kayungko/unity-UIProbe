@@ -112,6 +112,30 @@ namespace UIProbe
     }
     
     /// <summary>
+    /// 预制体助手配置 (原适配助手)
+    /// </summary>
+    [Serializable]
+    public class HelperConfig
+    {
+        // Adaptor Settings
+        public int lastLayoutType = 0; // 0: Full, 1: Window, 2: Side
+        public float paddingLeft = 0f;
+        public float paddingRight = 0f;
+        public float paddingTop = 0f;
+        public float paddingBottom = 0f;
+        public float width = 800f;
+        public float height = 600f;
+        public int sideAlignment = 0; // 0: Left, 1: Right, 2: Top, 3: Bottom
+        public bool isStretch = false; // Side widget stretch mode
+        
+        // Quick Create Settings
+        public bool defaultNoRaycastImage = true;
+        public bool defaultNoRaycastText = true;
+        public System.Collections.Generic.List<string> tmpFontGuids = new System.Collections.Generic.List<string>();
+        public int defaultFontIndex = 0;
+    }
+    
+    /// <summary>
     /// UIProbe 统一配置
     /// </summary>
     [Serializable]
@@ -126,6 +150,7 @@ namespace UIProbe
         public ImageNormalizerConfig imageNormalizer = new ImageNormalizerConfig();
         public RecorderConfig recorder = new RecorderConfig();
         public CheckerRulesConfig checkerRules = new CheckerRulesConfig();
+        public HelperConfig helper = new HelperConfig();
     }
     
     /// <summary>

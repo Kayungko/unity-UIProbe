@@ -1,7 +1,9 @@
 {
     "name": "UIProbe.Editor",
     "rootNamespace": "UIProbe",
-    "references": [],
+    "references": [
+        "Unity.TextMeshPro"
+    ],
     "includePlatforms": [
         "Editor"
     ],

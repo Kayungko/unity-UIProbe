@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using TMPro;
 
 namespace UIProbe
 {
@@ -18,12 +19,15 @@ namespace UIProbe
         private bool showIndexRoot = false;
         private bool showCustomTags = false;
         private bool showDataManagement = false;
+        private bool showHelperSettings = true;
         
         // Duplicate Detection Settings
         private DuplicateDetectionSettings duplicateSettings;
         private string newWhitelistName = "";
         private string newBlacklistName = "";
         private string newPrefixName = "";
+        
+        private TMP_FontAsset fontToAdd; // For adding new fonts
         
         private void LoadSettingsData()
         {
@@ -483,6 +487,90 @@ namespace UIProbe
             
             EditorGUILayout.EndVertical();
             
+            // ===== Prefab Helper Settings =====
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            showHelperSettings = EditorGUILayout.Foldout(showHelperSettings, "预制体助手设置 (Prefab Helper Settings)", true, EditorStyles.foldoutHeader);
+            
+            if (showHelperSettings)
+            {
+                if (config.helper == null) config.helper = new HelperConfig();
+                
+                // TMP Fonts
+                EditorGUILayout.LabelField("TMP 常用字体 (TMP Fonts):", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("添加字体到列表，以便在 [预制体助手] 中快速使用。", MessageType.None);
+                
+                var fontGuids = config.helper.tmpFontGuids;
+                bool changed = false;
+                
+                // List existing
+                for (int i = 0; i < fontGuids.Count; i++)
+                {
+                    GUILayout.BeginHorizontal();
+                    
+                    string path = AssetDatabase.GUIDToAssetPath(fontGuids[i]);
+                    TMP_FontAsset font = string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
+                    
+                    TMP_FontAsset newFont = (TMP_FontAsset)EditorGUILayout.ObjectField(font, typeof(TMP_FontAsset), false);
+                    if (newFont != font)
+                    {
+                        if (newFont != null)
+                        {
+                            string newPath = AssetDatabase.GetAssetPath(newFont);
+                            string newGuid = AssetDatabase.AssetPathToGUID(newPath);
+                            fontGuids[i] = newGuid;
+                             changed = true;
+                        }
+                    }
+
+                    if (GUILayout.Button("Remove", GUILayout.Width(60)))
+                    {
+                        fontGuids.RemoveAt(i);
+                        changed = true;
+                        i--;
+                    }
+                    
+                    GUILayout.EndHorizontal();
+                }
+                
+                GUILayout.Space(5);
+                
+                // Add New
+                GUILayout.BeginHorizontal();
+                fontToAdd = (TMP_FontAsset)EditorGUILayout.ObjectField("选择字体:", fontToAdd, typeof(TMP_FontAsset), false);
+                if (GUILayout.Button("添加 (Add)", GUILayout.Width(80)))
+                {
+                    if (fontToAdd != null)
+                    {
+                        string path = AssetDatabase.GetAssetPath(fontToAdd);
+                        string guid = AssetDatabase.AssetPathToGUID(path);
+                        
+                        if (!string.IsNullOrEmpty(guid))
+                        {
+                            if (!fontGuids.Contains(guid))
+                            {
+                                fontGuids.Add(guid);
+                                changed = true;
+                                fontToAdd = null; // Reset selection
+                                GUI.FocusControl(null); // Clear focus
+                            }
+                            else
+                            {
+                                EditorUtility.DisplayDialog("提示", "该字体已在列表中。", "OK");
+                            }
+                        }
+                    }
+                }
+                GUILayout.EndHorizontal();
+                
+                if (changed)
+                {
+                    UIProbeConfigManager.Save(config);
+                }
+            }
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space();
+
             // ===== 保存/重置设置区域 =====
             EditorGUILayout.Space(10);
             EditorGUILayout.BeginHorizontal();
