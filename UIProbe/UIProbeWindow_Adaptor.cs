@@ -273,6 +273,20 @@ namespace UIProbe
                 rect.anchoredPosition = Vector2.zero;
             }
 
+            // 当前参数显示
+            EditorGUILayout.Space(8);
+            EditorGUILayout.LabelField("📊 当前参数 (Current Parameters)", EditorStyles.miniBoldLabel);
+            
+            GUIStyle paramStyle = new GUIStyle(EditorStyles.miniLabel);
+            paramStyle.fontSize = 9;
+            paramStyle.normal.textColor = new Color(0.6f, 0.6f, 0.6f);
+            
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField($"Anchor: ({rect.anchorMin.x:F2}, {rect.anchorMin.y:F2}) ~ ({rect.anchorMax.x:F2}, {rect.anchorMax.y:F2})", paramStyle);
+            EditorGUILayout.LabelField($"Offset: ({rect.offsetMin.x:F1}, {rect.offsetMin.y:F1}) ~ ({rect.offsetMax.x:F1}, {rect.offsetMax.y:F1})", paramStyle);
+            EditorGUILayout.LabelField($"Size: {rect.sizeDelta.x:F1} × {rect.sizeDelta.y:F1}", paramStyle);
+            EditorGUILayout.EndVertical();
+
             EditorGUILayout.EndVertical();
         }
 
@@ -295,6 +309,70 @@ namespace UIProbe
         }
 
         /// <summary>
+        /// 从RectTransform推断布局类型和参数
+        /// </summary>
+        private (int layoutType, bool isStretch, string hint) InferLayoutFromRect(RectTransform rect)
+        {
+            Vector2 anchorMin = rect.anchorMin;
+            Vector2 anchorMax = rect.anchorMax;
+            
+            // 判断是否全屏拉伸
+            if (Mathf.Approximately(anchorMin.x, 0) && Mathf.Approximately(anchorMin.y, 0) &&
+                Mathf.Approximately(anchorMax.x, 1) && Mathf.Approximately(anchorMax.y, 1))
+            {
+                return (0, false, "检测到全屏面板布局");
+            }
+            
+            // 判断是否居中
+            if (Mathf.Approximately(anchorMin.x, 0.5f) && Mathf.Approximately(anchorMin.y, 0.5f) &&
+                Mathf.Approximately(anchorMax.x, 0.5f) && Mathf.Approximately(anchorMax.y, 0.5f))
+            {
+                return (1, false, "检测到居中窗口布局");
+            }
+            
+            // 判断侧边栏布局
+            bool isLeftAligned = Mathf.Approximately(anchorMin.x, 0) && Mathf.Approximately(anchorMax.x, 0);
+            bool isRightAligned = Mathf.Approximately(anchorMin.x, 1) && Mathf.Approximately(anchorMax.x, 1);
+            bool isTopAligned = Mathf.Approximately(anchorMin.y, 1) && Mathf.Approximately(anchorMax.y, 1);
+            bool isBottomAligned = Mathf.Approximately(anchorMin.y, 0) && Mathf.Approximately(anchorMax.y, 0);
+            
+            bool isVerticalStretch = Mathf.Approximately(anchorMin.y, 0) && Mathf.Approximately(anchorMax.y, 1);
+            bool isHorizontalStretch = Mathf.Approximately(anchorMin.x, 0) && Mathf.Approximately(anchorMax.x, 1);
+            
+            if (isLeftAligned)
+            {
+                if (isVerticalStretch)
+                    return (2, true, "检测到左侧侧边栏 (垂直拉伸)");
+                else
+                    return (2, false, "检测到左侧侧边栏 (固定高度)");
+            }
+            else if (isRightAligned)
+            {
+                if (isVerticalStretch)
+                    return (2, true, "检测到右侧侧边栏 (垂直拉伸)");
+                else
+                    return (2, false, "检测到右侧侧边栏 (固定高度)");
+            }
+            else if (isTopAligned)
+            {
+                if (isHorizontalStretch)
+                    return (2, true, "检测到顶部侧边栏 (水平拉伸)");
+                else
+                    return (2, false, "检测到顶部侧边栏 (固定宽度)");
+            }
+            else if (isBottomAligned)
+            {
+                if (isHorizontalStretch)
+                    return (2, true, "检测到底部侧边栏 (水平拉伸)");
+                else
+                    return (2, false, "检测到底部侧边栏 (固定宽度)");
+            }
+            
+            return (-1, false, "自定义锚点配置");
+        }
+
+
+        /// <summary>
         /// 绘制智能布局部分
         /// </summary>
         private void DrawSmartLayoutSection(RectTransform rect)
@@ -302,6 +380,56 @@ namespace UIProbe
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("📐 智能布局 (Smart Layout)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
+
+            // 智能状态检测
+            var (inferredType, inferredStretch, hint) = InferLayoutFromRect(rect);
+            
+            if (inferredType >= 0)
+            {
+                EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                EditorGUILayout.LabelField("💡 " + hint, EditorStyles.miniLabel);
+                if (GUILayout.Button("应用当前状态", GUILayout.Width(100)))
+                {
+                    selectedLayoutType = inferredType;
+                    adaptorIsStretch = inferredStretch;
+                    
+                    // 同步参数值
+                    if (inferredType == 0) // Full Panel
+                    {
+                        adaptorPaddingLeft = rect.offsetMin.x;
+                        adaptorPaddingBottom = rect.offsetMin.y;
+                        adaptorPaddingRight = -rect.offsetMax.x;
+                        adaptorPaddingTop = -rect.offsetMax.y;
+                    }
+                    else if (inferredType == 1) // Center Window
+                    {
+                        adaptorWidth = rect.sizeDelta.x;
+                        adaptorHeight = rect.sizeDelta.y;
+                    }
+                    else if (inferredType == 2) // Side Widget
+                    {
+                        // 根据锚点判断对齐方向
+                        if (Mathf.Approximately(rect.anchorMin.x, 0) && Mathf.Approximately(rect.anchorMax.x, 0))
+                            adaptorSideAlignment = 0; // Left
+                        else if (Mathf.Approximately(rect.anchorMin.x, 1) && Mathf.Approximately(rect.anchorMax.x, 1))
+                            adaptorSideAlignment = 1; // Right
+                        else if (Mathf.Approximately(rect.anchorMin.y, 1) && Mathf.Approximately(rect.anchorMax.y, 1))
+                            adaptorSideAlignment = 2; // Top
+                        else if (Mathf.Approximately(rect.anchorMin.y, 0) && Mathf.Approximately(rect.anchorMax.y, 0))
+                            adaptorSideAlignment = 3; // Bottom
+                        
+                        // 同步尺寸和边距
+                        adaptorWidth = rect.sizeDelta.x;
+                        adaptorHeight = rect.sizeDelta.y;
+                        adaptorPaddingLeft = rect.offsetMin.x;
+                        adaptorPaddingBottom = rect.offsetMin.y;
+                        adaptorPaddingRight = -rect.offsetMax.x;
+                        adaptorPaddingTop = -rect.offsetMax.y;
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.Space(3);
+            }
 
             // 布局类型选择
             EditorGUI.BeginChangeCheck();
