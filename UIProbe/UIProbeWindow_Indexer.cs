@@ -1162,7 +1162,7 @@ namespace UIProbe
             // 收集各类资源引用
             CollectImageReferences(item, prefab);
             CollectPrefabReferences(item, prefab);
-            // 可选：CollectMaterialReferences(item, prefab);
+            CollectMaterialReferences(item, prefab); // 启用材质球引用收集
             // 可选：CollectFontReferences(item, prefab);
         }
         
@@ -1181,13 +1181,18 @@ namespace UIProbe
                     if (!string.IsNullOrEmpty(spritePath))
                     {
                         string nodePath = GetNodePath(prefab.transform, image.transform);
+                        // 使用 Sprite 的实际名称，而不是文件名
+                        // 这样可以搜索图集中的 sprite
+                        string spriteName = image.sprite.name;
+                        string fileName = Path.GetFileName(spritePath);
+                        
                         item.AssetReferences.Add(new AssetReference
                         {
                             AssetPath = spritePath,
                             NodePath = nodePath,
                             Type = AssetReferenceType.Image,
-                            AssetName = Path.GetFileName(spritePath),
-                            ExtraInfo = "Image"
+                            AssetName = spriteName, // 改为sprite名称，而不是文件名
+                            ExtraInfo = spriteName != fileName ? $"Image ({fileName})" : "Image"
                         });
                     }
                 }
@@ -1257,6 +1262,66 @@ namespace UIProbe
                                 AssetName = Path.GetFileName(prefabPath),
                                 ExtraInfo = prefabSource.name
                             });
+                        }
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 收集预制体中材质球的纹理引用
+        /// </summary>
+        private void CollectMaterialReferences(PrefabIndexItem item, GameObject prefab)
+        {
+            // 扫描所有 Renderer 组件（包括 MeshRenderer, SpriteRenderer, UI 组件等）
+            var renderers = prefab.GetComponentsInChildren<Renderer>(true);
+            
+            HashSet<Material> processedMaterials = new HashSet<Material>();
+            
+            foreach (var renderer in renderers)
+            {
+                if (renderer.sharedMaterials == null) continue;
+                
+                foreach (var mat in renderer.sharedMaterials)
+                {
+                    if (mat == null || processedMaterials.Contains(mat)) continue;
+                    processedMaterials.Add(mat);
+                    
+                    // 获取材质路径
+                    string materialPath = AssetDatabase.GetAssetPath(mat);
+                    if (string.IsNullOrEmpty(materialPath)) continue;
+                    
+                    string nodePath = GetNodePath(prefab.transform, renderer.transform);
+                    
+                    // 遍历材质的所有纹理属性
+                    var shader = mat.shader;
+                    if (shader != null)
+                    {
+                        int propertyCount = ShaderUtil.GetPropertyCount(shader);
+                        for (int i = 0; i < propertyCount; i++)
+                        {
+                            if (ShaderUtil.GetPropertyType(shader, i) == ShaderUtil.ShaderPropertyType.TexEnv)
+                            {
+                                string propertyName = ShaderUtil.GetPropertyName(shader, i);
+                                Texture texture = mat.GetTexture(propertyName);
+                                
+                                if (texture != null)
+                                {
+                                    string texturePath = AssetDatabase.GetAssetPath(texture);
+                                    if (!string.IsNullOrEmpty(texturePath))
+                                    {
+                                        // 添加纹理引用
+                                        item.AssetReferences.Add(new AssetReference
+                                        {
+                                            AssetPath = texturePath,
+                                            NodePath = nodePath,
+                                            Type = AssetReferenceType.Material,
+                                            AssetName = texture.name, // 纹理名称
+                                            ExtraInfo = $"Material: {mat.name} ({propertyName})"
+                                        });
+                                    }
+                                }
+                            }
                         }
                     }
                 }

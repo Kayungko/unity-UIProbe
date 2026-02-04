@@ -29,6 +29,13 @@ namespace UIProbe
             EditorGUILayout.LabelField("资源引用 (Asset References)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
+            // Play模式提示
+            if (Application.isPlaying && !isIndexBuilt)
+            {
+                EditorGUILayout.HelpBox("Play模式下也可以使用资源引用查找！\n如果索引未加载，请先退出Play模式，在「预制体索引」标签页点击「刷新」建立索引即可。", MessageType.Info);
+                return;
+            }
+            
             if (!isIndexBuilt)
             {
                 EditorGUILayout.HelpBox("请先在「预制体索引」标签页点击「刷新」按钮建立索引。", MessageType.Info);
@@ -122,7 +129,7 @@ namespace UIProbe
                 case AssetReferenceType.Prefab:
                     return "搜索预制体:";
                 case AssetReferenceType.Material:
-                    return "搜索材质:";
+                    return "搜索纹理资源:";
                 case AssetReferenceType.Font:
                     return "搜索字体:";
                 default:
@@ -139,11 +146,11 @@ namespace UIProbe
             {
                 case AssetReferenceType.Image:
                 case AssetReferenceType.RawImage:
-                    return "请输入图片文件名或路径进行搜索。\n\n例如: \"icon_gold.png\" 或 \"UI/Icons/\"";
+                    return "请输入图片文件名进行搜索。\n\n搜索范围：\n1. UI组件（Image/RawImage）\n2. 材质球纹理引用\n\n例如: \"icon_gold\" 或 \"wood_texture\"";
                 case AssetReferenceType.Prefab:
                     return "请输入预制体文件名或路径进行搜索。\n\n例如: \"Button.prefab\" 或 \"UI/Prefabs/\"";
                 case AssetReferenceType.Material:
-                    return "请输入材质文件名或路径进行搜索。\n\n例如: \"Glass.mat\" 或 \"Materials/\"";
+                    return "可搜索两种类型：\n1. 材质球文件（输入.mat文件名，如\"Glass.mat\"）\n2. 纹理图片（输入纹理名，查找哪些材质球使用了该纹理）";
                 case AssetReferenceType.Font:
                     return "请输入字体文件名或路径进行搜索。\n\n例如: \"Arial.ttf\" 或 \"Fonts/\"";
                 default:
@@ -175,9 +182,10 @@ namespace UIProbe
                     bool typeMatches = false;
                     if (selectedAssetType == AssetReferenceType.Image)
                     {
-                        // 搜索图片时同时包含 Image 和 RawImage
+                        // 搜索图片时同时包含 Image、RawImage 和 Material（材质球中的纹理）
                         typeMatches = (assetRef.Type == AssetReferenceType.Image || 
-                                      assetRef.Type == AssetReferenceType.RawImage);
+                                      assetRef.Type == AssetReferenceType.RawImage ||
+                                      assetRef.Type == AssetReferenceType.Material);
                     }
                     else
                     {
@@ -247,6 +255,7 @@ namespace UIProbe
             
             foreach (var reference in info.MatchingReferences)
             {
+                GUILayout.BeginVertical(EditorStyles.helpBox);
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(10);
                 
@@ -255,10 +264,10 @@ namespace UIProbe
                 EditorGUILayout.LabelField(icon, GUILayout.Width(20));
                 
                 // 节点路径
-                EditorGUILayout.LabelField($"{reference.NodePath}", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField($"{reference.NodePath}", EditorStyles.miniLabel, GUILayout.Width(300));
                 
                 // 资源名称（可点击）
-                if (GUILayout.Button(reference.AssetName, EditorStyles.linkLabel, GUILayout.Width(150)))
+                if (GUILayout.Button(reference.AssetName, EditorStyles.linkLabel, GUILayout.Width(200)))
                 {
                     var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(reference.AssetPath);
                     if (asset != null)
@@ -272,13 +281,24 @@ namespace UIProbe
                     }
                 }
                 
-                // 额外信息
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                
+                // 额外信息（材质球等）- 单独一行显示
                 if (!string.IsNullOrEmpty(reference.ExtraInfo))
                 {
-                    EditorGUILayout.LabelField($"({reference.ExtraInfo})", EditorStyles.miniLabel, GUILayout.Width(80));
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(30);
+                    
+                    GUIStyle infoStyle = new GUIStyle(EditorStyles.miniLabel);
+                    infoStyle.normal.textColor = new Color(0.5f, 0.7f, 1f); // 淡蓝色
+                    
+                    EditorGUILayout.LabelField($"↳ {reference.ExtraInfo}", infoStyle);
+                    GUILayout.EndHorizontal();
                 }
                 
-                GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
+                GUILayout.Space(2);
             }
             
             GUILayout.EndVertical();
