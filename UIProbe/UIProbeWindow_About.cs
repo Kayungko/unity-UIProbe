@@ -27,7 +27,7 @@ namespace UIProbe
             // Version
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("版本:", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("2.5.0", GUILayout.Width(100));
+            EditorGUILayout.LabelField("2.7.0", GUILayout.Width(100));
             EditorGUILayout.EndHorizontal();
             
             // Developers
@@ -67,18 +67,17 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v2.5.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v2.7.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 预重命名功能 (Pre-Rename)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 提前规划节点重命名，保存为JSON文件", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 支持团队协作，避免代码引用失效", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 可导入、预览、批量应用，保留动画修复机制", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 嵌套总览：修复实例统计Bug", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 修复统计逻辑：只统计直接嵌套的预制体实例", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 排除深层递归嵌套，避免重复计数", EditorStyles.miniLabel);
             EditorGUILayout.Space(3);
-            EditorGUILayout.LabelField("• 预制体综合检测增强", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 集成 Raycast、资源引用、空引用等多种检测规则", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 支持批量关闭不必要的 Raycast Target", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 全新的过滤和多选交互界面", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 嵌套总览：多实例定位功能", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持展开/折叠，列出所有实例路径", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 每个实例独立定位：预制体内定位 + Project定位", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 智能预制体舞台切换，避免保存提示", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             
