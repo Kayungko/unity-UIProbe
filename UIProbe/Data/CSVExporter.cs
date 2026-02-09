@@ -275,5 +275,129 @@ namespace UIProbe
             public int DuplicateCount;
             public string NodePath;
         }
+
+        #region Resource Detector Export
+
+        public static void ExportSummary(string path, ScanResult result)
+        {
+            StringBuilder sb = new StringBuilder();
+            // BOM for Excel to recognize UTF-8
+            sb.Append("\uFEFF"); 
+            sb.AppendLine("资源路径,资源名称,文件大小(KB),资源类型,使用状态,引用次数,引用位置列表");
+
+            foreach (var res in result.Resources)
+            {
+                string usage = res.IsUsed ? "已使用" : "未使用";
+                string sizeKB = (res.FileSize / 1024f).ToString("F1");
+                string refCount = res.References.Count.ToString();
+                
+                List<string> refPaths = new List<string>();
+                foreach(var r in res.References) refPaths.Add(r.ReferrerPath);
+                string refList = string.Join(";", refPaths);
+                
+                // Escape quotes for CSV
+                refList = refList.Replace("\"", "\"\"");
+
+                sb.AppendLine($"\"{res.AssetPath}\",\"{res.AssetName}\",{sizeKB},{res.AssetType},{usage},{refCount},\"{refList}\"");
+            }
+
+            File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        }
+
+        public static void ExportDetailed(string path, ScanResult result)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\uFEFF");
+            sb.AppendLine("资源路径,资源名称,文件大小(KB),资源类型,使用状态,引用类型,引用资源路径,引用资源类型");
+
+            foreach (var res in result.Resources)
+            {
+                string usage = res.IsUsed ? "已使用" : "未使用";
+                string sizeKB = (res.FileSize / 1024f).ToString("F1");
+
+                if (!res.IsUsed)
+                {
+                    sb.AppendLine($"\"{res.AssetPath}\",\"{res.AssetName}\",{sizeKB},{res.AssetType},{usage},,,");
+                }
+                else
+                {
+                    foreach (var refer in res.References)
+                    {
+                         // ComponentType is often unavailable in basic dependency scan, use ReferrerType or static string
+                         string compType = string.IsNullOrEmpty(refer.ComponentType) ? "" : refer.ComponentType;
+                         sb.AppendLine($"\"{res.AssetPath}\",\"{res.AssetName}\",{sizeKB},{res.AssetType},{usage},\"{compType}\",\"{refer.ReferrerPath}\",\"{refer.ReferrerType}\"");
+                    }
+                }
+            }
+             File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        }
+
+        public static void ExportFolderSummary(string path, ScanResult result)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\uFEFF");
+            sb.AppendLine("文件夹路径,总资源数,已使用数量,未使用数量,使用率(%),总大小(MB),未使用大小(MB)");
+
+            foreach (var stat in result.FolderStats)
+            {
+                float usageRate = stat.TotalCount > 0 ? (float)stat.UsedCount / stat.TotalCount * 100f : 0f;
+                float totalMB = stat.TotalSize / 1024f / 1024f;
+                float unusedMB = stat.UnusedSize / 1024f / 1024f;
+
+                sb.AppendLine($"\"{stat.FolderPath}\",{stat.TotalCount},{stat.UsedCount},{stat.UnusedCount},{usageRate:F1},{totalMB:F2},{unusedMB:F2}");
+            }
+
+            File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        }
+
+        public static void ExportReport(string path, ScanResult result)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\uFEFF");
+            sb.AppendLine("统计项目,数值");
+            
+            sb.AppendLine($"扫描时间,{result.ScanTime.ToString("yyyy-MM-dd HH:mm:ss")}");
+            sb.AppendLine($"总资源数,{result.Overall.TotalCount}");
+            sb.AppendLine($"已使用资源,{result.Overall.UsedCount}");
+            sb.AppendLine($"未使用资源,{result.Overall.UnusedCount}");
+            
+            float usageRate = result.Overall.TotalCount > 0 ? (float)result.Overall.UsedCount / result.Overall.TotalCount * 100f : 0f;
+            sb.AppendLine($"使用率,{usageRate:F1}%");
+            
+            float totalMB = result.Overall.TotalSize / 1024f / 1024f;
+            float unusedMB = result.Overall.UnusedSize / 1024f / 1024f;
+            sb.AppendLine($"总文件大小(MB),{totalMB:F2}");
+            sb.AppendLine($"未使用资源大小(MB),{unusedMB:F2}");
+            sb.AppendLine($"可释放空间(MB),{unusedMB:F2}");
+
+            // Count references by type
+            int prefabRefs = 0;
+            int sceneRefs = 0;
+            int matRefs = 0;
+            int animRefs = 0;
+            int otherRefs = 0;
+
+            foreach(var res in result.Resources)
+            {
+                foreach(var refer in res.References)
+                {
+                    if (refer.ReferrerType == "Prefab") prefabRefs++;
+                    else if (refer.ReferrerType == "Scene") sceneRefs++;
+                    else if (refer.ReferrerType == "Material") matRefs++;
+                    else if (refer.ReferrerType == "Animation" || refer.ReferrerType == "Animator") animRefs++;
+                    else otherRefs++;
+                }
+            }
+
+            sb.AppendLine($"预制体引用数,{prefabRefs}");
+            sb.AppendLine($"场景引用数,{sceneRefs}");
+            sb.AppendLine($"材质引用数,{matRefs}");
+            sb.AppendLine($"动画引用数,{animRefs}");
+            sb.AppendLine($"其他引用数,{otherRefs}");
+
+            File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        }
+
+        #endregion
     }
 }

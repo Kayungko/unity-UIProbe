@@ -19,7 +19,9 @@ namespace UIProbe
         private const string CSV_EXPORTS_FOLDER = "CSV_Exports";
         private const string BATCH_RESULTS_FOLDER = "Batch_Results";
         private const string SETTINGS_FOLDER = "Settings";
+
         private const string SCREENSHOTS_FOLDER = "Screenshots";
+        private const string RESOURCE_CACHE_FOLDER = "ResourceCache";
 
         /// <summary>
         /// 获取主文件夹路径 (GetStoragePath 别名)
@@ -125,6 +127,16 @@ namespace UIProbe
             return path;
         }
 
+        /// <summary>
+        /// 获取资源检测缓存存储路径
+        /// </summary>
+        public static string GetResourceCachePath()
+        {
+            string path = Path.Combine(GetMainFolderPath(), RESOURCE_CACHE_FOLDER);
+            EnsureDirectoryExists(path);
+            return path;
+        }
+
 
 
         /// <summary>
@@ -169,6 +181,7 @@ namespace UIProbe
 ├── {CSV_EXPORTS_FOLDER}/         (检测结果导出)
 ├── {BATCH_RESULTS_FOLDER}/       (批量检测结果)
 ├── {SCREENSHOTS_FOLDER}/         (游戏截屏)
+├── {RESOURCE_CACHE_FOLDER}/      (资源检测缓存)
 └── {SETTINGS_FOLDER}/            (设置数据)";
         }
     }
