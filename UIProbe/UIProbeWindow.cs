@@ -35,12 +35,13 @@ namespace UIProbe
             RichTextGenerator,
             Adaptor,
             ResourceDetector,
+            PrefabCreator,  // 新增
             Settings,
             About
         }
 
         private Tab currentTab = Tab.Picker;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "资源使用检测", "设置", "关于" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "资源使用检测", "预制体创建", "设置", "关于" };
         
         // 统一配置
         private UIProbeConfig config;
@@ -136,6 +137,9 @@ namespace UIProbe
                 case Tab.ResourceDetector:
                     DrawResourceDetectorTab();
                     break;
+                case Tab.PrefabCreator:
+                    DrawPrefabCreatorTab();
+                    break;
                 case Tab.Settings:
                     DrawSettingsTab();
                     break;
@@ -166,6 +170,7 @@ namespace UIProbe
             DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
             DrawSidebarButton(Tab.Adaptor, "预制体助手");
             DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
+            DrawSidebarButton(Tab.PrefabCreator, "预制体创建");
             
             GUILayout.FlexibleSpace();
             
