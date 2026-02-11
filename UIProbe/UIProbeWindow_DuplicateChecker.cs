@@ -57,6 +57,14 @@ namespace UIProbe
         private RenameMappingData importedMappingData = null;  // 当前导入的映射数据
         private HashSet<GameObject> importedRenameObjects = new HashSet<GameObject>();  // 标记哪些对象是从JSON导入的
         
+        // Canvas Config Detection State
+        private List<CanvasShaderChannelInfo> canvasResults = new List<CanvasShaderChannelInfo>();
+        private Vector2 canvasScrollPosition;
+        private int canvasFilterMode = 0;  // 0=全部, 1=有额外通道, 2=无额外通道
+        private bool isScanning = false;
+        private HashSet<CanvasShaderChannelInfo> selectedCanvasItems = new HashSet<CanvasShaderChannelInfo>();  // 批量操作选中的项
+        private bool canvasSelectAll = false;  // 全选状态
+        
         /// <summary>
         /// 绘制重名检测标签页
         /// </summary>
@@ -81,6 +89,10 @@ namespace UIProbe
             {
                 duplicateCheckerSubTab = 2;
             }
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 3, "Canvas配置", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 3;
+            }
             
             GUILayout.EndHorizontal();
             
@@ -97,10 +109,15 @@ namespace UIProbe
                 // 重命名修改（原检测功能）标签
                 DrawDetectionSubTab();
             }
-            else
+            else if (duplicateCheckerSubTab == 2)
             {
                 // 历史记录标签
                 DrawHistorySubTab();
+            }
+            else
+            {
+                // Canvas配置标签
+                DrawCanvasConfigSubTab();
             }
         }
         
@@ -1221,5 +1238,578 @@ namespace UIProbe
                 importedRenameObjects.Clear();
             }
         }
+        
+        // ====================================
+        // Canvas Config Detection Methods
+        // ====================================
+        
+        /// <summary>
+        /// 绘制Canvas配置检测子标签
+        /// </summary>
+        private void DrawCanvasConfigSubTab()
+        {
+            EditorGUILayout.Space(5);
+            
+            // 工具栏
+            GUILayout.BeginHorizontal();
+            
+            GUI.enabled = !isScanning;
+            if (GUILayout.Button("🔄 扫描预制体", GUILayout.Width(120), GUILayout.Height(30)))
+            {
+                ScanCanvasInPrefabs();
+            }
+            GUI.enabled = true;
+            
+            GUILayout.FlexibleSpace();
+            
+            // 筛选
+            EditorGUILayout.LabelField("筛选:", GUILayout.Width(40));
+            string[] filterOptions = new string[] { "全部", "有额外通道", "无额外通道" };
+            canvasFilterMode = EditorGUILayout.Popup(canvasFilterMode, filterOptions, GUILayout.Width(120));
+            
+            GUILayout.Space(10);
+            
+            GUI.enabled = canvasResults.Count > 0;
+            if (GUILayout.Button("📊 导出Canvas CSV", GUILayout.Width(140)))
+            {
+                ExportCanvasToCSV();
+            }
+            
+            if (GUILayout.Button("清除结果", GUILayout.Width(80)))
+            {
+                canvasResults.Clear();
+                selectedCanvasItems.Clear(); // Clear selections when results are cleared
+                canvasSelectAll = false;
+            }
+            GUI.enabled = true;
+            
+            GUILayout.EndHorizontal();
+            
+            // 批量操作栏
+            if (canvasResults.Count > 0)
+            {
+                EditorGUILayout.Space(5);
+                GUILayout.BeginHorizontal(EditorStyles.toolbar);
+                
+                // 全选复选框
+                EditorGUI.BeginChangeCheck();
+                canvasSelectAll = EditorGUILayout.ToggleLeft("全选", canvasSelectAll, GUILayout.Width(60));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    selectedCanvasItems.Clear();
+                    if (canvasSelectAll)
+                    {
+                        var filtered = FilterCanvasResults();
+                        foreach (var item in filtered)
+                        {
+                            selectedCanvasItems.Add(item);
+                        }
+                    }
+                }
+                
+                EditorGUILayout.LabelField($"已选: {selectedCanvasItems.Count}", GUILayout.Width(80));
+                
+                GUILayout.FlexibleSpace();
+                
+                // 批量设置为Nothing按钮
+                GUI.enabled = selectedCanvasItems.Count > 0;
+                if (GUILayout.Button("🔧 批量设置为None", EditorStyles.toolbarButton, GUILayout.Width(150)))
+                {
+                    if (EditorUtility.DisplayDialog("确认批量修改", 
+                        $"确定要将选中的 {selectedCanvasItems.Count} 个Canvas的\nAdditional Shader Channels设置为None吗？\n\n此操作将修改预制体文件！", 
+                        "确定", "取消"))
+                    {
+                        BatchSetCanvasChannels();
+                    }
+                }
+                GUI.enabled = true;
+                
+                GUILayout.EndHorizontal();
+            }
+            
+            EditorGUILayout.Space(5);
+            
+            // 结果列表
+            canvasScrollPosition = EditorGUILayout.BeginScrollView(canvasScrollPosition);
+            
+            if (canvasResults.Count == 0)
+            {
+                if (isScanning)
+                {
+                    EditorGUILayout.HelpBox("正在扫描预制体...", MessageType.Info);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox(
+                        "点击上方「扫描预制体」按钮开始检测 Canvas 组件配置。\n\n" +
+                        "将扫描所有已索引的预制体，检测 Additional Shader Channels 等配置。",
+                        MessageType.None
+                    );
+                }
+            }
+            else
+            {
+                // 筛选结果
+                var filteredResults = FilterCanvasResults();
+                
+                EditorGUILayout.LabelField(
+                    $"找到 {canvasResults.Count} 个Canvas组件 (显示 {filteredResults.Count} 个)",
+                    EditorStyles.boldLabel
+                );
+                
+                EditorGUILayout.Space(5);
+                
+                // 绘制每个Canvas信息
+                int itemIndex = 0;
+                foreach (var info in filteredResults)
+                {
+                    DrawCanvasInfoItem(info, itemIndex++);
+                }
+            }
+            
+            EditorGUILayout.EndScrollView();
+        }
+        
+        /// <summary>
+        /// 扫描所有预制体中的Canvas组件
+        /// </summary>
+        private void ScanCanvasInPrefabs()
+        {
+            canvasResults.Clear();
+            selectedCanvasItems.Clear(); // Clear selections on new scan
+            canvasSelectAll = false;
+            isScanning = true;
+            
+            // 获取所有已索引的预制体
+            int total = allPrefabs.Count;
+            
+            if (total == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有找到已索引的预制体。\n请先在「预制体索引」标签页中索引预制体。", "确定");
+                isScanning = false;
+                return;
+            }
+            
+            for (int i = 0; i < total; i++)
+            {
+                if (EditorUtility.DisplayCancelableProgressBar(
+                    "扫描Canvas", 
+                    $"正在扫描 {allPrefabs[i].Name}... ({i + 1}/{total})", 
+                    (float)i / total))
+                {
+                    break;  // 用户取消
+                }
+                
+                ScanPrefabCanvas(allPrefabs[i].Path);
+            }
+            
+            EditorUtility.ClearProgressBar();
+            isScanning = false;
+            
+            Debug.Log($"[Canvas检测] 扫描完成，共找到 {canvasResults.Count} 个Canvas组件");
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 扫描单个预制体中的Canvas组件
+        /// </summary>
+        private void ScanPrefabCanvas(string prefabPath)
+        {
+            // 使用LoadPrefabContents确保获取最新的预制体数据
+            var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+            if (prefabContents == null) return;
+            
+            try
+            {
+                var canvases = prefabContents.GetComponentsInChildren<Canvas>(true);
+                
+                foreach (var canvas in canvases)
+                {
+                    canvasResults.Add(new CanvasShaderChannelInfo
+                    {
+                        PrefabPath = prefabPath,
+                        PrefabName = Path.GetFileNameWithoutExtension(prefabPath),
+                        CanvasPath = GetHierarchyPath(canvas.transform, prefabContents.transform),
+                        Channels = canvas.additionalShaderChannels,
+                        RenderMode = canvas.renderMode,
+                        SortingOrder = canvas.sortingOrder,
+                        OverrideSorting = canvas.overrideSorting
+                    });
+                }
+            }
+            finally
+            {
+                // 确保卸载预制体内容
+                PrefabUtility.UnloadPrefabContents(prefabContents);
+            }
+        }
+        
+        /// <summary>
+        /// 获取GameObject在预制体中的层级路径
+        /// </summary>
+        private string GetHierarchyPath(Transform target, Transform root)
+        {
+            if (target == root) return target.name;
+            
+            List<string> path = new List<string>();
+            Transform current = target;
+            
+            while (current != null && current != root)
+            {
+                path.Insert(0, current.name);
+                current = current.parent;
+            }
+            
+            if (current == root && root != target)
+            {
+                path.Insert(0, root.name);
+            }
+            
+            return string.Join("/", path);
+        }
+        
+        /// <summary>
+        /// 筛选Canvas结果
+        /// </summary>
+        private List<CanvasShaderChannelInfo> FilterCanvasResults()
+        {
+            if (canvasFilterMode == 1) // 有额外通道
+            {
+                return canvasResults.Where(r => r.Channels != AdditionalCanvasShaderChannels.None).ToList();
+            }
+            else if (canvasFilterMode == 2) // 无额外通道
+            {
+                return canvasResults.Where(r => r.Channels == AdditionalCanvasShaderChannels.None).ToList();
+            }
+            
+            return canvasResults; // 全部
+        }
+        
+        /// <summary>
+        /// 绘制单个Canvas信息项
+        /// </summary>
+        private void DrawCanvasInfoItem(CanvasShaderChannelInfo info, int index)
+        {
+            GUILayout.BeginVertical("box");
+            
+            GUILayout.BeginHorizontal();
+            
+            // 复选框
+            bool isSelected = selectedCanvasItems.Contains(info);
+            bool newSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
+            if (newSelected != isSelected)
+            {
+                if (newSelected)
+                    selectedCanvasItems.Add(info);
+                else
+                    selectedCanvasItems.Remove(info);
+                    
+                // 更新全选状态
+                var filtered = FilterCanvasResults();
+                canvasSelectAll = selectedCanvasItems.Count == filtered.Count && filtered.Count > 0;
+            }
+            
+            // 预制体名称
+            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.Width(200));
+            
+            if (GUILayout.Button("📍 定位", EditorStyles.miniButton, GUILayout.Width(60)))
+            {
+                var obj = AssetDatabase.LoadAssetAtPath<GameObject>(info.PrefabPath);
+                if (obj != null)
+                {
+                    EditorGUIUtility.PingObject(obj);
+                    Selection.activeObject = obj;
+                }
+            }
+            
+            EditorGUILayout.EndHorizontal();
+            
+            // Canvas路径
+            EditorGUILayout.LabelField($"  └─ {info.CanvasPath}", EditorStyles.miniLabel);
+            
+            // Shader Channels
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            EditorGUILayout.LabelField("Channels:", GUILayout.Width(70));
+            
+            string channelsStr = GetChannelsString(info.Channels);
+            GUIStyle channelStyle = new GUIStyle(EditorStyles.label);
+            channelStyle.normal.textColor = info.Channels == AdditionalCanvasShaderChannels.None 
+                ? Color.gray 
+                : new Color(0.3f, 0.8f, 0.3f);
+            
+            EditorGUILayout.LabelField(channelsStr, channelStyle);
+            GUILayout.EndHorizontal();
+            
+            // 其他信息
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            EditorGUILayout.LabelField($"RenderMode: {info.RenderMode}", EditorStyles.miniLabel, GUILayout.Width(250));
+            EditorGUILayout.LabelField($"SortOrder: {info.SortingOrder}", EditorStyles.miniLabel);
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(2);
+        }
+        
+        /// <summary>
+        /// 获取Channels的字符串表示
+        /// </summary>
+        private string GetChannelsString(AdditionalCanvasShaderChannels channels)
+        {
+            if (channels == AdditionalCanvasShaderChannels.None)
+                return "None";
+            
+            List<string> list = new List<string>();
+            if ((channels & AdditionalCanvasShaderChannels.TexCoord1) != 0) list.Add("TexCoord1");
+            if ((channels & AdditionalCanvasShaderChannels.TexCoord2) != 0) list.Add("TexCoord2");
+            if ((channels & AdditionalCanvasShaderChannels.TexCoord3) != 0) list.Add("TexCoord3");
+            if ((channels & AdditionalCanvasShaderChannels.Normal) != 0) list.Add("Normal");
+            if ((channels & AdditionalCanvasShaderChannels.Tangent) != 0) list.Add("Tangent");
+            
+            return string.Join(", ", list);
+        }
+        
+        /// <summary>
+        /// 导出Canvas配置到CSV
+        /// </summary>
+        private void ExportCanvasToCSV()
+        {
+            if (canvasResults.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有检测结果可以导出", "确定");
+                return;
+            }
+            
+            string defaultName = $"Canvas_ShaderChannels_Report_{System.DateTime.Now:yyyyMMdd_HHmmss}";
+            string savePath = CSVExporter.GetSaveFilePath(defaultName);
+            
+            if (string.IsNullOrEmpty(savePath))
+                return;
+            
+            var csv = new System.Text.StringBuilder();
+            // 新格式：8列（序号,预制体路径,预制体名称,Canvas路径,启用的Channels,RenderMode,SortOrder,覆盖排序）
+            csv.AppendLine("序号,预制体路径,预制体名称,Canvas路径,启用的Channels,RenderMode,SortOrder,覆盖排序");
+            
+            int index = 1;
+            foreach (var info in canvasResults)
+            {
+                // 获取启用的Channels列表
+                List<string> enabledChannels = new List<string>();
+                var channels = info.Channels;
+                
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.TexCoord1))
+                    enabledChannels.Add("TexCoord1");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.TexCoord2))
+                    enabledChannels.Add("TexCoord2");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.TexCoord3))
+                    enabledChannels.Add("TexCoord3");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.Normal))
+                    enabledChannels.Add("Normal");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.Tangent))
+                    enabledChannels.Add("Tangent");
+                
+                string channelsStr = enabledChannels.Count > 0 ? string.Join(", ", enabledChannels.ToArray()) : "None";
+                
+                csv.AppendLine(string.Format("{0},{1},{2},{3},\"{4}\",{5},{6},{7}",
+                    index,
+                    info.PrefabPath,
+                    info.PrefabName,
+                    info.CanvasPath,
+                    channelsStr,  // 合并的Channels字符串，用引号包裹
+                    info.RenderMode,
+                    info.SortingOrder,
+                    info.OverrideSorting ? "是" : "否"  // 使用中文"是/否"
+                ));
+                
+                index++;
+            }
+            
+            System.IO.File.WriteAllText(savePath, csv.ToString(), System.Text.Encoding.UTF8);
+            EditorUtility.DisplayDialog("导出成功", $"已导出 {canvasResults.Count} 条记录到:\n{savePath}", "确定");
+            EditorUtility.RevealInFinder(savePath);
+        }
+        
+        /// <summary>
+        /// 检查是否包含指定的Shader Channel
+        /// </summary>
+        private bool HasChannel(AdditionalCanvasShaderChannels channels, AdditionalCanvasShaderChannels flag)
+        {
+            return (channels & flag) != 0;
+        }
+        
+        /// <summary>
+        /// 批量设置选中的Canvas的AdditionalShaderChannels为None
+        /// </summary>
+        private void BatchSetCanvasChannels()
+        {
+            if (selectedCanvasItems.Count == 0)
+                return;
+            
+            // 检查是否在预制体编辑模式
+            var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null)
+            {
+                EditorUtility.DisplayDialog("提示", "请先退出预制体编辑模式再执行批量修改。\n\n关闭当前编辑的预制体后重试。", "确定");
+                return;
+            }
+            
+            int successCount = 0;
+            int failCount = 0;
+            List<string> failedItems = new List<string>();
+            
+            try
+            {
+                AssetDatabase.StartAssetEditing();
+                
+                int currentIndex = 0;
+                foreach (var info in selectedCanvasItems)
+                {
+                    currentIndex++;
+                    EditorUtility.DisplayProgressBar("批量设置Canvas", 
+                        $"正在处理 ({currentIndex}/{selectedCanvasItems.Count})...\n{info.PrefabName}", 
+                        (float)currentIndex / selectedCanvasItems.Count);
+                    
+                    try
+                    {
+                        Debug.Log($"[Canvas批量设置] 开始处理: {info.PrefabPath}");
+                        
+                        // 加载预制体
+                        // 直接使用LoadPrefabContents加载预制体
+                        var prefabContents = PrefabUtility.LoadPrefabContents(info.PrefabPath);
+                        if (prefabContents == null)
+                        {
+                            string error = $"无法加载预制体: {info.PrefabPath}";
+                            Debug.LogWarning(error);
+                            failedItems.Add($"{info.PrefabName}: {error}");
+                            failCount++;
+                            continue;
+                        }
+                        
+                        // 查找Canvas组件（通过路径）
+                        Transform canvasTransform = prefabContents.transform;
+                        string searchPath = info.CanvasPath;
+                        
+                        Debug.Log($"[Canvas批量设置] 查找Canvas路径: {searchPath}");
+                        
+                        if (!string.IsNullOrEmpty(searchPath) && searchPath != prefabContents.name)
+                        {
+                            // 如果Canvas不在根节点，按路径查找
+                            string[] pathParts = searchPath.Split('/');
+                            foreach (var part in pathParts)
+                            {
+                                if (part == prefabContents.name)
+                                    continue;
+                                    
+                                Transform found = canvasTransform.Find(part);
+                                if (found == null)
+                                {
+                                    Debug.LogWarning($"[Canvas批量设置] 无法找到子节点: {part}");
+                                    canvasTransform = null;
+                                    break;
+                                }
+                                canvasTransform = found;
+                            }
+                        }
+                        
+                        if (canvasTransform == null)
+                        {
+                            string error = $"无法找到Canvas路径: {searchPath}";
+                            Debug.LogWarning($"[Canvas批量设置] {error} in {info.PrefabPath}");
+                            PrefabUtility.UnloadPrefabContents(prefabContents);
+                            failedItems.Add($"{info.PrefabName}: {error}");
+                            failCount++;
+                            continue;
+                        }
+                        
+                        Canvas canvas = canvasTransform.GetComponent<Canvas>();
+                        if (canvas != null)
+                        {
+                            var oldValue = canvas.additionalShaderChannels;
+                            Debug.Log($"[Canvas批量设置] 找到Canvas组件，当前值: {oldValue}");
+                            
+                            // 设置为None
+                            canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.None;
+                            
+                            Debug.Log($"[Canvas批量设置] 已设置为None，新值: {canvas.additionalShaderChannels}");
+                            
+                            // **P4支持**: 在保存前确保文件可写（checkout）
+                            string[] filesToCheckout = new string[] { info.PrefabPath };
+                            if (!AssetDatabase.MakeEditable(filesToCheckout))
+                            {
+                                failCount++;
+                                string error = "无法checkout文件（P4版本控制）";
+                                Debug.LogWarning($"[Canvas批量设置] {error}: {info.PrefabPath}");
+                                failedItems.Add($"{info.PrefabName}: {error}");
+                                PrefabUtility.UnloadPrefabContents(prefabContents);
+                                continue;
+                            }
+                            
+                            Debug.Log($"[Canvas批量设置] 文件已checkout，准备保存");
+                            
+                            // 保存修改 - 直接保存到原路径
+                            bool saved = PrefabUtility.SaveAsPrefabAsset(prefabContents, info.PrefabPath);
+                            if (saved)
+                            {
+                                successCount++;
+                                Debug.Log($"[Canvas批量设置] 成功保存: {info.PrefabPath}");
+                                
+                                // 强制重新导入以刷新Inspector缓存
+                                AssetDatabase.ImportAsset(info.PrefabPath, ImportAssetOptions.ForceUpdate);
+                            }
+                            else
+                            {
+                                failCount++;
+                                string error = "SaveAsPrefabAsset返回false";
+                                Debug.LogWarning($"[Canvas批量设置] 保存失败: {error}");
+                                failedItems.Add($"{info.PrefabName}: {error}");
+                            }
+                        }
+                        else
+                        {
+                            string error = $"Canvas组件不存在于路径: {searchPath}";
+                            Debug.LogWarning($"[Canvas批量设置] {error} in {info.PrefabPath}");
+                            failedItems.Add($"{info.PrefabName}: {error}");
+                            failCount++;
+                        }
+                        
+                        PrefabUtility.UnloadPrefabContents(prefabContents);
+                    }
+                    catch (System.Exception e)
+                    {
+                        string error = $"处理预制体时出错: {e.Message}";
+                        Debug.LogError($"[Canvas批量设置] {error}\n{e.StackTrace}");
+                        failedItems.Add($"{info.PrefabName}: {error}");
+                        failCount++;
+                    }
+                }
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+                AssetDatabase.StopAssetEditing();
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+            }
+            
+            // 显示结果
+            string message = $"批量设置完成！\n\n成功: {successCount}\n失败: {failCount}";
+            if (failedItems.Count > 0 && failedItems.Count <= 5)
+            {
+                message += "\n\n失败项:\n" + string.Join("\n", failedItems.ToArray());
+            }
+            else if (failedItems.Count > 5)
+            {
+                message += $"\n\n{failedItems.Count}个失败项，详见Console";
+            }
+            
+            EditorUtility.DisplayDialog("批量设置完成", message, "确定");
+            
+            // 清空选择并重新扫描
+            selectedCanvasItems.Clear();
+            canvasSelectAll = false;
+            ScanCanvasInPrefabs();
+        }
     }
 }
+

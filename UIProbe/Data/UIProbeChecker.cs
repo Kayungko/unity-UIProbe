@@ -383,5 +383,19 @@ namespace UIProbe
         }
     }
 
+    /// <summary>
+    /// Canvas Shader Channel 配置信息
+    /// </summary>
+    public class CanvasShaderChannelInfo
+    {
+        public string PrefabPath;           // 预制体路径
+        public string PrefabName;           // 预制体名称
+        public string CanvasPath;           // Canvas在预制体中的层级路径
+        public AdditionalCanvasShaderChannels Channels;  // Shader Channels配置
+        public RenderMode RenderMode;       // 渲染模式
+        public int SortingOrder;            // 排序层级
+        public bool OverrideSorting;        // 是否覆盖排序
+    }
+
     #endregion
 }
