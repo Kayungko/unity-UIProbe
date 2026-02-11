@@ -1415,8 +1415,23 @@ namespace UIProbe
         /// </summary>
         private void ScanPrefabCanvas(string prefabPath)
         {
-            // 使用LoadPrefabContents确保获取最新的预制体数据
-            var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+            GameObject prefabContents = null;
+            bool isLoadedContents = false;
+
+            try
+            {
+                // 尝试使用LoadPrefabContents获取最新数据
+                prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+                isLoadedContents = true;
+            }
+            catch (System.Exception ex)
+            {
+                // 捕获加载异常（如Missing Nested Prefab）并尝试降级
+                Debug.LogWarning($"[Canvas检测] LoadPrefabContents失败，尝试降级加载: {prefabPath}\n{ex.Message}");
+                prefabContents = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                isLoadedContents = false;
+            }
+
             if (prefabContents == null) return;
             
             try
@@ -1439,8 +1454,11 @@ namespace UIProbe
             }
             finally
             {
-                // 确保卸载预制体内容
-                PrefabUtility.UnloadPrefabContents(prefabContents);
+                // 只有通过LoadPrefabContents加载的内容才需要卸载
+                if (isLoadedContents && prefabContents != null)
+                {
+                    PrefabUtility.UnloadPrefabContents(prefabContents);
+                }
             }
         }
         
