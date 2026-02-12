@@ -6,7 +6,26 @@
 
 📖 **[点击查看完整使用手册 (User Manual)](UserManual.md)**
 
-## ✨ 最新更新 (v2.7.0)
+## ✨ 最新更新 (v2.8.0)
+
+### 游戏截屏工具增强 (Screenshot Enhanced) 📸
+
+#### 1. Scene/Prefab 视图支持
+- **一键截图**: 在 Prefab Mode 下直接截图，无需运行游戏
+- **自动对焦 (Auto Frame)**:
+  - 智能识别 **Canvas (Environment)** (屏幕区域) 并优先对焦
+  - 回退支持：自动计算 Root RectTransform 包围盒
+  - 确保截图完美匹配设计分辨率 (如 1920x1080)
+- **透明背景**: 支持 Prefab 元素的透明背景截图 (需设置相机清除模式)
+
+#### 2. Game View 同步与修复
+- **所见即所得**: 调整截屏分辨率时，Game View 自动同步尺寸，预览最终效果
+- **比例修复**: 彻底解决非 16:9 (如 iPhone X) 下的画面拉伸/黑边问题
+- **2x/4x 超采样**: 生成印刷级高清截图
+
+---
+
+## ✨ v2.7.0 功能
 
 ### 嵌套总览 (Nesting Overview) - Bug修复与功能增强 🔧
 

@@ -446,9 +446,25 @@ namespace UIProbe
         }
         private GameObject GetScreenshotTarget()
         {
-            // 优先使用当前 Prefab Stage 的根节点
+            // 优先使用当前 Prefab Stage
             var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
-            if (prefabStage != null) return prefabStage.prefabContentsRoot;
+            if (prefabStage != null) 
+            {
+                // 1. 尝试寻找 "Canvas (Environment)" (通常在 Prefab Mode 根节点)
+                // 这代表了统一的设计分辨率/屏幕区域，比单纯对焦 Root 更准确
+                var stageScene = prefabStage.scene;
+                if (stageScene.IsValid())
+                {
+                    var roots = stageScene.GetRootGameObjects();
+                    foreach (var r in roots)
+                    {
+                        if (r.name == "Canvas (Environment)") return r;
+                    }
+                }
+                
+                // 2. 回退到 Prefab 内容根节点
+                return prefabStage.prefabContentsRoot;
+            }
             
             // 其次使用选中物体
             if (Selection.activeGameObject != null) return Selection.activeGameObject;

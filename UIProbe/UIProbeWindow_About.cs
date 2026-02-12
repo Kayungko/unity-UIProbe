@@ -27,7 +27,7 @@ namespace UIProbe
             // Version
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("版本:", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("2.7.0", GUILayout.Width(100));
+            EditorGUILayout.LabelField("2.8.0", GUILayout.Width(100));
             EditorGUILayout.EndHorizontal();
             
             // Developers
@@ -58,7 +58,7 @@ namespace UIProbe
             DrawFeatureItem("重名检测", "检测预制体中的重名节点，支持批量修复");
             DrawFeatureItem("资源引用", "追踪图片、预制体等资源的引用关系");
             DrawFeatureItem("图片规范化", "批量调整图片尺寸，保持内容不变形");
-            DrawFeatureItem("游戏截屏", "Play模式高质量截屏，支持超采样");
+            DrawFeatureItem("游戏截屏", "Play模式及Scene/Prefab视图高清截屏");
             DrawFeatureItem("TMP富文本生成", "可视化生成TextMeshPro富文本代码");
             
             EditorGUILayout.EndVertical();
@@ -67,17 +67,16 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v2.7.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v2.8.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 嵌套总览：修复实例统计Bug", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 修复统计逻辑：只统计直接嵌套的预制体实例", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 排除深层递归嵌套，避免重复计数", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 截屏工具增强：Scene/Prefab 视图截屏", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持对当前编辑的 Prefab 进行一键截图", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 自动对焦 (Auto Frame)：智能识别 Canvas Environment", EditorStyles.miniLabel);
             EditorGUILayout.Space(3);
-            EditorGUILayout.LabelField("• 嵌套总览：多实例定位功能", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 支持展开/折叠，列出所有实例路径", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 每个实例独立定位：预制体内定位 + Project定位", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 智能预制体舞台切换，避免保存提示", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 截屏工具增强：Game View 分辨率同步", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 截屏分辨率自动应用到 Game View，所见即所得", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 修复了非 16:9 分辨率下的画面拉伸问题", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             
