@@ -11,6 +11,8 @@ namespace UIProbe
         private Vector2 screenshotScrollPos;
         private int screenshotSuperSize = 1; // 超采样倍数 (1-4)
         private bool screenshotTransparent = false; // 是否透明背景
+        private bool autoFrameContent = false; // 自动对焦内容
+
         private int screenshotWidth = 1920;
         private int screenshotHeight = 1080;
         private bool useCustomResolution = false;
@@ -26,24 +28,11 @@ namespace UIProbe
             EditorGUILayout.LabelField("游戏截屏 (Screenshot)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            // Play 模式检测
-            if (!Application.isPlaying)
-            {
-                EditorGUILayout.HelpBox("请进入 Play 模式后使用此功能。", MessageType.Info);
-                
-                EditorGUILayout.Space(10);
-                if (GUILayout.Button("▶ 进入 Play 模式", GUILayout.Height(40)))
-                {
-                    EditorApplication.isPlaying = true;
-                }
-                
-                EditorGUILayout.EndScrollView();
-                return;
-            }
-            
-            // 截屏设置
+            // ==========================================
+            // 通用设置 (分辨率 & 超采样 & 透明)
+            // ==========================================
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("截屏设置", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("通用设置", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
             // 分辨率设置
@@ -61,98 +50,103 @@ namespace UIProbe
                 // 快捷分辨率按钮
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("快捷:", GUILayout.Width(60));
-                if (GUILayout.Button("1920x1080"))
+                
+                if (GUILayout.Button("Game View"))
                 {
-                    screenshotWidth = 1920;
-                    screenshotHeight = 1080;
+                    var size = UnityEditor.Handles.GetMainGameViewSize();
+                    screenshotWidth = (int)size.x;
+                    screenshotHeight = (int)size.y;
+                    GUI.FocusControl(null);
                 }
-                if (GUILayout.Button("1280x720"))
-                {
-                    screenshotWidth = 1280;
-                    screenshotHeight = 720;
-                }
-                if (GUILayout.Button("2560x1440"))
-                {
-                    screenshotWidth = 2560;
-                    screenshotHeight = 1440;
-                }
-                if (GUILayout.Button("3840x2160"))
-                {
-                    screenshotWidth = 3840;
-                    screenshotHeight = 2160;
-                }
+                
+                if (GUILayout.Button("1080p")) { screenshotWidth = 1920; screenshotHeight = 1080; }
+                if (GUILayout.Button("720p")) { screenshotWidth = 1280; screenshotHeight = 720; }
+                if (GUILayout.Button("2K")) { screenshotWidth = 2560; screenshotHeight = 1440; }
+                if (GUILayout.Button("4K")) { screenshotWidth = 3840; screenshotHeight = 2160; }
                 EditorGUILayout.EndHorizontal();
             }
             else
             {
-                EditorGUILayout.HelpBox($"当前游戏分辨率: {Screen.width} x {Screen.height}", MessageType.None);
+                // 显示当前上下文分辨率
+                string resolutionInfo = "自动匹配";
+                if (Application.isPlaying) 
+                    resolutionInfo = $"Game View: {Screen.width} x {Screen.height}"; // 注意：Screen.width在EditorWindow会返回Window尺寸，需谨慎
+                else
+                    resolutionInfo = "Scene View: (所见即所得)";
+                
+                EditorGUILayout.HelpBox(resolutionInfo, MessageType.None);
             }
             
             EditorGUILayout.Space(5);
             
             // 超采样设置
             screenshotSuperSize = EditorGUILayout.IntSlider("超采样倍数", screenshotSuperSize, 1, 4);
-            EditorGUILayout.HelpBox($"实际截图分辨率: {GetActualWidth()} x {GetActualHeight()}", MessageType.None);
             
             EditorGUILayout.Space(5);
             
             // 透明背景（仅适用于某些渲染模式）
-            screenshotTransparent = EditorGUILayout.Toggle("透明背景（实验性）", screenshotTransparent);
+            screenshotTransparent = EditorGUILayout.Toggle("透明背景 (实验性)", screenshotTransparent);
             if (screenshotTransparent)
             {
-                EditorGUILayout.HelpBox("透明背景仅在某些相机设置下有效（Clear Flags = Solid Color, Alpha = 0）", MessageType.Warning);
+                EditorGUILayout.HelpBox("透明背景移除了天空盒/Grid/Gizmos，适合抠图。", MessageType.Info);
             }
             
             EditorGUILayout.EndVertical();
             
             EditorGUILayout.Space(10);
             
-            // 截屏按钮
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("执行截屏", EditorStyles.boldLabel);
-            EditorGUILayout.Space(5);
+            // ==========================================
+            // 1. 场景/预制体截图区域
+            // ==========================================
+            DrawSceneScreenshotSection();
             
-            // 主截屏按钮
-            GUI.backgroundColor = Color.green;
-            if (GUILayout.Button("📸 截屏并保存", GUILayout.Height(50)))
+            EditorGUILayout.Space(10);
+            EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+            EditorGUILayout.Space(10);
+            
+            EditorGUILayout.LabelField("运行时截图 (Game View)", EditorStyles.boldLabel);
+            
+            // 2. Play 模式检测
+            if (!Application.isPlaying)
             {
-                CaptureScreenshot();
+                EditorGUILayout.HelpBox("请进入 Play 模式后使用运行时截屏功能。", MessageType.Info);
+                
+                EditorGUILayout.Space(5);
+                if (GUILayout.Button("▶ 进入 Play 模式", GUILayout.Height(30)))
+                {
+                    EditorApplication.isPlaying = true;
+                }
             }
-            GUI.backgroundColor = Color.white;
-            
-            EditorGUILayout.Space(5);
-            
-            // 快捷键提示
-            EditorGUILayout.HelpBox("快捷键: F12 - 快速截屏", MessageType.None);
-            
-            EditorGUILayout.EndVertical();
+            else
+            {
+                // 运行时截屏按钮
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                // 主截屏按钮
+                GUI.backgroundColor = Color.green;
+                if (GUILayout.Button("📸 截屏并保存 (Game)", GUILayout.Height(50)))
+                {
+                    CaptureScreenshot();
+                }
+                GUI.backgroundColor = Color.white;
+                
+                EditorGUILayout.Space(5);
+                EditorGUILayout.HelpBox("快捷键: F12 - 快速截屏", MessageType.None);
+                EditorGUILayout.EndVertical();
+            }
             
             EditorGUILayout.Space(10);
             
-            // 最近截屏
+            // 3. 通用信息 (最近截屏 & 路径)
             if (!string.IsNullOrEmpty(lastScreenshotPath))
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 EditorGUILayout.LabelField("最近的截屏", EditorStyles.boldLabel);
                 EditorGUILayout.Space(3);
-                
                 EditorGUILayout.LabelField($"📁 {lastScreenshotPath}", EditorStyles.wordWrappedMiniLabel);
-                
                 EditorGUILayout.BeginHorizontal();
-                
-                if (GUILayout.Button("打开文件夹", GUILayout.Height(30)))
-                {
-                    string folder = Path.GetDirectoryName(lastScreenshotPath);
-                    EditorUtility.RevealInFinder(folder);
-                }
-                
-                if (GUILayout.Button("打开图片", GUILayout.Height(30)))
-                {
-                    Application.OpenURL("file:///" + lastScreenshotPath);
-                }
-                
+                if (GUILayout.Button("打开文件夹", GUILayout.Height(30))) { EditorUtility.RevealInFinder(Path.GetDirectoryName(lastScreenshotPath)); }
+                if (GUILayout.Button("打开图片", GUILayout.Height(30))) { Application.OpenURL("file:///" + lastScreenshotPath); }
                 EditorGUILayout.EndHorizontal();
-                
                 EditorGUILayout.EndVertical();
             }
             
@@ -162,15 +156,9 @@ namespace UIProbe
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("存储路径", EditorStyles.boldLabel);
             EditorGUILayout.Space(3);
-            
             string screenshotsPath = UIProbeStorage.GetScreenshotsPath();
             EditorGUILayout.LabelField(screenshotsPath, EditorStyles.wordWrappedMiniLabel);
-            
-            if (GUILayout.Button("打开截屏文件夹", GUILayout.Height(30)))
-            {
-                EditorUtility.RevealInFinder(screenshotsPath);
-            }
-            
+            if (GUILayout.Button("打开截屏文件夹", GUILayout.Height(30))) { EditorUtility.RevealInFinder(screenshotsPath); }
             EditorGUILayout.EndVertical();
             
             EditorGUILayout.EndScrollView();
@@ -179,18 +167,53 @@ namespace UIProbe
         /// <summary>
         /// 获取实际截图宽度
         /// </summary>
-        private int GetActualWidth()
+        private int GetActualWidth(bool isScene = false)
         {
-            int baseWidth = useCustomResolution ? screenshotWidth : Screen.width;
+            int baseWidth = 0;
+            if (useCustomResolution)
+            {
+                baseWidth = screenshotWidth;
+            }
+            else
+            {
+                if (isScene)
+                {
+                    var view = SceneView.lastActiveSceneView;
+                    baseWidth = view != null ? (int)view.position.width : Screen.width;
+                }
+                else
+                {
+                     // Runtime: Use Screen.width (which might be GameView size if focused, or Window size)
+                     // Best practice: Handles.GetMainGameViewSize() but internal.
+                     // Fallback: Screen.width
+                     baseWidth = Screen.width;
+                }
+            }
             return baseWidth * screenshotSuperSize;
         }
         
         /// <summary>
         /// 获取实际截图高度
         /// </summary>
-        private int GetActualHeight()
+        private int GetActualHeight(bool isScene = false)
         {
-            int baseHeight = useCustomResolution ? screenshotHeight : Screen.height;
+            int baseHeight = 0;
+            if (useCustomResolution)
+            {
+                baseHeight = screenshotHeight;
+            }
+            else
+            {
+                if (isScene)
+                {
+                    var view = SceneView.lastActiveSceneView;
+                    baseHeight = view != null ? (int)view.position.height : Screen.height;
+                }
+                else
+                {
+                     baseHeight = Screen.height;
+                }
+            }
             return baseHeight * screenshotSuperSize;
         }
         
@@ -284,5 +307,237 @@ namespace UIProbe
                 Event.current.Use();
             }
         }
+
+        // ==========================================
+        // Scene / Prefab 截图功能
+        // ==========================================
+
+        private void DrawSceneScreenshotSection()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("场景/预制体截图 (Scene View)", EditorStyles.boldLabel);
+            EditorGUILayout.Space(5);
+
+            // 获取当前预制体环境信息
+            var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+            string contextInfo = prefabStage != null ? $"当前预制体: {prefabStage.prefabContentsRoot.name}" : "当前环境: Scene";
+            EditorGUILayout.LabelField(contextInfo, EditorStyles.miniLabel);
+
+            // 选项
+            screenshotTransparent = EditorGUILayout.Toggle("透明背景 (无天空盒/网格)", screenshotTransparent);
+            autoFrameContent = EditorGUILayout.Toggle("自动对焦内容 (Auto Frame)", autoFrameContent);
+
+            
+            EditorGUILayout.Space(5);
+
+            // 截图按钮
+            GUI.backgroundColor = new Color(0.2f, 0.8f, 1f); // 浅蓝色区分
+            if (GUILayout.Button("📸 截取 Scene 视图", GUILayout.Height(40)))
+            {
+                CaptureSceneScreenshot();
+            }
+            GUI.backgroundColor = Color.white;
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 截取 Scene 视图
+        /// </summary>
+        private void CaptureSceneScreenshot()
+        {
+            SceneView view = SceneView.lastActiveSceneView;
+            if (view == null)
+            {
+                EditorUtility.DisplayDialog("错误", "未找到活动的 Scene 视图，请先打开 Scene 窗口。", "确定");
+                return;
+            }
+
+            try
+            {
+                // 1. 确定文件名
+                string prefix = "Scene";
+                var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+                if (prefabStage != null)
+                {
+                    prefix = prefabStage.prefabContentsRoot.name;
+                }
+                else
+                {
+                    prefix = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+                    if (string.IsNullOrEmpty(prefix)) prefix = "Untitled";
+                }
+
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string fileName = $"{prefix}_{timestamp}.png";
+                
+                string screenshotsPath = UIProbeStorage.GetScreenshotsPath();
+                string fullPath = Path.Combine(screenshotsPath, fileName);
+
+                // 2. 创建临时相机以匹配 SceneView
+                Camera tempCam = new GameObject("TempScreenshotCam").AddComponent<Camera>();
+                tempCam.CopyFrom(view.camera); 
+                
+                // 3. 设置渲染属性 (去除背景/Grid/Gizmos)
+                if (screenshotTransparent)
+                {
+                    tempCam.clearFlags = CameraClearFlags.SolidColor;
+                    tempCam.backgroundColor = new Color(0, 0, 0, 0); // 透明
+                }
+                else
+                {
+                    // 如果不透明，使用简单的纯色背景而不是天空盒，以保持干净
+                    tempCam.clearFlags = CameraClearFlags.SolidColor;
+                    tempCam.backgroundColor = Color.gray; 
+                }
+
+                // 强制关闭 Gizmos (通过不调用 DrawGizmos，或者简单地因为 Render() 默认不画 Gizmos)
+                // SceneView 的 Grid 是 SceneView 绘制的，Camera.Render() 不会包含它，所以天然就是干净的
+
+                // 4. 渲染到 Texture
+                int width = GetActualWidth(true);
+                int height = GetActualHeight(true);
+                
+                // 调整相机 Aspect Ratio 以匹配输出分辨率
+                tempCam.aspect = (float)width / height;
+                
+                // 自动对焦逻辑
+                if (autoFrameContent)
+                {
+                    var targetObj = GetScreenshotTarget();
+                    if (targetObj != null)
+                        AutoFrameCamera(tempCam, targetObj);
+                }
+                
+
+
+                RenderTexture rt = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
+                tempCam.targetTexture = rt;
+                tempCam.Render();
+
+                // 5. 读取像素
+                Texture2D screenShot = new Texture2D(width, height, TextureFormat.ARGB32, false);
+                RenderTexture.active = rt;
+                screenShot.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                screenShot.Apply();
+
+                // 6. 保存
+                byte[] bytes = screenShot.EncodeToPNG();
+                File.WriteAllBytes(fullPath, bytes);
+
+                // 7. 清理
+                RenderTexture.active = null;
+                tempCam.targetTexture = null;
+                RenderTexture.ReleaseTemporary(rt);
+                UnityEngine.Object.DestroyImmediate(screenShot);
+                UnityEngine.Object.DestroyImmediate(tempCam.gameObject);
+
+                Debug.Log($"[UIProbe] Scene截图已保存: {fullPath}");
+                lastScreenshotPath = fullPath; // 更新最近截图路径以便在UI显示
+                
+                // 提示
+                EditorUtility.DisplayDialog("截图成功", $"预制体/场景截图已保存到:\n{fullPath}", "确定");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[UIProbe] Scene截图失败: {ex.Message}\n{ex.StackTrace}");
+                EditorUtility.DisplayDialog("截图失败", $"发生错误:\n{ex.Message}", "确定");
+            }
+        }
+        private GameObject GetScreenshotTarget()
+        {
+            // 优先使用当前 Prefab Stage 的根节点
+            var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null) return prefabStage.prefabContentsRoot;
+            
+            // 其次使用选中物体
+            if (Selection.activeGameObject != null) return Selection.activeGameObject;
+            
+            return null;
+        }
+
+        private void AutoFrameCamera(Camera cam, GameObject target)
+        {
+            Bounds bounds = CalculateBounds(target);
+            
+            // 移动相机中心对齐 Bounds 中心 (保持 Z 不变，或者在 3D 模式下调整)
+            if (cam.orthographic)
+            {
+                cam.transform.position = new Vector3(bounds.center.x, bounds.center.y, cam.transform.position.z);
+                
+                // 计算 Orthographic Size
+                // Size 是垂直可视高度的一半
+                float targetSizeY = bounds.extents.y;
+                float targetSizeX = bounds.extents.x / cam.aspect;
+                
+                cam.orthographicSize = Mathf.Max(targetSizeY, targetSizeX);
+                // 稍微加一点 Padding (2%)
+                cam.orthographicSize *= 1.02f; 
+            }
+            else
+            {
+                // 透视相机逻辑
+                cam.transform.LookAt(bounds.center);
+                float maxExtent = bounds.extents.magnitude;
+                // 防止 divide by zero
+                float fov = cam.fieldOfView;
+                if (fov < 1) fov = 60;
+                
+                float dist = maxExtent / Mathf.Sin(Mathf.Deg2Rad * fov / 2.0f);
+                cam.transform.position = bounds.center - cam.transform.forward * dist * 1.1f;
+            }
+        }
+
+        private Bounds CalculateBounds(GameObject target)
+        {
+            // 1. 处理 RectTransform (UI)
+            var rectTrans = target.GetComponent<RectTransform>();
+            if (rectTrans != null)
+            {
+                return CalculateRectTransformBounds(target.transform);
+            }
+            
+            // 2. 处理 Renderer (3D)
+            var renderers = target.GetComponentsInChildren<Renderer>();
+            if (renderers.Length > 0)
+            {
+                Bounds b = renderers[0].bounds;
+                for (int i = 1; i < renderers.Length; i++)
+                    b.Encapsulate(renderers[i].bounds);
+                return b;
+            }
+            
+            // 3. Fallback
+            return new Bounds(target.transform.position, Vector3.one);
+        }
+
+        private Bounds CalculateRectTransformBounds(Transform root)
+        {
+            Bounds b = new Bounds(root.position, Vector3.zero);
+            var rects = root.GetComponentsInChildren<RectTransform>();
+            bool first = true;
+            
+            foreach (var r in rects)
+            {
+                // 忽略非活跃物体
+                if (!r.gameObject.activeInHierarchy) continue;
+
+                Vector3[] corners = new Vector3[4];
+                r.GetWorldCorners(corners);
+                
+                if (first)
+                {
+                    b = new Bounds(corners[0], Vector3.zero);
+                    for (int i = 1; i < 4; i++) b.Encapsulate(corners[i]);
+                    first = false;
+                }
+                else
+                {
+                    for (int i = 0; i < 4; i++) b.Encapsulate(corners[i]);
+                }
+            }
+            return b;
+        }
+
     }
 }
