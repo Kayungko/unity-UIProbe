@@ -490,11 +490,18 @@ namespace UIProbe
 
         private Bounds CalculateBounds(GameObject target)
         {
-            // 1. 处理 RectTransform (UI)
+            // 1. UI 预制体 (优先使用根节点 RectTransform)
+            // 只计算根节点的四个角，忽略子物体，确保对焦区域严格匹配设计分辨率
             var rectTrans = target.GetComponent<RectTransform>();
             if (rectTrans != null)
             {
-                return CalculateRectTransformBounds(target.transform);
+                Vector3[] corners = new Vector3[4];
+                rectTrans.GetWorldCorners(corners);
+                
+                Bounds b = new Bounds(corners[0], Vector3.zero);
+                for (int i = 1; i < 4; i++)
+                    b.Encapsulate(corners[i]);
+                return b;
             }
             
             // 2. 处理 Renderer (3D)
@@ -511,33 +518,7 @@ namespace UIProbe
             return new Bounds(target.transform.position, Vector3.one);
         }
 
-        private Bounds CalculateRectTransformBounds(Transform root)
-        {
-            Bounds b = new Bounds(root.position, Vector3.zero);
-            var rects = root.GetComponentsInChildren<RectTransform>();
-            bool first = true;
-            
-            foreach (var r in rects)
-            {
-                // 忽略非活跃物体
-                if (!r.gameObject.activeInHierarchy) continue;
 
-                Vector3[] corners = new Vector3[4];
-                r.GetWorldCorners(corners);
-                
-                if (first)
-                {
-                    b = new Bounds(corners[0], Vector3.zero);
-                    for (int i = 1; i < 4; i++) b.Encapsulate(corners[i]);
-                    first = false;
-                }
-                else
-                {
-                    for (int i = 0; i < 4; i++) b.Encapsulate(corners[i]);
-                }
-            }
-            return b;
-        }
 
     }
 }
