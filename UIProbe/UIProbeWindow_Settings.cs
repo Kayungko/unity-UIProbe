@@ -14,12 +14,13 @@ namespace UIProbe
         private Vector2 settingsScrollPosition;
         
         // Foldout states for settings sections
-        private bool showDetectionRules = true;
+        private bool showModulesVisibility = false;
+        private bool showDetectionRules = false;
         private bool showStoragePath = false;
         private bool showIndexRoot = false;
         private bool showCustomTags = false;
         private bool showDataManagement = false;
-        private bool showHelperSettings = true;
+        private bool showHelperSettings = false;
         
         // Duplicate Detection Settings
         private DuplicateDetectionSettings duplicateSettings;
@@ -158,6 +159,37 @@ namespace UIProbe
             
             // Add ScrollView for entire settings content
             settingsScrollPosition = EditorGUILayout.BeginScrollView(settingsScrollPosition, GUILayout.ExpandHeight(true));
+
+            // ===== Modules Visibility Settings =====
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            showModulesVisibility = EditorGUILayout.Foldout(showModulesVisibility, "功能模块显示设置 (Modules Visibility)", true, EditorStyles.foldoutHeader);
+            
+            if (showModulesVisibility && config != null)
+            {
+                EditorGUI.BeginChangeCheck();
+                
+                config.modulesVisibility.showPicker = EditorGUILayout.ToggleLeft("运行时拾取 (Picker)", config.modulesVisibility.showPicker);
+                config.modulesVisibility.showIndexer = EditorGUILayout.ToggleLeft("预制体索引 (Indexer)", config.modulesVisibility.showIndexer);
+                config.modulesVisibility.showRecorder = EditorGUILayout.ToggleLeft("界面记录 (Recorder)", config.modulesVisibility.showRecorder);
+                config.modulesVisibility.showBrowser = EditorGUILayout.ToggleLeft("历史浏览 (Browser)", config.modulesVisibility.showBrowser);
+                config.modulesVisibility.showDuplicateChecker = EditorGUILayout.ToggleLeft("预制体综合检测 (Duplicate Checker)", config.modulesVisibility.showDuplicateChecker);
+                config.modulesVisibility.showAssetReferences = EditorGUILayout.ToggleLeft("资源引用 (Asset References)", config.modulesVisibility.showAssetReferences);
+                config.modulesVisibility.showNestingOverview = EditorGUILayout.ToggleLeft("嵌套总览 (Nesting Overview)", config.modulesVisibility.showNestingOverview);
+                config.modulesVisibility.showImageNormalizer = EditorGUILayout.ToggleLeft("图片规范化 (Image Normalizer)", config.modulesVisibility.showImageNormalizer);
+                config.modulesVisibility.showScreenshot = EditorGUILayout.ToggleLeft("游戏截屏 (Screenshot)", config.modulesVisibility.showScreenshot);
+                config.modulesVisibility.showRichTextGenerator = EditorGUILayout.ToggleLeft("富文本生成 (Rich Text Generator)", config.modulesVisibility.showRichTextGenerator);
+                config.modulesVisibility.showAdaptor = EditorGUILayout.ToggleLeft("预制体助手 (Adaptor)", config.modulesVisibility.showAdaptor);
+                config.modulesVisibility.showResourceDetector = EditorGUILayout.ToggleLeft("资源使用检测 (Resource Detector)", config.modulesVisibility.showResourceDetector);
+                config.modulesVisibility.showPrefabCreator = EditorGUILayout.ToggleLeft("预制体创建 (Prefab Creator)", config.modulesVisibility.showPrefabCreator);
+                
+                if (EditorGUI.EndChangeCheck())
+                {
+                    SaveSettingsData();
+                }
+            }
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space();
 
             // ===== Problem Detection Rules =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);

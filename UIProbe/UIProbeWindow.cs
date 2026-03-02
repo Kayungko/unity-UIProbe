@@ -92,6 +92,32 @@ namespace UIProbe
 
         private void OnGUI()
         {
+            // 越界保护：如果当前停留的Tab在配置中被隐藏了，强制跳回到 Settings
+            if (config != null)
+            {
+                bool isHidden = false;
+                switch (currentTab)
+                {
+                    case Tab.Picker: isHidden = !config.modulesVisibility.showPicker; break;
+                    case Tab.Indexer: isHidden = !config.modulesVisibility.showIndexer; break;
+                    case Tab.Recorder: isHidden = !config.modulesVisibility.showRecorder; break;
+                    case Tab.Browser: isHidden = !config.modulesVisibility.showBrowser; break;
+                    case Tab.DuplicateChecker: isHidden = !config.modulesVisibility.showDuplicateChecker; break;
+                    case Tab.AssetReferences: isHidden = !config.modulesVisibility.showAssetReferences; break;
+                    case Tab.NestingOverview: isHidden = !config.modulesVisibility.showNestingOverview; break;
+                    case Tab.ImageNormalizer: isHidden = !config.modulesVisibility.showImageNormalizer; break;
+                    case Tab.Screenshot: isHidden = !config.modulesVisibility.showScreenshot; break;
+                    case Tab.RichTextGenerator: isHidden = !config.modulesVisibility.showRichTextGenerator; break;
+                    case Tab.Adaptor: isHidden = !config.modulesVisibility.showAdaptor; break;
+                    case Tab.ResourceDetector: isHidden = !config.modulesVisibility.showResourceDetector; break;
+                    case Tab.PrefabCreator: isHidden = !config.modulesVisibility.showPrefabCreator; break;
+                }
+                if (isHidden)
+                {
+                    currentTab = Tab.Settings;
+                }
+            }
+
             GUILayout.BeginHorizontal();
             
             // Left Side: Sidebar
@@ -158,19 +184,19 @@ namespace UIProbe
             GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(100), GUILayout.ExpandHeight(true));
             GUILayout.Space(5);
 
-            DrawSidebarButton(Tab.Picker, "运行时拾取");
-            DrawSidebarButton(Tab.Indexer, "预制体索引");
-            DrawSidebarButton(Tab.Recorder, "界面记录");
-            DrawSidebarButton(Tab.Browser, "历史浏览");
-            DrawSidebarButton(Tab.DuplicateChecker, "预制体综合检测");
-            DrawSidebarButton(Tab.AssetReferences, "资源引用");
-            DrawSidebarButton(Tab.NestingOverview, "嵌套总览");
-            DrawSidebarButton(Tab.ImageNormalizer, "图片规范化");
-            DrawSidebarButton(Tab.Screenshot, "游戏截屏");
-            DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
-            DrawSidebarButton(Tab.Adaptor, "预制体助手");
-            DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
-            DrawSidebarButton(Tab.PrefabCreator, "预制体创建");
+            if (config == null || config.modulesVisibility.showPicker) DrawSidebarButton(Tab.Picker, "运行时拾取");
+            if (config == null || config.modulesVisibility.showIndexer) DrawSidebarButton(Tab.Indexer, "预制体索引");
+            if (config == null || config.modulesVisibility.showRecorder) DrawSidebarButton(Tab.Recorder, "界面记录");
+            if (config == null || config.modulesVisibility.showBrowser) DrawSidebarButton(Tab.Browser, "历史浏览");
+            if (config == null || config.modulesVisibility.showDuplicateChecker) DrawSidebarButton(Tab.DuplicateChecker, "预制体综合检测");
+            if (config == null || config.modulesVisibility.showAssetReferences) DrawSidebarButton(Tab.AssetReferences, "资源引用");
+            if (config == null || config.modulesVisibility.showNestingOverview) DrawSidebarButton(Tab.NestingOverview, "嵌套总览");
+            if (config == null || config.modulesVisibility.showImageNormalizer) DrawSidebarButton(Tab.ImageNormalizer, "图片规范化");
+            if (config == null || config.modulesVisibility.showScreenshot) DrawSidebarButton(Tab.Screenshot, "游戏截屏");
+            if (config == null || config.modulesVisibility.showRichTextGenerator) DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
+            if (config == null || config.modulesVisibility.showAdaptor) DrawSidebarButton(Tab.Adaptor, "预制体助手");
+            if (config == null || config.modulesVisibility.showResourceDetector) DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
+            if (config == null || config.modulesVisibility.showPrefabCreator) DrawSidebarButton(Tab.PrefabCreator, "预制体创建");
             
             GUILayout.FlexibleSpace();
             

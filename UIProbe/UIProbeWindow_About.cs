@@ -27,7 +27,7 @@ namespace UIProbe
             // Version
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("版本:", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("2.8.0", GUILayout.Width(100));
+            EditorGUILayout.LabelField("2.9.0", GUILayout.Width(100));
             EditorGUILayout.EndHorizontal();
             
             // Developers
@@ -67,16 +67,15 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v2.8.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v2.9.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 截屏工具增强：Scene/Prefab 视图截屏", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 支持对当前编辑的 Prefab 进行一键截图", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 自动对焦 (Auto Frame)：智能识别 Canvas Environment", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 按需显示：功能模块可见性开关", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 在设置中自由勾选需要显示的功能模块，定制你的专属面板", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 保持工具的清爽与高效，告别臃肿的侧边栏", EditorStyles.miniLabel);
             EditorGUILayout.Space(3);
-            EditorGUILayout.LabelField("• 截屏工具增强：Game View 分辨率同步", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 截屏分辨率自动应用到 Game View，所见即所得", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 修复了非 16:9 分辨率下的画面拉伸问题", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 体验优化", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 设置面板各项配置默认收起，更加整洁", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             

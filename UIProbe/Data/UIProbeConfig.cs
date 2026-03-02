@@ -136,12 +136,33 @@ namespace UIProbe
     }
     
     /// <summary>
+    /// 功能模块可见性配置
+    /// </summary>
+    [Serializable]
+    public class ModulesVisibilityConfig
+    {
+        public bool showPicker = true;
+        public bool showIndexer = true;
+        public bool showRecorder = true;
+        public bool showBrowser = true;
+        public bool showDuplicateChecker = true;
+        public bool showAssetReferences = true;
+        public bool showNestingOverview = true;
+        public bool showImageNormalizer = true;
+        public bool showScreenshot = true;
+        public bool showRichTextGenerator = true;
+        public bool showAdaptor = true;
+        public bool showResourceDetector = true;
+        public bool showPrefabCreator = true;
+    }
+
+    /// <summary>
     /// UIProbe 统一配置
     /// </summary>
     [Serializable]
     public class UIProbeConfig
     {
-        public string version = "2.3.0";
+        public string version = "2.9.0";
         public string lastUpdated = "";
         
         public IndexerConfig indexer = new IndexerConfig();
@@ -151,6 +172,7 @@ namespace UIProbe
         public RecorderConfig recorder = new RecorderConfig();
         public CheckerRulesConfig checkerRules = new CheckerRulesConfig();
         public HelperConfig helper = new HelperConfig();
+        public ModulesVisibilityConfig modulesVisibility = new ModulesVisibilityConfig();
     }
     
     /// <summary>
