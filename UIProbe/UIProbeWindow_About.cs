@@ -27,7 +27,7 @@ namespace UIProbe
             // Version
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("版本:", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("2.9.0", GUILayout.Width(100));
+            EditorGUILayout.LabelField("3.0.0", GUILayout.Width(100));
             EditorGUILayout.EndHorizontal();
             
             // Developers
@@ -67,15 +67,13 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v2.9.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v3.0.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 按需显示：功能模块可见性开关", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 在设置中自由勾选需要显示的功能模块，定制你的专属面板", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 保持工具的清爽与高效，告别臃肿的侧边栏", EditorStyles.miniLabel);
-            EditorGUILayout.Space(3);
-            EditorGUILayout.LabelField("• 体验优化", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 设置面板各项配置默认收起，更加整洁", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 预制体助手增强 (Prefab Helper v2.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 锚点图标优化：为九宫格锚点提供直观的方位图标", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 互斥拉伸逻辑：水平、垂直、全屏拉伸按钮互为独立状态", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 状态视觉反馈：当前生效的拉伸模式以高亮色显示", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             
