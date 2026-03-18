@@ -221,11 +221,11 @@ namespace UIProbe
             GUILayout.BeginVertical();
             
             // Top Row
-            DrawAnchorRow(rect, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(1, 1));
+            DrawAnchorRow(rect, new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(1, 1), "◤", "▲", "◥");
             // Middle Row
-            DrawAnchorRow(rect, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(1, 0.5f));
+            DrawAnchorRow(rect, new Vector2(0, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(1, 0.5f), "◀", "●", "▶");
             // Bottom Row
-            DrawAnchorRow(rect, new Vector2(0, 0), new Vector2(0.5f, 0), new Vector2(1, 0));
+            DrawAnchorRow(rect, new Vector2(0, 0), new Vector2(0.5f, 0), new Vector2(1, 0), "◣", "▼", "◢");
 
             GUILayout.EndVertical();
             
@@ -234,28 +234,50 @@ namespace UIProbe
 
             EditorGUILayout.Space(5);
 
-            // 拉伸按钮
+            // 拉伸按钮组
             GUILayout.BeginHorizontal();
+            
+            Color originalColor = GUI.color;
+            Color activeColor = new Color(0.12f, 0.7f, 1f, 1f); // 亮蓝色高亮
+
+            // 1. 水平拉伸
+            bool isHStretched = Mathf.Approximately(rect.anchorMin.x, 0) && Mathf.Approximately(rect.anchorMax.x, 1) &&
+                                Mathf.Approximately(rect.anchorMin.y, rect.anchorMax.y);
+            if (isHStretched) GUI.color = activeColor;
             if (GUILayout.Button("↔ 水平拉伸", GUILayout.Height(25)))
             {
                 Undo.RecordObject(rect, "Stretch Horizontal");
-                rect.anchorMin = new Vector2(0, rect.anchorMin.y);
-                rect.anchorMax = new Vector2(1, rect.anchorMax.y);
+                rect.anchorMin = new Vector2(0, 0.5f);
+                rect.anchorMax = new Vector2(1, 0.5f);
                 rect.offsetMin = new Vector2(0, rect.offsetMin.y);
                 rect.offsetMax = new Vector2(0, rect.offsetMax.y);
-                rect.pivot = new Vector2(0.5f, rect.pivot.y);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(0, rect.anchoredPosition.y);
             }
+            GUI.color = originalColor;
+
+            // 2. 垂直拉伸
+            bool isVStretched = Mathf.Approximately(rect.anchorMin.y, 0) && Mathf.Approximately(rect.anchorMax.y, 1) &&
+                                Mathf.Approximately(rect.anchorMin.x, rect.anchorMax.x);
+            if (isVStretched) GUI.color = activeColor;
             if (GUILayout.Button("↕ 垂直拉伸", GUILayout.Height(25)))
             {
                 Undo.RecordObject(rect, "Stretch Vertical");
-                rect.anchorMin = new Vector2(rect.anchorMin.x, 0);
-                rect.anchorMax = new Vector2(rect.anchorMax.x, 1);
+                rect.anchorMin = new Vector2(0.5f, 0);
+                rect.anchorMax = new Vector2(0.5f, 1);
                 rect.offsetMin = new Vector2(rect.offsetMin.x, 0);
                 rect.offsetMax = new Vector2(rect.offsetMax.x, 0);
-                rect.pivot = new Vector2(rect.pivot.x, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, 0);
             }
+            GUI.color = originalColor;
+
             GUILayout.EndHorizontal();
 
+            // 3. 全屏拉伸
+            bool isFullStretched = Mathf.Approximately(rect.anchorMin.x, 0) && Mathf.Approximately(rect.anchorMin.y, 0) &&
+                                   Mathf.Approximately(rect.anchorMax.x, 1) && Mathf.Approximately(rect.anchorMax.y, 1);
+            if (isFullStretched) GUI.color = activeColor;
             if (GUILayout.Button("✛ 全屏拉伸 (Stretch All)", GUILayout.Height(30)))
             {
                 Undo.RecordObject(rect, "Stretch All");
@@ -265,6 +287,7 @@ namespace UIProbe
                 rect.offsetMax = Vector2.zero;
                 rect.pivot = new Vector2(0.5f, 0.5f);
             }
+            GUI.color = originalColor;
             
             // 归零按钮
             if (GUILayout.Button("◎ 位置归零 (Reset Position)", GUILayout.Height(25)))
@@ -290,12 +313,12 @@ namespace UIProbe
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawAnchorRow(RectTransform rect, Vector2 left, Vector2 center, Vector2 right)
+        private void DrawAnchorRow(RectTransform rect, Vector2 left, Vector2 center, Vector2 right, string iconLeft, string iconCenter, string iconRight)
         {
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("◤", GUILayout.Width(30), GUILayout.Height(30))) SetAnchor(rect, left);
-            if (GUILayout.Button("▲", GUILayout.Width(30), GUILayout.Height(30))) SetAnchor(rect, center);
-            if (GUILayout.Button("◥", GUILayout.Width(30), GUILayout.Height(30))) SetAnchor(rect, right);
+            if (GUILayout.Button(iconLeft, GUILayout.Width(30), GUILayout.Height(30))) SetAnchor(rect, left);
+            if (GUILayout.Button(iconCenter, GUILayout.Width(30), GUILayout.Height(30))) SetAnchor(rect, center);
+            if (GUILayout.Button(iconRight, GUILayout.Width(30), GUILayout.Height(30))) SetAnchor(rect, right);
             GUILayout.EndHorizontal();
         }
 
