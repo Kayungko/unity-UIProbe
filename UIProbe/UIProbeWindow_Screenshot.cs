@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System;
 using System.IO;
-using UnityEngine.Rendering.Universal;
+using System.Reflection;
 
 namespace UIProbe
 {
@@ -384,14 +384,20 @@ namespace UIProbe
             CameraClearFlags originalClearFlags = uiCamera.clearFlags;
             Color            originalBackground = uiCamera.backgroundColor;
             
-            // ---- 3. URP：临时将 Overlay 改为 Base ----
+            // ---- 3. URP：临时将 Overlay 改为 Base（通过反射，兼容非 URP 项目）----
             //   Overlay 相机不清除背景，必须切为 Base 才能使用透明 Clear Color。
             bool wasOverlay = false;
-            var urpData = uiCamera.GetComponent<UniversalAdditionalCameraData>();
-            if (urpData != null && urpData.renderType == CameraRenderType.Overlay)
+            Component urpData = uiCamera.GetComponent("UniversalAdditionalCameraData");
+            PropertyInfo renderTypeProp = urpData?.GetType().GetProperty("renderType");
+            if (renderTypeProp != null)
             {
-                wasOverlay = true;
-                urpData.renderType = CameraRenderType.Base;
+                // CameraRenderType.Overlay == 1
+                int currentType = (int)renderTypeProp.GetValue(urpData);
+                if (currentType == 1)
+                {
+                    wasOverlay = true;
+                    renderTypeProp.SetValue(urpData, 0); // 0 = Base
+                }
             }
             
             // ---- 4. 设置透明渲染目标 ----
@@ -420,8 +426,8 @@ namespace UIProbe
             uiCamera.clearFlags      = originalClearFlags;
             uiCamera.backgroundColor = originalBackground;
             
-            if (wasOverlay && urpData != null)
-                urpData.renderType = CameraRenderType.Overlay;
+            if (wasOverlay && urpData != null && renderTypeProp != null)
+                renderTypeProp.SetValue(urpData, 1); // 1 = Overlay
             
             DestroyImmediate(rt);
             
