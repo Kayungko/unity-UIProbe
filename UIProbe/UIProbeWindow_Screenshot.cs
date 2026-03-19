@@ -3,6 +3,7 @@ using UnityEditor;
 using System;
 using System.IO;
 using System.Reflection;
+using UnityEngine.Rendering;
 
 namespace UIProbe
 {
@@ -18,6 +19,20 @@ namespace UIProbe
         private int screenshotHeight = 1080;
         private bool useCustomResolution = false;
         private string lastScreenshotPath = "";
+        
+        // ---- UI 层异步截图状态 ----
+        private bool            _uiCaptureInProgress  = false;
+        private Camera          _uiCaptureCam         = null;
+        private RenderTexture   _uiCaptureRT          = null;
+        private string          _uiCapturePath        = null;
+        private RenderTexture   _uiCaptureOrigTarget  = null;
+        private CameraClearFlags _uiCaptureOrigFlags  = CameraClearFlags.Skybox;
+        private Color           _uiCaptureOrigBg      = Color.black;
+        private Component       _uiCaptureUrpData     = null;
+        private PropertyInfo    _uiCaptureRenderProp  = null;
+        private bool            _uiCaptureWasOverlay  = false;
+        private int             _uiCaptureWidth       = 0;
+        private int             _uiCaptureHeight      = 0;
         
         /// <summary>
         /// 绘制截屏标签页
@@ -309,7 +324,9 @@ namespace UIProbe
         }
         
         /// <summary>
-        /// 触发仅截 UI 层截图（外部入口）
+        /// 触发仅截 UI 层截图（异步入口）。
+        /// 不再手动调用 camera.Render()，改为订阅 RenderPipelineManager.endCameraRendering，
+        /// 等 Unity 自然渲染完整一帧（含粒子特效）后再读取像素。
         /// </summary>
         private void CaptureUIOnlyScreenshot()
         {
@@ -319,122 +336,147 @@ namespace UIProbe
                 return;
             }
             
+            if (_uiCaptureInProgress)
+            {
+                EditorUtility.DisplayDialog("提示", "UI 专属截图正在进行中，请稍候...", "确定");
+                return;
+            }
+            
             try
             {
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string fileName = $"Screenshot_UIOnly_{timestamp}.png";
-                string screenshotsPath = UIProbeStorage.GetScreenshotsPath();
-                lastScreenshotPath = Path.Combine(screenshotsPath, fileName);
+                string fileName  = $"Screenshot_UIOnly_{timestamp}.png";
+                string folder    = UIProbeStorage.GetScreenshotsPath();
+                lastScreenshotPath = Path.Combine(folder, fileName);
                 
-                CaptureUIOnlyScreenshotToFile(lastScreenshotPath);
-                
-                Debug.Log($"[UIProbe] UI 专属截图已保存: {lastScreenshotPath}");
-                EditorUtility.DisplayDialog("截屏成功", $"UI 专属截图已保存到:\n{lastScreenshotPath}", "确定");
+                StartUIOnlyCaptureAsync(lastScreenshotPath);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[UIProbe] UI 专属截图失败: {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError($"[UIProbe] UI 专属截图启动失败: {ex.Message}\n{ex.StackTrace}");
                 EditorUtility.DisplayDialog("截屏失败", $"截屏时发生错误:\n{ex.Message}", "确定");
             }
         }
         
         /// <summary>
-        /// 仅截 UI 层到文件（透明背景）。
-        /// 通过 Tag="UICamera" 查找专用 UI 相机，临时切换为 Base 模式并设透明背景渲染到 RenderTexture，
-        /// 读取像素后保存为含 Alpha 通道的 PNG，最后恢复所有原始设置。
+        /// 设置异步捕获环境：找相机、切换 Base、延迟赋値 RT，然后订阅 endCameraRendering。
         /// </summary>
-        private void CaptureUIOnlyScreenshotToFile(string path)
+        private void StartUIOnlyCaptureAsync(string path)
         {
             // ---- 1. 查找 UI 专用相机 ----
             Camera uiCamera = null;
             foreach (var cam in Camera.allCameras)
             {
-                if (cam.CompareTag("UICamera"))
-                {
-                    uiCamera = cam;
-                    break;
-                }
+                if (cam.CompareTag("UICamera")) { uiCamera = cam; break; }
             }
-            
             if (uiCamera == null)
             {
-                // 降级：按 Culling Mask 仅含 UI 层查找
-                int uiLayer = LayerMask.NameToLayer("UI");
-                int uiOnlyMask = 1 << uiLayer;
+                int uiOnlyMask = 1 << LayerMask.NameToLayer("UI");
                 foreach (var cam in Camera.allCameras)
                 {
-                    if (cam.cullingMask == uiOnlyMask)
-                    {
-                        uiCamera = cam;
-                        break;
-                    }
+                    if (cam.cullingMask == uiOnlyMask) { uiCamera = cam; break; }
                 }
             }
-            
             if (uiCamera == null)
-            {
                 throw new Exception("未找到 UI 专用相机。\n请确保场景中有 Tag=\"UICamera\" 的相机，或 Culling Mask 仅含 UI 层的相机。");
-            }
-            
-            int width  = GetActualWidth();
-            int height = GetActualHeight();
             
             // ---- 2. 保存相机原始设置 ----
-            RenderTexture    originalTarget     = uiCamera.targetTexture;
-            CameraClearFlags originalClearFlags = uiCamera.clearFlags;
-            Color            originalBackground = uiCamera.backgroundColor;
+            _uiCaptureCam        = uiCamera;
+            _uiCapturePath       = path;
+            _uiCaptureWidth      = GetActualWidth();
+            _uiCaptureHeight     = GetActualHeight();
+            _uiCaptureOrigTarget = uiCamera.targetTexture;
+            _uiCaptureOrigFlags  = uiCamera.clearFlags;
+            _uiCaptureOrigBg     = uiCamera.backgroundColor;
             
-            // ---- 3. URP：临时将 Overlay 改为 Base（通过反射，兼容非 URP 项目）----
-            //   Overlay 相机不清除背景，必须切为 Base 才能使用透明 Clear Color。
-            bool wasOverlay = false;
-            Component urpData = uiCamera.GetComponent("UniversalAdditionalCameraData");
-            PropertyInfo renderTypeProp = urpData?.GetType().GetProperty("renderType");
-            if (renderTypeProp != null)
+            // ---- 3. URP：临时将 Overlay 改为 Base（反射）----
+            _uiCaptureWasOverlay = false;
+            _uiCaptureUrpData    = uiCamera.GetComponent("UniversalAdditionalCameraData");
+            _uiCaptureRenderProp = _uiCaptureUrpData?.GetType().GetProperty("renderType");
+            if (_uiCaptureRenderProp != null)
             {
-                // CameraRenderType.Overlay == 1
-                int currentType = (int)renderTypeProp.GetValue(urpData);
-                if (currentType == 1)
+                int currentType = (int)_uiCaptureRenderProp.GetValue(_uiCaptureUrpData);
+                if (currentType == 1) // Overlay
                 {
-                    wasOverlay = true;
-                    renderTypeProp.SetValue(urpData, 0); // 0 = Base
+                    _uiCaptureWasOverlay = true;
+                    _uiCaptureRenderProp.SetValue(_uiCaptureUrpData, 0); // Base
                 }
             }
             
-            // ---- 4. 设置透明渲染目标 ----
-            var rt = new RenderTexture(width, height, 32, RenderTextureFormat.ARGB32)
+            // ---- 4. 创建透明 RT 并明赋给相机 ----
+            //   将 RT 赋给相机后，Unity 下一帧自然渲染到此 RT。
+            _uiCaptureRT = new RenderTexture(_uiCaptureWidth, _uiCaptureHeight, 32, RenderTextureFormat.ARGB32)
             {
                 antiAliasing = 1
             };
-            rt.Create();
+            _uiCaptureRT.Create();
             
-            uiCamera.clearFlags       = CameraClearFlags.SolidColor;
-            uiCamera.backgroundColor  = new Color(0f, 0f, 0f, 0f);
-            uiCamera.targetTexture    = rt;
+            uiCamera.clearFlags      = CameraClearFlags.SolidColor;
+            uiCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            uiCamera.targetTexture   = _uiCaptureRT;
             
-            // ---- 5. 渲染 ----
-            uiCamera.Render();
+            // ---- 5. 订阅渲染完成回调 ----
+            _uiCaptureInProgress = true;
+            RenderPipelineManager.endCameraRendering += OnUICameraPostRender;
+            Debug.Log("[UIProbe] UI 专属截图已启动，将在下一帧渲染完成后保存...");
+        }
+        
+        /// <summary>
+        /// RenderPipelineManager.endCameraRendering 回调：当指定 UI 相机渲染完成时读取像素。
+        /// </summary>
+        private void OnUICameraPostRender(ScriptableRenderContext ctx, Camera cam)
+        {
+            if (cam != _uiCaptureCam) return;
             
-            // ---- 6. 读取像素 ----
-            RenderTexture.active = rt;
-            var screenshot = new Texture2D(width, height, TextureFormat.ARGB32, false);
-            screenshot.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-            screenshot.Apply();
-            RenderTexture.active = null;
+            // ---- 只操作一次，立即取消订阅 ----
+            RenderPipelineManager.endCameraRendering -= OnUICameraPostRender;
+            _uiCaptureInProgress = false;
             
-            // ---- 7. 恢复所有原始设置 ----
-            uiCamera.targetTexture   = originalTarget;
-            uiCamera.clearFlags      = originalClearFlags;
-            uiCamera.backgroundColor = originalBackground;
-            
-            if (wasOverlay && urpData != null && renderTypeProp != null)
-                renderTypeProp.SetValue(urpData, 1); // 1 = Overlay
-            
-            DestroyImmediate(rt);
-            
-            // ---- 8. 保存 PNG ----
-            byte[] bytes = screenshot.EncodeToPNG();
-            File.WriteAllBytes(path, bytes);
-            DestroyImmediate(screenshot);
+            try
+            {
+                // ---- 6. 读取像素 ----
+                RenderTexture.active = _uiCaptureRT;
+                var screenshot = new Texture2D(_uiCaptureWidth, _uiCaptureHeight, TextureFormat.ARGB32, false);
+                screenshot.ReadPixels(new Rect(0, 0, _uiCaptureWidth, _uiCaptureHeight), 0, 0);
+                screenshot.Apply();
+                RenderTexture.active = null;
+                
+                // ---- 7. 恢复相机设置 ----
+                _uiCaptureCam.targetTexture   = _uiCaptureOrigTarget;
+                _uiCaptureCam.clearFlags      = _uiCaptureOrigFlags;
+                _uiCaptureCam.backgroundColor = _uiCaptureOrigBg;
+                
+                if (_uiCaptureWasOverlay && _uiCaptureUrpData != null && _uiCaptureRenderProp != null)
+                    _uiCaptureRenderProp.SetValue(_uiCaptureUrpData, 1); // Overlay
+                
+                // ---- 8. 保存 PNG ----
+                byte[] bytes = screenshot.EncodeToPNG();
+                File.WriteAllBytes(_uiCapturePath, bytes);
+                
+                DestroyImmediate(screenshot);
+                DestroyImmediate(_uiCaptureRT);
+                _uiCaptureRT = null;
+                
+                Debug.Log($"[UIProbe] UI 专属截图已保存: {_uiCapturePath}");
+                
+                // 在主线稍后弹框（回调内不能直接调用 EditorUtility.DisplayDialog）
+                EditorApplication.delayCall += () =>
+                    EditorUtility.DisplayDialog("截屏成功", $"UI 专属截图已保存到:\n{_uiCapturePath}", "确定");
+            }
+            catch (Exception ex)
+            {
+                // 发生异常也要确保相机设置被恢复
+                _uiCaptureCam.targetTexture   = _uiCaptureOrigTarget;
+                _uiCaptureCam.clearFlags      = _uiCaptureOrigFlags;
+                _uiCaptureCam.backgroundColor = _uiCaptureOrigBg;
+                if (_uiCaptureWasOverlay && _uiCaptureUrpData != null && _uiCaptureRenderProp != null)
+                    _uiCaptureRenderProp.SetValue(_uiCaptureUrpData, 1);
+                if (_uiCaptureRT != null) { DestroyImmediate(_uiCaptureRT); _uiCaptureRT = null; }
+                
+                Debug.LogError($"[UIProbe] UI 专属截图失败: {ex.Message}\n{ex.StackTrace}");
+                EditorApplication.delayCall += () =>
+                    EditorUtility.DisplayDialog("截屏失败", $"截屏时发生错误:\n{ex.Message}", "确定");
+            }
         }
         
         /// <summary>
