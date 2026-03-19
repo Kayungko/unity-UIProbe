@@ -33,9 +33,10 @@ namespace UIProbe
         private bool            _uiCaptureWasOverlay  = false;
         private int             _uiCaptureWidth       = 0;
         private int             _uiCaptureHeight      = 0;
-        // 双背景差値合成状态
-        private int             _uiCapturePhase       = 0; // 1=黑底渲染中 2=白底渲染中
+        // 双背景差值合成状态
+        private int             _uiCapturePhase       = 0; // 1=黑底 2=白底 3=透明单帧
         private Texture2D       _uiCaptureBlackTex    = null;
+        private bool            _screenshotUIComposite = true; // 是否启用双背景合成
         
         /// <summary>
         /// 绘制截屏标签页
@@ -153,15 +154,38 @@ namespace UIProbe
                 
                 EditorGUILayout.Space(5);
                 
+                // UI 层表1：设置区
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                EditorGUILayout.LabelField("仅截 UI 层设置", EditorStyles.boldLabel);
+                _screenshotUIComposite = EditorGUILayout.Toggle(
+                    new GUIContent("处理特效（双背景合成）",
+                        "启用时用黑底+白底两帧渲染差値合成，能正确处理任意 Shader 输出的黑色块。\n不启用时单帧透明渲染，速度较快。"),
+                    _screenshotUIComposite);
+                if (_screenshotUIComposite)
+                {
+                    EditorGUILayout.HelpBox("双背景合成：连续渲染两帧（黑底+白底），耗时2帧时间，自动处理黑色块和半透明特效。", MessageType.None);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("单帧透明渲染：速度快，但 Shader 未正确写入 Alpha 的特效可能出现黑色块。\n→ 建议截图前先手动隐藏 VFX / UIParticle 节点。", MessageType.Warning);
+                }
+                EditorGUILayout.EndVertical();
+
+                EditorGUILayout.Space(5);
+
+                // UI 层表2：截图按钮
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 // UI 专属截图按钮
                 GUI.backgroundColor = new Color(0.4f, 0.8f, 1f);
-                if (GUILayout.Button("🖼 仅截 UI 层（透明背景）", GUILayout.Height(40)))
+                string uiBtnLabel = _screenshotUIComposite
+                    ? "🖼 仅截 UI 层（双背景合成）"
+                    : "🖼 仅截 UI 层（单帧透明）";
+                if (GUILayout.Button(uiBtnLabel, GUILayout.Height(40)))
                 {
                     CaptureUIOnlyScreenshot();
                 }
                 GUI.backgroundColor = Color.white;
                 EditorGUILayout.HelpBox("通过 Tag=\"UICamera\" 找到专用 UI 相机，仅渲染 UI 层，背景完全透明，输出 PNG（含 Alpha 通道）。", MessageType.None);
-                
                 EditorGUILayout.EndVertical();
             }
             
@@ -414,15 +438,27 @@ namespace UIProbe
             };
             _uiCaptureRT.Create();
             
-            // ---- 5. 第一阶段：黑底渲染 ----
-            uiCamera.clearFlags      = CameraClearFlags.SolidColor;
-            uiCamera.backgroundColor = new Color(0f, 0f, 0f, 1f); // 纯黑不透明
-            uiCamera.targetTexture   = _uiCaptureRT;
+            // ---- 5. 根据勾选项选择渲染模式 ----
+            uiCamera.clearFlags    = CameraClearFlags.SolidColor;
+            uiCamera.targetTexture = _uiCaptureRT;
+
+            if (_screenshotUIComposite)
+            {
+                // 双背景合成：黑底开始
+                uiCamera.backgroundColor = new Color(0f, 0f, 0f, 1f);
+                _uiCapturePhase = 1;
+                Debug.Log("[UIProbe] UI 层截图（双背景合成）已启动，第1帧：黑底渲染...");
+            }
+            else
+            {
+                // 单帧透明渲染
+                uiCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+                _uiCapturePhase = 3;
+                Debug.Log("[UIProbe] UI 层截图（单帧透明）已启动...");
+            }
 
             _uiCaptureInProgress = true;
-            _uiCapturePhase      = 1;
             RenderPipelineManager.endCameraRendering += OnUICameraPostRender;
-            Debug.Log("[UIProbe] UI 层截图（双背景合成）已启动，第1帧：黑底渲染...");
         }
         
         /// <summary>
@@ -438,7 +474,35 @@ namespace UIProbe
 
             try
             {
-                if (_uiCapturePhase == 1)
+                if (_uiCapturePhase == 3)
+                {
+                    // ===== 单帧透明模式：直接读取并保存 =====
+                    RenderTexture.active = _uiCaptureRT;
+                    var singleShot = new Texture2D(_uiCaptureWidth, _uiCaptureHeight, TextureFormat.ARGB32, false);
+                    singleShot.ReadPixels(new Rect(0, 0, _uiCaptureWidth, _uiCaptureHeight), 0, 0);
+                    singleShot.Apply();
+                    RenderTexture.active = null;
+
+                    _uiCaptureCam.targetTexture   = _uiCaptureOrigTarget;
+                    _uiCaptureCam.clearFlags      = _uiCaptureOrigFlags;
+                    _uiCaptureCam.backgroundColor = _uiCaptureOrigBg;
+                    if (_uiCaptureWasOverlay && _uiCaptureUrpData != null && _uiCaptureRenderProp != null)
+                        _uiCaptureRenderProp.SetValue(_uiCaptureUrpData, 1);
+
+                    DestroyImmediate(_uiCaptureRT); _uiCaptureRT = null;
+
+                    byte[] singleBytes = singleShot.EncodeToPNG();
+                    File.WriteAllBytes(_uiCapturePath, singleBytes);
+                    DestroyImmediate(singleShot);
+
+                    _uiCaptureInProgress = false;
+                    _uiCapturePhase      = 0;
+
+                    Debug.Log($"[UIProbe] UI 层截图（单帧透明）已保存: {_uiCapturePath}");
+                    EditorApplication.delayCall += () =>
+                        EditorUtility.DisplayDialog("截屏成功", $"UI 层截图已保存到:\n{_uiCapturePath}", "确定");
+                }
+                else if (_uiCapturePhase == 1)
                 {
                     // ----- Phase 1：黑底完成，读像素 -----
                     RenderTexture.active = _uiCaptureRT;
