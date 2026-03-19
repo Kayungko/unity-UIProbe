@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System;
 using System.IO;
+using UnityEngine.Rendering.Universal;
 
 namespace UIProbe
 {
@@ -11,8 +12,12 @@ namespace UIProbe
         private Vector2 screenshotScrollPos;
         private int screenshotSuperSize = 1; // 超采样倍数 (1-4)
         private bool screenshotTransparent = false; // 是否透明背景
+<<<<<<< Updated upstream
         private bool autoFrameContent = false; // 自动对焦内容
 
+=======
+        private bool screenshotUIOnly = false; // 是否仅截 UI 层
+>>>>>>> Stashed changes
         private int screenshotWidth = 1920;
         private int screenshotHeight = 1080;
         private bool useCustomResolution = false;
@@ -131,6 +136,18 @@ namespace UIProbe
                 
                 EditorGUILayout.Space(5);
                 EditorGUILayout.HelpBox("快捷键: F12 - 快速截屏", MessageType.None);
+                
+                EditorGUILayout.Space(5);
+                
+                // UI 专属截图按钮
+                GUI.backgroundColor = new Color(0.4f, 0.8f, 1f);
+                if (GUILayout.Button("🖼 仅截 UI 层（透明背景）", GUILayout.Height(40)))
+                {
+                    CaptureUIOnlyScreenshot();
+                }
+                GUI.backgroundColor = Color.white;
+                EditorGUILayout.HelpBox("通过 Tag=\"UICamera\" 找到专用 UI 相机，仅渲染 UI 层，背景完全透明，输出 PNG（含 Alpha 通道）。", MessageType.None);
+                
                 EditorGUILayout.EndVertical();
             }
             
@@ -293,6 +310,129 @@ namespace UIProbe
             File.WriteAllBytes(path, bytes);
             
             DestroyImmediate(screenShot);
+        }
+        
+        /// <summary>
+        /// 触发仅截 UI 层截图（外部入口）
+        /// </summary>
+        private void CaptureUIOnlyScreenshot()
+        {
+            if (!Application.isPlaying)
+            {
+                EditorUtility.DisplayDialog("错误", "请在 Play 模式下使用截屏功能。", "确定");
+                return;
+            }
+            
+            try
+            {
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string fileName = $"Screenshot_UIOnly_{timestamp}.png";
+                string screenshotsPath = UIProbeStorage.GetScreenshotsPath();
+                lastScreenshotPath = Path.Combine(screenshotsPath, fileName);
+                
+                CaptureUIOnlyScreenshotToFile(lastScreenshotPath);
+                
+                Debug.Log($"[UIProbe] UI 专属截图已保存: {lastScreenshotPath}");
+                EditorUtility.DisplayDialog("截屏成功", $"UI 专属截图已保存到:\n{lastScreenshotPath}", "确定");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[UIProbe] UI 专属截图失败: {ex.Message}\n{ex.StackTrace}");
+                EditorUtility.DisplayDialog("截屏失败", $"截屏时发生错误:\n{ex.Message}", "确定");
+            }
+        }
+        
+        /// <summary>
+        /// 仅截 UI 层到文件（透明背景）。
+        /// 通过 Tag="UICamera" 查找专用 UI 相机，临时切换为 Base 模式并设透明背景渲染到 RenderTexture，
+        /// 读取像素后保存为含 Alpha 通道的 PNG，最后恢复所有原始设置。
+        /// </summary>
+        private void CaptureUIOnlyScreenshotToFile(string path)
+        {
+            // ---- 1. 查找 UI 专用相机 ----
+            Camera uiCamera = null;
+            foreach (var cam in Camera.allCameras)
+            {
+                if (cam.CompareTag("UICamera"))
+                {
+                    uiCamera = cam;
+                    break;
+                }
+            }
+            
+            if (uiCamera == null)
+            {
+                // 降级：按 Culling Mask 仅含 UI 层查找
+                int uiLayer = LayerMask.NameToLayer("UI");
+                int uiOnlyMask = 1 << uiLayer;
+                foreach (var cam in Camera.allCameras)
+                {
+                    if (cam.cullingMask == uiOnlyMask)
+                    {
+                        uiCamera = cam;
+                        break;
+                    }
+                }
+            }
+            
+            if (uiCamera == null)
+            {
+                throw new Exception("未找到 UI 专用相机。\n请确保场景中有 Tag=\"UICamera\" 的相机，或 Culling Mask 仅含 UI 层的相机。");
+            }
+            
+            int width  = GetActualWidth();
+            int height = GetActualHeight();
+            
+            // ---- 2. 保存相机原始设置 ----
+            RenderTexture    originalTarget     = uiCamera.targetTexture;
+            CameraClearFlags originalClearFlags = uiCamera.clearFlags;
+            Color            originalBackground = uiCamera.backgroundColor;
+            
+            // ---- 3. URP：临时将 Overlay 改为 Base ----
+            //   Overlay 相机不清除背景，必须切为 Base 才能使用透明 Clear Color。
+            bool wasOverlay = false;
+            var urpData = uiCamera.GetComponent<UniversalAdditionalCameraData>();
+            if (urpData != null && urpData.renderType == CameraRenderType.Overlay)
+            {
+                wasOverlay = true;
+                urpData.renderType = CameraRenderType.Base;
+            }
+            
+            // ---- 4. 设置透明渲染目标 ----
+            var rt = new RenderTexture(width, height, 32, RenderTextureFormat.ARGB32)
+            {
+                antiAliasing = 1
+            };
+            rt.Create();
+            
+            uiCamera.clearFlags       = CameraClearFlags.SolidColor;
+            uiCamera.backgroundColor  = new Color(0f, 0f, 0f, 0f);
+            uiCamera.targetTexture    = rt;
+            
+            // ---- 5. 渲染 ----
+            uiCamera.Render();
+            
+            // ---- 6. 读取像素 ----
+            RenderTexture.active = rt;
+            var screenshot = new Texture2D(width, height, TextureFormat.ARGB32, false);
+            screenshot.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            screenshot.Apply();
+            RenderTexture.active = null;
+            
+            // ---- 7. 恢复所有原始设置 ----
+            uiCamera.targetTexture   = originalTarget;
+            uiCamera.clearFlags      = originalClearFlags;
+            uiCamera.backgroundColor = originalBackground;
+            
+            if (wasOverlay && urpData != null)
+                urpData.renderType = CameraRenderType.Overlay;
+            
+            DestroyImmediate(rt);
+            
+            // ---- 8. 保存 PNG ----
+            byte[] bytes = screenshot.EncodeToPNG();
+            File.WriteAllBytes(path, bytes);
+            DestroyImmediate(screenshot);
         }
         
         /// <summary>
