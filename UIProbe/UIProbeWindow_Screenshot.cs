@@ -33,6 +33,9 @@ namespace UIProbe
         private bool            _uiCaptureWasOverlay  = false;
         private int             _uiCaptureWidth       = 0;
         private int             _uiCaptureHeight      = 0;
+        // 双背景差値合成状态
+        private int             _uiCapturePhase       = 0; // 1=黑底渲染中 2=白底渲染中
+        private Texture2D       _uiCaptureBlackTex    = null;
         
         /// <summary>
         /// 绘制截屏标签页
@@ -411,73 +414,158 @@ namespace UIProbe
             };
             _uiCaptureRT.Create();
             
+            // ---- 5. 第一阶段：黑底渲染 ----
             uiCamera.clearFlags      = CameraClearFlags.SolidColor;
-            uiCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            uiCamera.backgroundColor = new Color(0f, 0f, 0f, 1f); // 纯黑不透明
             uiCamera.targetTexture   = _uiCaptureRT;
-            
-            // ---- 5. 订阅渲染完成回调 ----
+
             _uiCaptureInProgress = true;
+            _uiCapturePhase      = 1;
             RenderPipelineManager.endCameraRendering += OnUICameraPostRender;
-            Debug.Log("[UIProbe] UI 专属截图已启动，将在下一帧渲染完成后保存...");
+            Debug.Log("[UIProbe] UI 层截图（双背景合成）已启动，第1帧：黑底渲染...");
         }
         
         /// <summary>
-        /// RenderPipelineManager.endCameraRendering 回调：当指定 UI 相机渲染完成时读取像素。
+        /// RenderPipelineManager.endCameraRendering 回调（双背景两阶段）。
+        /// Phase1：黑底渲染完成 → 读像素 → 换白底 → 重新订阅。
+        /// Phase2：白底渲染完成 → 读像素 → 差值合成 → 保存 PNG → 恢复相机。
         /// </summary>
         private void OnUICameraPostRender(ScriptableRenderContext ctx, Camera cam)
         {
             if (cam != _uiCaptureCam) return;
-            
-            // ---- 只操作一次，立即取消订阅 ----
+
             RenderPipelineManager.endCameraRendering -= OnUICameraPostRender;
-            _uiCaptureInProgress = false;
-            
+
             try
             {
-                // ---- 6. 读取像素 ----
-                RenderTexture.active = _uiCaptureRT;
-                var screenshot = new Texture2D(_uiCaptureWidth, _uiCaptureHeight, TextureFormat.ARGB32, false);
-                screenshot.ReadPixels(new Rect(0, 0, _uiCaptureWidth, _uiCaptureHeight), 0, 0);
-                screenshot.Apply();
-                RenderTexture.active = null;
-                
-                // ---- 7. 恢复相机设置 ----
-                _uiCaptureCam.targetTexture   = _uiCaptureOrigTarget;
-                _uiCaptureCam.clearFlags      = _uiCaptureOrigFlags;
-                _uiCaptureCam.backgroundColor = _uiCaptureOrigBg;
-                
-                if (_uiCaptureWasOverlay && _uiCaptureUrpData != null && _uiCaptureRenderProp != null)
-                    _uiCaptureRenderProp.SetValue(_uiCaptureUrpData, 1); // Overlay
-                
-                // ---- 8. 保存 PNG ----
-                byte[] bytes = screenshot.EncodeToPNG();
-                File.WriteAllBytes(_uiCapturePath, bytes);
-                
-                DestroyImmediate(screenshot);
-                DestroyImmediate(_uiCaptureRT);
-                _uiCaptureRT = null;
-                
-                Debug.Log($"[UIProbe] UI 专属截图已保存: {_uiCapturePath}");
-                
-                // 在主线稍后弹框（回调内不能直接调用 EditorUtility.DisplayDialog）
-                EditorApplication.delayCall += () =>
-                    EditorUtility.DisplayDialog("截屏成功", $"UI 专属截图已保存到:\n{_uiCapturePath}", "确定");
+                if (_uiCapturePhase == 1)
+                {
+                    // ----- Phase 1：黑底完成，读像素 -----
+                    RenderTexture.active = _uiCaptureRT;
+                    _uiCaptureBlackTex = new Texture2D(_uiCaptureWidth, _uiCaptureHeight, TextureFormat.ARGB32, false);
+                    _uiCaptureBlackTex.ReadPixels(new Rect(0, 0, _uiCaptureWidth, _uiCaptureHeight), 0, 0);
+                    _uiCaptureBlackTex.Apply();
+                    RenderTexture.active = null;
+
+                    // 换白底，下一帧重新渲染
+                    _uiCapturePhase = 2;
+                    _uiCaptureCam.backgroundColor = new Color(1f, 1f, 1f, 1f);
+                    RenderPipelineManager.endCameraRendering += OnUICameraPostRender;
+                    Debug.Log("[UIProbe] Phase2：白底渲染...");
+                }
+                else if (_uiCapturePhase == 2)
+                {
+                    // ----- Phase 2：白底完成，读像素并合成 -----
+                    RenderTexture.active = _uiCaptureRT;
+                    var whiteTex = new Texture2D(_uiCaptureWidth, _uiCaptureHeight, TextureFormat.ARGB32, false);
+                    whiteTex.ReadPixels(new Rect(0, 0, _uiCaptureWidth, _uiCaptureHeight), 0, 0);
+                    whiteTex.Apply();
+                    RenderTexture.active = null;
+
+                    // 恢复相机
+                    _uiCaptureCam.targetTexture   = _uiCaptureOrigTarget;
+                    _uiCaptureCam.clearFlags      = _uiCaptureOrigFlags;
+                    _uiCaptureCam.backgroundColor = _uiCaptureOrigBg;
+                    if (_uiCaptureWasOverlay && _uiCaptureUrpData != null && _uiCaptureRenderProp != null)
+                        _uiCaptureRenderProp.SetValue(_uiCaptureUrpData, 1);
+
+                    DestroyImmediate(_uiCaptureRT);
+                    _uiCaptureRT = null;
+
+                    // 差值合成
+                    Texture2D result = CompositeFromBlackAndWhite(_uiCaptureBlackTex, whiteTex);
+                    DestroyImmediate(_uiCaptureBlackTex); _uiCaptureBlackTex = null;
+                    DestroyImmediate(whiteTex);
+
+                    // 保存 PNG
+                    byte[] bytes = result.EncodeToPNG();
+                    File.WriteAllBytes(_uiCapturePath, bytes);
+                    DestroyImmediate(result);
+
+                    _uiCaptureInProgress = false;
+                    _uiCapturePhase      = 0;
+
+                    Debug.Log($"[UIProbe] UI 层截图（双背景合成）已保存: {_uiCapturePath}");
+                    EditorApplication.delayCall += () =>
+                        EditorUtility.DisplayDialog("截屏成功", $"UI 层截图已保存到:\n{_uiCapturePath}", "确定");
+                }
             }
             catch (Exception ex)
             {
-                // 发生异常也要确保相机设置被恢复
-                _uiCaptureCam.targetTexture   = _uiCaptureOrigTarget;
-                _uiCaptureCam.clearFlags      = _uiCaptureOrigFlags;
-                _uiCaptureCam.backgroundColor = _uiCaptureOrigBg;
+                // 异常时恢复相机
+                if (_uiCaptureCam != null)
+                {
+                    _uiCaptureCam.targetTexture   = _uiCaptureOrigTarget;
+                    _uiCaptureCam.clearFlags      = _uiCaptureOrigFlags;
+                    _uiCaptureCam.backgroundColor = _uiCaptureOrigBg;
+                }
                 if (_uiCaptureWasOverlay && _uiCaptureUrpData != null && _uiCaptureRenderProp != null)
                     _uiCaptureRenderProp.SetValue(_uiCaptureUrpData, 1);
-                if (_uiCaptureRT != null) { DestroyImmediate(_uiCaptureRT); _uiCaptureRT = null; }
-                
-                Debug.LogError($"[UIProbe] UI 专属截图失败: {ex.Message}\n{ex.StackTrace}");
+                if (_uiCaptureRT != null)       { DestroyImmediate(_uiCaptureRT);       _uiCaptureRT       = null; }
+                if (_uiCaptureBlackTex != null) { DestroyImmediate(_uiCaptureBlackTex); _uiCaptureBlackTex = null; }
+                _uiCaptureInProgress = false;
+                _uiCapturePhase      = 0;
+
+                Debug.LogError($"[UIProbe] UI 层截图失败: {ex.Message}\n{ex.StackTrace}");
                 EditorApplication.delayCall += () =>
                     EditorUtility.DisplayDialog("截屏失败", $"截屏时发生错误:\n{ex.Message}", "确定");
             }
         }
+
+        /// <summary>
+        /// 双背景差值合成。
+        /// 数学推导（标准 Alpha 混合）：
+        ///   黑底 B = C * A    白底 W = C * A + (1 - A)
+        ///   => A = 1 - (W - B)  （三通道平均）
+        ///   => C = B / A        （A > 0 时）
+        /// 加法混合粒子：W - B ≈ 1，推算 A ≈ 0；保留 B 颜色，Alpha=0（表示纯加法贡献）。
+        /// </summary>
+        private Texture2D CompositeFromBlackAndWhite(Texture2D black, Texture2D white)
+        {
+            Color32[] bPix   = black.GetPixels32();
+            Color32[] wPix   = white.GetPixels32();
+            Color32[] output = new Color32[bPix.Length];
+
+            for (int i = 0; i < bPix.Length; i++)
+            {
+                Color32 b = bPix[i];
+                Color32 w = wPix[i];
+
+                // 三通道差均值 (0-1 归一化)
+                float dR = (w.r - b.r) / 255f;
+                float dG = (w.g - b.g) / 255f;
+                float dB = (w.b - b.b) / 255f;
+                float avgDiff = (dR + dG + dB) / 3f;
+
+                float alpha = Mathf.Clamp01(1f - avgDiff);
+                byte  a8    = (byte)(alpha * 255f + 0.5f);
+
+                byte r8, g8, b8;
+                if (alpha > 0.001f)
+                {
+                    // 标准 Alpha：还原真实颜色 C = B / A
+                    r8 = (byte)Mathf.Clamp(b.r / alpha, 0, 255);
+                    g8 = (byte)Mathf.Clamp(b.g / alpha, 0, 255);
+                    b8 = (byte)Mathf.Clamp(b.b / alpha, 0, 255);
+                }
+                else
+                {
+                    // 加法混合：Alpha=0，颜色取黑底值（作为加法贡献保留）
+                    r8 = b.r;
+                    g8 = b.g;
+                    b8 = b.b;
+                    a8 = 0;
+                }
+
+                output[i] = new Color32(r8, g8, b8, a8);
+            }
+
+            var result = new Texture2D(_uiCaptureWidth, _uiCaptureHeight, TextureFormat.ARGB32, false);
+            result.SetPixels32(output);
+            result.Apply();
+            return result;
+        }
+
         
         /// <summary>
         /// Update 中检测快捷键
