@@ -45,7 +45,7 @@ namespace UIProbe
             PerformCheck();
         }
 
-        public static void PerformCheck()
+        public static void PerformCheck(Action<bool, string> onComplete = null)
         {
             var request = UnityWebRequest.Get(API_URL);
             
@@ -76,6 +76,12 @@ namespace UIProbe
                                 HasUpdateAvailable = true;
                                 LatestVersion = info.tag_name;
                                 ReleaseUrl = !string.IsNullOrEmpty(info.html_url) ? info.html_url : "https://github.com/Kayungko/unity-UIProbe/releases";
+                                
+                                onComplete?.Invoke(true, $"发现新版本：{info.tag_name}\n\n是否立即前往下载？");
+                            }
+                            else
+                            {
+                                onComplete?.Invoke(false, "当前已是最新版！无可用更新。");
                             }
                             
                             // 探测成功后才更新时间戳
@@ -85,7 +91,12 @@ namespace UIProbe
                     catch (Exception)
                     {
                         // JSON 解析或版本号比对失败等异常：静默吞弃，决不干扰用户
+                        onComplete?.Invoke(false, "检查失败：版本数据解析异常");
                     }
+                }
+                else
+                {
+                    onComplete?.Invoke(false, "检查失败：网络连接超时或被限制");
                 }
                 
                 request.Dispose();

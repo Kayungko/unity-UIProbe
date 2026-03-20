@@ -106,6 +106,28 @@ namespace UIProbe
             }
             EditorGUILayout.EndHorizontal();
             
+            EditorGUILayout.Space(5);
+            
+            GUI.backgroundColor = new Color(0.8f, 1f, 0.8f);
+            if (GUILayout.Button("🔄 手动检查更新 (Check for Updates)", GUILayout.Height(30)))
+            {
+                UIProbeUpdateChecker.PerformCheck((hasUpdate, msg) =>
+                {
+                    if (hasUpdate)
+                    {
+                        if (EditorUtility.DisplayDialog("UIProbe 更新检测", msg, "前往下载", "稍后再说"))
+                        {
+                            Application.OpenURL(UIProbeUpdateChecker.ReleaseUrl);
+                        }
+                    }
+                    else
+                    {
+                        EditorUtility.DisplayDialog("UIProbe 更新检测", msg, "确定");
+                    }
+                });
+            }
+            GUI.backgroundColor = Color.white;
+            
             EditorGUILayout.EndVertical();
             
             
