@@ -152,6 +152,8 @@ namespace UIProbe
                 EditorGUILayout.Space(5);
                 EditorGUILayout.HelpBox("快捷键: F12 - 快速截屏", MessageType.None);
                 
+                EditorGUILayout.EndVertical();
+                
                 EditorGUILayout.Space(5);
                 
                 // UI 层表1：设置区
