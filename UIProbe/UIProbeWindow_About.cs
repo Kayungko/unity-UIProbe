@@ -27,7 +27,7 @@ namespace UIProbe
             // Version
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("版本:", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("3.0.0", GUILayout.Width(100));
+            EditorGUILayout.LabelField("3.1.0", GUILayout.Width(100));
             EditorGUILayout.EndHorizontal();
             
             // Developers
@@ -67,13 +67,15 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v3.0.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v3.1.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 预制体助手增强 (Prefab Helper v2.0)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 锚点图标优化：为九宫格锚点提供直观的方位图标", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 互斥拉伸逻辑：水平、垂直、全屏拉伸按钮互为独立状态", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 状态视觉反馈：当前生效的拉伸模式以高亮色显示", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 游戏截屏增强 (Screenshot Enhanced)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 新增仅截 UI 层功能，通过双背景(黑+白)两帧渲染差值合成", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 彻底解决包含 VFX / UIParticle 的特效节点在截图时产生的黑色块难题", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 核心架构及稳定性优化 (Core Optimization)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 重构序列化架构，彻底解决 Unity 深度限制 (Serialization depth limit)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持任意无限深度的高复杂嵌套 UI 预制体索引加载", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             
