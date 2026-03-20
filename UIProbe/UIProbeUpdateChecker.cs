@@ -14,8 +14,7 @@ namespace UIProbe
     {
         public const string VERSION = "3.1.0";
         private static readonly string[] API_URLS = {
-            "https://api.github.com/repos/Kayungko/unity-UIProbe/releases/latest",
-            "https://api.kkgithub.com/repos/Kayungko/unity-UIProbe/releases/latest" // 国内备用开源镜像加速节点
+            "https://api.github.com/repos/Kayungko/unity-UIProbe/releases/latest"
         };
         private const string LAST_CHECK_KEY = "UIProbe_LastUpdateCheck";
         
