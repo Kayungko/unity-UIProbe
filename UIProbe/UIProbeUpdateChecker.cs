@@ -13,7 +13,10 @@ namespace UIProbe
     public static class UIProbeUpdateChecker
     {
         public const string VERSION = "3.1.0";
-        private const string API_URL = "https://api.github.com/repos/Kayungko/unity-UIProbe/releases/latest";
+        private static readonly string[] API_URLS = {
+            "https://api.github.com/repos/Kayungko/unity-UIProbe/releases/latest",
+            "https://api.kkgithub.com/repos/Kayungko/unity-UIProbe/releases/latest" // 国内备用开源镜像加速节点
+        };
         private const string LAST_CHECK_KEY = "UIProbe_LastUpdateCheck";
         
         public static bool HasUpdateAvailable { get; private set; }
@@ -47,10 +50,21 @@ namespace UIProbe
 
         public static void PerformCheck(Action<bool, string> onComplete = null)
         {
-            var request = UnityWebRequest.Get(API_URL);
+            TryGetReleaseInfo(0, onComplete);
+        }
+
+        private static void TryGetReleaseInfo(int urlIndex, Action<bool, string> onComplete)
+        {
+            if (urlIndex >= API_URLS.Length)
+            {
+                onComplete?.Invoke(false, "检查失败：网络连接超时或所有镜像节点均受到限制");
+                return;
+            }
+
+            var request = UnityWebRequest.Get(API_URLS[urlIndex]);
             
-            // 为了防止无 token 请求被过度限制，可以设置短超时
-            request.timeout = 5; 
+            // 为了防止无 token 请求被过度限制，主节点提供5秒短超时，备用加速节点给8秒长超时
+            request.timeout = urlIndex == 0 ? 5 : 8; 
             // GitHub API 强制要求设置 User-Agent
             request.SetRequestHeader("User-Agent", "unity-UIProbe-UpdateChecker");
             
@@ -87,16 +101,22 @@ namespace UIProbe
                             // 探测成功后才更新时间戳
                             EditorPrefs.SetString(LAST_CHECK_KEY, DateTime.Now.Ticks.ToString());
                         }
+                        else
+                        {
+                            // 尝试换节解析（可能是中间人代理投递了广告页）
+                            TryGetReleaseInfo(urlIndex + 1, onComplete);
+                        }
                     }
                     catch (Exception)
                     {
-                        // JSON 解析或版本号比对失败等异常：静默吞弃，决不干扰用户
-                        onComplete?.Invoke(false, "检查失败：版本数据解析异常");
+                        // JSON 解析或版本号比对失败等异常：进入下个备用节点池重试
+                        TryGetReleaseInfo(urlIndex + 1, onComplete);
                     }
                 }
                 else
                 {
-                    onComplete?.Invoke(false, "检查失败：网络连接超时或被限制");
+                    // 当前节点失败，尝试下一个备用节点
+                    TryGetReleaseInfo(urlIndex + 1, onComplete);
                 }
                 
                 request.Dispose();
