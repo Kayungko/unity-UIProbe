@@ -153,7 +153,6 @@ namespace UIProbe
         public bool showRichTextGenerator = true;
         public bool showAdaptor = true;
         public bool showResourceDetector = true;
-        public bool showPrefabCreator = true;
     }
 
     /// <summary>

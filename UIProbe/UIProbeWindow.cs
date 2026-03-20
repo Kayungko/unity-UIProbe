@@ -35,13 +35,12 @@ namespace UIProbe
             RichTextGenerator,
             Adaptor,
             ResourceDetector,
-            PrefabCreator,  // 新增
             Settings,
             About
         }
 
         private Tab currentTab = Tab.Picker;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "资源使用检测", "预制体创建", "设置", "关于" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "资源使用检测", "设置", "关于" };
         
         // 统一配置
         private UIProbeConfig config;
@@ -123,7 +122,6 @@ namespace UIProbe
                     case Tab.RichTextGenerator: isHidden = !config.modulesVisibility.showRichTextGenerator; break;
                     case Tab.Adaptor: isHidden = !config.modulesVisibility.showAdaptor; break;
                     case Tab.ResourceDetector: isHidden = !config.modulesVisibility.showResourceDetector; break;
-                    case Tab.PrefabCreator: isHidden = !config.modulesVisibility.showPrefabCreator; break;
                 }
                 if (isHidden)
                 {
@@ -176,9 +174,6 @@ namespace UIProbe
                 case Tab.ResourceDetector:
                     DrawResourceDetectorTab();
                     break;
-                case Tab.PrefabCreator:
-                    DrawPrefabCreatorTab();
-                    break;
                 case Tab.Settings:
                     DrawSettingsTab();
                     break;
@@ -209,7 +204,6 @@ namespace UIProbe
             if (config == null || config.modulesVisibility.showRichTextGenerator) DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
             if (config == null || config.modulesVisibility.showAdaptor) DrawSidebarButton(Tab.Adaptor, "预制体助手");
             if (config == null || config.modulesVisibility.showResourceDetector) DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
-            if (config == null || config.modulesVisibility.showPrefabCreator) DrawSidebarButton(Tab.PrefabCreator, "预制体创建");
             
             GUILayout.FlexibleSpace();
             

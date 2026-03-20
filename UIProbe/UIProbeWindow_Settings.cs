@@ -180,7 +180,6 @@ namespace UIProbe
                 config.modulesVisibility.showRichTextGenerator = EditorGUILayout.ToggleLeft("富文本生成 (Rich Text Generator)", config.modulesVisibility.showRichTextGenerator);
                 config.modulesVisibility.showAdaptor = EditorGUILayout.ToggleLeft("预制体助手 (Adaptor)", config.modulesVisibility.showAdaptor);
                 config.modulesVisibility.showResourceDetector = EditorGUILayout.ToggleLeft("资源使用检测 (Resource Detector)", config.modulesVisibility.showResourceDetector);
-                config.modulesVisibility.showPrefabCreator = EditorGUILayout.ToggleLeft("预制体创建 (Prefab Creator)", config.modulesVisibility.showPrefabCreator);
                 
                 if (EditorGUI.EndChangeCheck())
                 {
