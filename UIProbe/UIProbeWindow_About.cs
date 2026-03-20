@@ -27,7 +27,7 @@ namespace UIProbe
             // Version
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("版本:", EditorStyles.boldLabel, GUILayout.Width(60));
-            EditorGUILayout.LabelField("3.1.0", GUILayout.Width(100));
+            EditorGUILayout.LabelField(UIProbeUpdateChecker.VERSION, GUILayout.Width(100));
             EditorGUILayout.EndHorizontal();
             
             // Developers

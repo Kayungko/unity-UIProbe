@@ -92,6 +92,19 @@ namespace UIProbe
 
         private void OnGUI()
         {
+            // === 静默更新提醒横幅 ===
+            if (UIProbeUpdateChecker.HasUpdateAvailable)
+            {
+                GUI.backgroundColor = new Color(1f, 0.9f, 0.6f); // 浅橙黄色
+                if (GUILayout.Button($"✨ 发现新版本 UIProbe [{UIProbeUpdateChecker.LatestVersion}] 🚀 点击前往查看并下载最新特性！", GUILayout.Height(24)))
+                {
+                    Application.OpenURL(UIProbeUpdateChecker.ReleaseUrl);
+                }
+                GUI.backgroundColor = Color.white;
+                EditorGUILayout.Space(2);
+            }
+            // =========================
+
             // 越界保护：如果当前停留的Tab在配置中被隐藏了，强制跳回到 Settings
             if (config != null)
             {
