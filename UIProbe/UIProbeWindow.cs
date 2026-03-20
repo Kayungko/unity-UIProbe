@@ -124,7 +124,7 @@ namespace UIProbe
             DrawSidebar();
             
             // Right Side: Content
-            GUILayout.BeginVertical();
+            GUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
             switch (currentTab)
             {
                 case Tab.Picker:

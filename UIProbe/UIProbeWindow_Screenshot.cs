@@ -43,7 +43,7 @@ namespace UIProbe
         /// </summary>
         private void DrawScreenshotTab()
         {
-            screenshotScrollPos = EditorGUILayout.BeginScrollView(screenshotScrollPos);
+            screenshotScrollPos = EditorGUILayout.BeginScrollView(screenshotScrollPos, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
             
             EditorGUILayout.LabelField("游戏截屏 (Screenshot)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
