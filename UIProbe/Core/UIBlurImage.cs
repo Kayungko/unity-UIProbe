@@ -21,7 +21,7 @@ namespace UIProbe.Core
                 if (_blurIntensity != value)
                 {
                     _blurIntensity = value;
-                    UpdateMaterial();
+                    UpdateBlurMaterial();
                 }
             }
         }
@@ -44,7 +44,7 @@ namespace UIProbe.Core
             }
         }
 
-        private void UpdateMaterial()
+        private void UpdateBlurMaterial()
         {
             if (canvasRenderer != null)
             {
@@ -60,7 +60,7 @@ namespace UIProbe.Core
         protected override void OnValidate()
         {
             base.OnValidate();
-            UpdateMaterial();
+            UpdateBlurMaterial();
         }
         #endif
     }

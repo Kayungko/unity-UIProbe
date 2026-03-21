@@ -597,7 +597,6 @@ namespace UIProbe
             }
 
             // Alignment specific margin (Sidebar position)
-            float margin = 0f;
             if (adaptorSideAlignment == 0) // Left
             {
                 adaptorPaddingLeft = EditorGUILayout.FloatField("左边距 (X):", adaptorPaddingLeft);

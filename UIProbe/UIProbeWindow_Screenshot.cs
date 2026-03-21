@@ -14,7 +14,6 @@ namespace UIProbe
         private int screenshotSuperSize = 1; // 超采样倍数 (1-4)
         private bool screenshotTransparent = false; // 是否透明背景
         private bool autoFrameContent = false; // 自动对焦内容
-        private bool screenshotUIOnly = false; // 是否仅截 UI 层
         private int screenshotWidth = 1920;
         private int screenshotHeight = 1080;
         private bool useCustomResolution = false;

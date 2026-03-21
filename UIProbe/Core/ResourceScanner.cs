@@ -140,7 +140,6 @@ namespace UIProbe
 
             // 2. Scan
             int total = referrers.Count;
-            int batchSize = 20; // Increase frequency of updates slightly
             int processedCount = 0;
 
             // In Editor, we can only run AssetDatabase calls on main thread. 
@@ -186,13 +185,11 @@ namespace UIProbe
             // Cleanup stale keys (assets no longer in project/scope)
             var currentReferrerSet = new HashSet<string>(referrers);
             var keys = forwardMap.Keys.ToList();
-            bool cacheDirty = false;
             foreach(var key in keys)
             {
                 if (!currentReferrerSet.Contains(key))
                 {
                     forwardMap.Remove(key);
-                    cacheDirty = true;
                 }
             }
 
