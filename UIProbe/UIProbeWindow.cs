@@ -82,6 +82,7 @@ namespace UIProbe
             // 收集并保存配置
             CollectImageNormalizerConfig();
             CollectHelperConfig();
+            CollectPickerConfig();
             CollectSettingsData();
             if (config != null)
             {

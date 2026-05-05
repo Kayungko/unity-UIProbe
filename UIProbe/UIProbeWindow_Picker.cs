@@ -276,11 +276,7 @@ namespace UIProbe
         private void HandlePickerInput()
         {
             // 获取配置的输入方式
-            PickerInputMode inputMode = PickerInputMode.RightClick;
-            if (config != null && config.picker != null)
-            {
-                inputMode = (PickerInputMode)config.picker.inputMode;
-            }
+            PickerInputMode inputMode = GetConfiguredPickerInputMode();
             
             bool shouldPick = false;
             
@@ -309,8 +305,8 @@ namespace UIProbe
                 PickUIElement(Input.mousePosition);
             }
             
-            // 支持触摸输入（Device Simulator）
-            if (Input.touchCount > 0)
+            // 支持触摸输入（Device Simulator），但不要绕过用户配置的拾取方式。
+            if (!shouldPick && ShouldHandleTouchInput(inputMode) && Input.touchCount > 0)
             {
                 Touch touch = Input.GetTouch(0);
                 if (touch.phase == TouchPhase.Began)
@@ -354,15 +350,41 @@ namespace UIProbe
                 autoPickerMode = config.picker.autoMode;
             }
         }
+
+        private PickerInputMode GetConfiguredPickerInputMode()
+        {
+            if (config == null || config.picker == null)
+            {
+                return PickerInputMode.RightClick;
+            }
+
+            if (!System.Enum.IsDefined(typeof(PickerInputMode), config.picker.inputMode))
+            {
+                return PickerInputMode.RightClick;
+            }
+
+            return (PickerInputMode)config.picker.inputMode;
+        }
+
+        private bool ShouldHandleTouchInput(PickerInputMode inputMode)
+        {
+            switch (inputMode)
+            {
+                case PickerInputMode.CtrlLeftClick:
+                    return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+                case PickerInputMode.AltLeftClick:
+                    return Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+                default:
+                    return false;
+            }
+        }
         
         /// <summary>
         /// 获取拾取方式的显示文本
         /// </summary>
         private string GetPickerInputModeText()
         {
-            if (config == null || config.picker == null) return "右键";
-            
-            PickerInputMode mode = (PickerInputMode)config.picker.inputMode;
+            PickerInputMode mode = GetConfiguredPickerInputMode();
             switch (mode)
             {
                 case PickerInputMode.RightClick:

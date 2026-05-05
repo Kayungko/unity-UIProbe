@@ -67,15 +67,13 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v3.1.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v3.1.1)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 游戏截屏增强 (Screenshot Enhanced)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 新增仅截 UI 层功能，通过双背景(黑+白)两帧渲染差值合成", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 彻底解决包含 VFX / UIParticle 的特效节点在截图时产生的黑色块难题", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("• 核心架构及稳定性优化 (Core Optimization)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 重构序列化架构，彻底解决 Unity 深度限制 (Serialization depth limit)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 支持任意无限深度的高复杂嵌套 UI 预制体索引加载", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 运行时拾取方式修复 (Runtime Picker)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 修复 Device Simulator 或触摸模拟输入绕过拾取方式设置的问题", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 增加拾取方式配置容错，非法历史值会安全回退为右键拾取", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 关闭窗口时同步保存 Picker 配置，提升设置持久化稳定性", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             

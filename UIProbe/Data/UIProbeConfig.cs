@@ -161,7 +161,7 @@ namespace UIProbe
     [Serializable]
     public class UIProbeConfig
     {
-        public string version = "2.9.0";
+        public string version = "3.1.1";
         public string lastUpdated = "";
         
         public IndexerConfig indexer = new IndexerConfig();
