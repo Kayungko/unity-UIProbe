@@ -296,6 +296,11 @@ namespace UIProbe
             {
                 // Check if any in this group are selected
                 int selectedCount = problems.Count(p => selectedProblems.Contains(p));
+
+                if (GUILayout.Button("导出CSV", EditorStyles.miniButton, GUILayout.Width(60)))
+                {
+                    ExportRaycastResultsToCSV(problems);
+                }
                 
                 if (GUILayout.Button("全选", EditorStyles.miniButton, GUILayout.Width(40)))
                 {
@@ -402,6 +407,29 @@ namespace UIProbe
                 FixProblem(problem);
             }
             Repaint();
+        }
+
+        private void ExportRaycastResultsToCSV(List<UIProblem> problems)
+        {
+            if (problems == null || problems.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有射线检测结果可以导出", "确定");
+                return;
+            }
+
+            string prefabName = lastComprehensiveCheckedPrefab != null ? lastComprehensiveCheckedPrefab.name : "UnknownPrefab";
+            string prefabPath = "";
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null)
+            {
+                prefabPath = prefabStage.assetPath;
+            }
+
+            string savePath = CSVExporter.GetSaveFilePath($"{prefabName}_RaycastTargetReport");
+            if (string.IsNullOrEmpty(savePath))
+                return;
+
+            CSVExporter.ExportRaycastTargetResults(savePath, problems, prefabName, prefabPath);
         }
         
         /// <summary>

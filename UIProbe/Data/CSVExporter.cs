@@ -398,6 +398,70 @@ namespace UIProbe
             File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
         }
 
+        public static void ExportRaycastTargetResults(string path, IEnumerable<UIProblem> problems, string prefabName, string prefabPath)
+        {
+            if (problems == null)
+            {
+                EditorUtility.DisplayDialog("提示", "没有射线检测结果可以导出", "确定");
+                return;
+            }
+
+            var raycastProblems = problems
+                .Where(p => p != null && p.RuleName != null && p.RuleName.Contains("Raycast Target"))
+                .ToList();
+
+            if (raycastProblems.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有射线检测结果可以导出", "确定");
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\uFEFF");
+            sb.AppendLine("序号,预制体路径,预制体名称,节点名称,节点路径,组件类型,Raycast Target,问题描述");
+
+            for (int i = 0; i < raycastProblems.Count; i++)
+            {
+                var problem = raycastProblems[i];
+                var target = problem.Target;
+                var graphic = target != null ? target.GetComponent<UnityEngine.UI.Graphic>() : null;
+
+                string nodeName = target != null ? target.name : "";
+                string componentType = graphic != null ? graphic.GetType().Name : "";
+                string raycastTarget = graphic != null ? (graphic.raycastTarget ? "开启" : "关闭") : "";
+
+                sb.AppendLine(string.Format("{0},{1},{2},{3},{4},{5},{6},{7}",
+                    i + 1,
+                    EscapeCSV(prefabPath),
+                    EscapeCSV(prefabName),
+                    EscapeCSV(nodeName),
+                    EscapeCSV(problem.NodePath),
+                    EscapeCSV(componentType),
+                    EscapeCSV(raycastTarget),
+                    EscapeCSV(problem.Description)
+                ));
+            }
+
+            try
+            {
+                string directory = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+                Debug.Log($"Raycast target CSV exported successfully: {path}");
+                EditorUtility.DisplayDialog("导出成功", $"射线检测结果已导出到:\n{path}\n\n共导出 {raycastProblems.Count} 条记录。", "确定");
+                EditorUtility.RevealInFinder(path);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to export raycast target CSV: {e}");
+                EditorUtility.DisplayDialog("导出失败", $"导出射线检测 CSV 时发生错误:\n{e.Message}", "确定");
+            }
+        }
+
         #endregion
     }
 }

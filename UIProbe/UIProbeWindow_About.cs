@@ -67,13 +67,12 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v3.1.1)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v3.2.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 运行时拾取方式修复 (Runtime Picker)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 修复 Device Simulator 或触摸模拟输入绕过拾取方式设置的问题", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 增加拾取方式配置容错，非法历史值会安全回退为右键拾取", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 关闭窗口时同步保存 Picker 配置，提升设置持久化稳定性", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 预制体射线检测导出 (Raycast Target CSV)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 综合检测中的 Raycast Target 分组支持一键导出 CSV", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 导出预制体路径、节点路径、组件类型、射线状态和问题描述", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             

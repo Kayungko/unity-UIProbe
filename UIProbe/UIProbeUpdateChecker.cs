@@ -12,7 +12,7 @@ namespace UIProbe
     [InitializeOnLoad]
     public static class UIProbeUpdateChecker
     {
-        public const string VERSION = "3.1.1";
+        public const string VERSION = "3.2.0";
         private static readonly string[] API_URLS = {
             "https://api.github.com/repos/Kayungko/unity-UIProbe/releases/latest"
         };
@@ -77,7 +77,7 @@ namespace UIProbe
                         var info = JsonUtility.FromJson<GitHubReleaseInfo>(request.downloadHandler.text);
                         if (info != null && !string.IsNullOrEmpty(info.tag_name))
                         {
-                            // 极简过滤：v3.1.0-alpha -> 3.1.0
+                            // 极简过滤：v3.2.0-alpha -> 3.2.0
                             string remoteVersionStr = info.tag_name.Replace("v", "").Replace("V", "").Split('-')[0].Trim();
                             string localVersionStr = VERSION.Split('-')[0].Trim();
                             
