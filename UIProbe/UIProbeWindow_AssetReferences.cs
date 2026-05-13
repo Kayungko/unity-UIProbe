@@ -102,7 +102,14 @@ namespace UIProbe
             }
             else
             {
+                GUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField($"找到 {assetSearchResults.Count} 个预制体引用该资源:", EditorStyles.boldLabel);
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("导出CSV", GUILayout.Width(80)))
+                {
+                    ExportAssetReferenceResultsToCSV();
+                }
+                GUILayout.EndHorizontal();
                 EditorGUILayout.Space(5);
                 
                 assetReferencesScrollPos = EditorGUILayout.BeginScrollView(assetReferencesScrollPos);
@@ -303,6 +310,94 @@ namespace UIProbe
             
             GUILayout.EndVertical();
             EditorGUILayout.Space(5);
+        }
+
+        /// <summary>
+        /// 导出当前资源引用搜索结果到 CSV
+        /// </summary>
+        private void ExportAssetReferenceResultsToCSV()
+        {
+            if (assetSearchResults == null || assetSearchResults.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有资源引用结果可以导出", "确定");
+                return;
+            }
+
+            string safeQuery = SanitizeFileName(assetSearchQuery);
+            string defaultName = $"AssetReferences_{selectedAssetType}_{safeQuery}";
+            string savePath = CSVExporter.GetSaveFilePath(defaultName);
+            if (string.IsNullOrEmpty(savePath))
+                return;
+
+            var csv = new System.Text.StringBuilder();
+            csv.Append("\uFEFF");
+            csv.AppendLine("序号,搜索资源类型,搜索关键字,引用类型,预制体名称,预制体路径,节点路径,资源名称,资源路径,额外信息");
+
+            int index = 1;
+            foreach (var result in assetSearchResults)
+            {
+                foreach (var reference in result.MatchingReferences)
+                {
+                    csv.AppendLine(string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9}",
+                        index,
+                        EscapeCSV(selectedAssetType.ToString()),
+                        EscapeCSV(assetSearchQuery),
+                        EscapeCSV(reference.Type.ToString()),
+                        EscapeCSV(result.PrefabName),
+                        EscapeCSV(result.PrefabPath),
+                        EscapeCSV(reference.NodePath),
+                        EscapeCSV(reference.AssetName),
+                        EscapeCSV(reference.AssetPath),
+                        EscapeCSV(reference.ExtraInfo)
+                    ));
+                    index++;
+                }
+            }
+
+            try
+            {
+                string directory = Path.GetDirectoryName(savePath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                File.WriteAllText(savePath, csv.ToString(), System.Text.Encoding.UTF8);
+                EditorUtility.DisplayDialog("导出成功", $"资源引用结果已导出到:\n{savePath}\n\n共导出 {index - 1} 条记录。", "确定");
+                EditorUtility.RevealInFinder(savePath);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[UIProbe] 导出资源引用 CSV 失败: {e}");
+                EditorUtility.DisplayDialog("导出失败", $"导出资源引用 CSV 时发生错误:\n{e.Message}", "确定");
+            }
+        }
+
+        private string SanitizeFileName(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return "Search";
+
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                fileName = fileName.Replace(c, '_');
+            }
+
+            return fileName;
+        }
+
+        private string EscapeCSV(string field)
+        {
+            if (string.IsNullOrEmpty(field))
+                return "";
+
+            if (field.Contains(",") || field.Contains("\"") || field.Contains("\n") || field.Contains("\r"))
+            {
+                field = field.Replace("\"", "\"\"");
+                return $"\"{field}\"";
+            }
+
+            return field;
         }
     }
 }
