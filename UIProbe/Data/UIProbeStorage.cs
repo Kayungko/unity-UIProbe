@@ -22,6 +22,7 @@ namespace UIProbe
 
         private const string SCREENSHOTS_FOLDER = "Screenshots";
         private const string RESOURCE_CACHE_FOLDER = "ResourceCache";
+        private const string IMAGE_RENAME_LOGS_FOLDER = "ImageRenameLogs";
 
         /// <summary>
         /// 获取主文件夹路径 (GetStoragePath 别名)
@@ -137,6 +138,16 @@ namespace UIProbe
             return path;
         }
 
+        /// <summary>
+        /// 获取图片批量重命名日志存储路径
+        /// </summary>
+        public static string GetImageRenameLogsPath()
+        {
+            string path = Path.Combine(GetMainFolderPath(), IMAGE_RENAME_LOGS_FOLDER);
+            EnsureDirectoryExists(path);
+            return path;
+        }
+
 
 
         /// <summary>
@@ -182,6 +193,7 @@ namespace UIProbe
 ├── {BATCH_RESULTS_FOLDER}/       (批量检测结果)
 ├── {SCREENSHOTS_FOLDER}/         (游戏截屏)
 ├── {RESOURCE_CACHE_FOLDER}/      (资源检测缓存)
+├── {IMAGE_RENAME_LOGS_FOLDER}/   (图片重命名日志)
 └── {SETTINGS_FOLDER}/            (设置数据)";
         }
     }

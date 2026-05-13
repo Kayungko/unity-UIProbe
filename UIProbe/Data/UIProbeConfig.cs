@@ -85,6 +85,15 @@ namespace UIProbe
         public string alignment = "Center";  // Center 或 KeepOriginal
         public bool overwrite = true;
         public string namingSuffix = "_normalized";
+        /// <summary>缩放模式（对应 ResizeMode 枚举字符串）</summary>
+        public string resizeMode = "Expand";
+        /// <summary>尺寸计算方式（对应 NormalizerSizeMode 枚举字符串）</summary>
+        public string sizeMode = "Custom";
+        public float scalePercent   = 100f;
+        public int   lockWidth      = 512;
+        public int   lockHeight     = 512;
+        public bool  noUpscale      = false;
+        public int   maxDimension   = 0;    // 0 = 不限
     }
     
     /// <summary>
@@ -156,6 +165,26 @@ namespace UIProbe
     }
 
     /// <summary>
+    /// 批量命名工具配置
+    /// </summary>
+    [Serializable]
+    public class BatchRenameConfig
+    {
+        public string lastSourceFolder = "";
+        public string lastTargetFolder = "";
+        public bool includeSubfolders = false;
+        public bool overwriteInPlace = false;
+        public string prefix = "";
+        public bool keepOriginalName = true;
+        public bool enableSequence = false;
+        public int seqStart = 1;
+        public int seqStep = 1;
+        public int seqDigits = 3;
+        public string suffix = "";
+        public bool updateMeta = true;
+    }
+
+    /// <summary>
     /// UIProbe 统一配置
     /// </summary>
     [Serializable]
@@ -163,11 +192,12 @@ namespace UIProbe
     {
         public string version = "3.3.0";
         public string lastUpdated = "";
-        
+
         public IndexerConfig indexer = new IndexerConfig();
         public PickerConfig picker = new PickerConfig();
         public DuplicateCheckerConfig duplicateChecker = new DuplicateCheckerConfig();
         public ImageNormalizerConfig imageNormalizer = new ImageNormalizerConfig();
+        public BatchRenameConfig batchRename = new BatchRenameConfig();
         public RecorderConfig recorder = new RecorderConfig();
         public CheckerRulesConfig checkerRules = new CheckerRulesConfig();
         public HelperConfig helper = new HelperConfig();
