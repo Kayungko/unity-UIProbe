@@ -58,6 +58,7 @@ namespace UIProbe
             DrawFeatureItem("重名检测", "检测预制体中的重名节点，支持批量修复");
             DrawFeatureItem("资源引用", "追踪图片、预制体等资源的引用关系");
             DrawFeatureItem("图片规范化", "批量调整图片尺寸，保持内容不变形");
+            DrawFeatureItem("大红大金资源导入", "按表格匹配图片、分品质输出并回写图标路径");
             DrawFeatureItem("游戏截屏", "Play模式及Scene/Prefab视图高清截屏");
             DrawFeatureItem("TMP富文本生成", "可视化生成TextMeshPro富文本代码");
             
@@ -67,12 +68,12 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v3.3.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v3.4.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            EditorGUILayout.LabelField("• 资源引用结果导出 (Asset References CSV)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 资源引用搜索结果支持一键导出 CSV", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 导出搜索条件、预制体路径、节点路径、资源路径和额外信息", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 大红大金资源修改导入 (Red/Gold Resource Importer)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 图片工具新增 CSV/TSV 表格驱动的资源导入流程", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持红/紫/金品质分流、格数尺寸计算、预览校验和表格回写", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             

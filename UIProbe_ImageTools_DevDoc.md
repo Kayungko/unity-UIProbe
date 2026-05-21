@@ -1,7 +1,7 @@
 # UIProbe 图片工具模块开发文档
 
-> 适用版本：UIProbe v3.2+  
-> 涵盖模块：图片规范化（Image Normalizer）· 批量命名（Batch Rename）  
+> 适用版本：UIProbe v3.4+
+> 涵盖模块：图片规范化（Image Normalizer）· 批量命名（Batch Rename）· 大红大金资源修改导入（Red/Gold Resource Importer）
 > 最后更新：2026-05
 
 ---
@@ -24,23 +24,25 @@
    - 4.4 冲突检测机制
    - 4.5 执行与日志
    - 4.6 配置持久化
-5. [公共基础设施](#5-公共基础设施)
-6. [扩展指南](#6-扩展指南)
-7. [已知限制与注意事项](#7-已知限制与注意事项)
+5. [大红大金资源修改导入模块](#5-大红大金资源修改导入模块)
+6. [公共基础设施](#6-公共基础设施)
+7. [扩展指南](#7-扩展指南)
+8. [已知限制与注意事项](#8-已知限制与注意事项)
 
 ---
 
 ## 1. 模块概述
 
-两个模块共同挂载在 **图片工具（Image Tools）** 标签页下，通过子标签栏切换：
+三个模块共同挂载在 **图片工具（Image Tools）** 标签页下，通过子标签栏切换：
 
 ```
 图片工具
 ├── 📐 图片规范化   ← UIProbeWindow_ImageNormalizer.cs
-└── ✏️  批量命名    ← UIProbeWindow_ImageRenamer.cs
+├── ✏️  批量命名    ← UIProbeWindow_ImageRenamer.cs
+└── 大红大金资源修改导入 ← UIProbeWindow_RedGoldImporter.cs
 ```
 
-两个模块均以 `partial class UIProbeWindow` 形式实现，数据层独立于 UI 层，配置通过 `UIProbeConfig` 统一序列化到 `config.json`。
+三个模块均以 `partial class UIProbeWindow` 形式实现，数据层独立于 UI 层，配置通过 `UIProbeConfig` 统一序列化到 `config.json`。
 
 ---
 
@@ -50,11 +52,12 @@
 UIProbe/
 ├── UIProbeWindow_ImageNormalizer.cs    图片规范化 UI + 业务逻辑
 ├── UIProbeWindow_ImageRenamer.cs       批量命名 UI + 业务逻辑
+├── UIProbeWindow_RedGoldImporter.cs    大红大金资源修改导入 UI + 业务逻辑
 │
 └── Data/
     ├── ImageNormalizer.cs              图片处理算法（缩放、裁切、画布操作）
     ├── ImageRenameLogManager.cs        批量命名操作日志管理
-    └── UIProbeConfig.cs                配置数据类（含两个模块的持久化字段）
+    └── UIProbeConfig.cs                配置数据类（含图片工具模块的持久化字段）
 ```
 
 **命名空间级数据类**（定义在对应 `.cs` 文件顶部，`partial class` 之外）：
@@ -444,7 +447,75 @@ public class BatchRenameConfig
 
 ---
 
-## 5. 公共基础设施
+## 5. 大红大金资源修改导入模块
+
+### 5.1 数据类
+
+| 类名 | 用途 |
+|------|------|
+| `RedGoldImportRow` | 单行导入预览数据，包含表格行号、名称、品质、格数、源图、输出目录、计划路径和状态 |
+| `RedGoldTableData` | 表格解析结果，保存分隔符、全部行数据以及关键列索引 |
+| `RedGoldNamingState` | 输出文件名分配状态，用于延续目录中已有命名序号并避免重名 |
+
+### 5.2 UI 状态字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `redGoldTablePath` | string | CSV/TSV 表格路径 |
+| `redGoldImageSourceFolder` | string | 待匹配图片源目录 |
+| `redGoldIncludeSubfolders` | bool | 是否递归查找源图 |
+| `redGoldNameColumn` / `redGoldQualityColumn` | string | 名称列与品质列列名 |
+| `redGoldGridLongColumn` / `redGoldGridWideColumn` / `redGoldGridCountColumn` | string | 格数相关列名 |
+| `redGoldIconPathColumn` | string | 图标路径回写列名 |
+| `redGoldOverrideGrid` | bool | 是否统一覆盖格数 |
+| `redGoldCellPixelSize` | int | 非正方形比例的单格像素基准 |
+| `redGoldMaxOutputEdge` | int | 1:1 到 4:4 正方形资源的统一边长 |
+| `redGoldRedOutputFolder` / `redGoldPurpleOutputFolder` / `redGoldGoldOutputFolder` | string | 红、紫、金品质输出目录 |
+| `redGoldOverwriteTable` / `redGoldOutputTablePath` | bool / string | 表格覆盖或另存配置 |
+
+### 5.3 处理流程
+
+```
+选择表格和图片目录
+  ↓
+RedGoldLoadPreview()
+  ├── RedGoldReadTableText()       读取 UTF-8，失败时回退系统默认编码
+  ├── RedGoldChooseDelimiter()     根据扩展名和首行判断 CSV / TSV
+  ├── RedGoldParseDelimited()      解析带引号的分隔文本
+  ├── RedGoldBuildImageMap()       建立源图文件名索引
+  └── RedGoldValidatePreviewRow()  标记缺图、格数无效、品质路径未配置等问题
+  ↓
+RedGoldGenerateAndWriteTable()
+  ├── 生成透明画布并等比适配源图
+  ├── 按品质输出到红/紫/金目录
+  ├── RedGoldWriteBackRow()        回写图标路径和可选格数
+  └── RedGoldWriteTable()          覆盖原表或另存结果表
+```
+
+### 5.4 配置持久化
+
+配置类：`RedGoldResourceImporterConfig`（位于 `UIProbeConfig.cs`）
+
+```csharp
+[Serializable]
+public class RedGoldResourceImporterConfig
+{
+    public string tablePath, imageSourceFolder;
+    public bool includeSubfolders;
+    public string nameColumn, qualityColumn, gridLongColumn, gridWideColumn, gridCountColumn, iconPathColumn;
+    public bool overrideGrid;
+    public int overrideGridLong, overrideGridWide, cellPixelSize, maxOutputEdge;
+    public string redOutputFolder, purpleOutputFolder, goldOutputFolder;
+    public bool overwriteTable;
+    public string outputTablePath;
+}
+```
+
+读写时机：`ApplyRedGoldResourceImporterConfig()` / `CollectRedGoldResourceImporterConfig()` 由图片工具总配置读写流程统一调用，与图片规范化和批量命名保持一致。
+
+---
+
+## 6. 公共基础设施
 
 ### `UIProbeStorage` 存储路径
 
@@ -478,16 +549,16 @@ UIProbeConfigManager.Save(config);
 
 ---
 
-## 6. 扩展指南
+## 7. 扩展指南
 
-### 6.1 新增图片处理模式（ResizeMode）
+### 7.1 新增图片处理模式（ResizeMode）
 
 1. 在 `ImageNormalizer.cs` 的 `ResizeMode` 枚举中添加新值
 2. 在 `Normalize()` 的 `switch` 中添加对应 `case`，实现处理方法
 3. 在 `UIProbeWindow_ImageNormalizer.cs` 的 `resizeModeHint` if-else 链中添加说明文字
 4. 无需修改配置类，`resizeMode` 已用字符串序列化（`ToString`/`Enum.Parse`）
 
-### 6.2 新增目标尺寸计算方式（NormalizerSizeMode）
+### 7.2 新增目标尺寸计算方式（NormalizerSizeMode）
 
 1. 在 `NormalizerSizeMode` 枚举中添加新值
 2. 在 `ComputeTarget()` 的 `switch` 中添加计算分支
@@ -495,7 +566,7 @@ UIProbeConfigManager.Save(config);
 4. 在 `StartNormalizerProcessing()` 的确认对话框 `targetSizeDesc` 中补充描述
 5. 在 `UIProbeConfig.cs` 的 `ImageNormalizerConfig` 中无需改动（sizeMode 已用字符串持久化）
 
-### 6.3 新增命名规则字段
+### 7.3 新增命名规则字段
 
 1. 在 `BuildRenamerName()` 的 `parts.Add(...)` 序列中添加新部分
 2. 在 `UIProbeWindow_ImageRenamer.cs` 的 `DrawRenamerRules()` 中添加对应 UI 控件
@@ -504,7 +575,7 @@ UIProbeConfigManager.Save(config);
 
 ---
 
-## 7. 已知限制与注意事项
+## 8. 已知限制与注意事项
 
 ### 图片规范化
 

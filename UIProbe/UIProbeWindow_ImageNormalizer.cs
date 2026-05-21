@@ -42,7 +42,7 @@ namespace UIProbe
     partial class UIProbeWindow
     {
         // ─── 图片工具子标签 ──────────────────────────────────────────────
-        private enum ImageToolSubTab { Normalizer, BatchRename }
+        private enum ImageToolSubTab { Normalizer, BatchRename, RedGoldImporter }
         private ImageToolSubTab imageToolSubTab = ImageToolSubTab.Normalizer;
 
         // 图片规范化标签页状态
@@ -82,6 +82,7 @@ namespace UIProbe
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
             DrawImageSubTabButton(ImageToolSubTab.Normalizer,  "📐 图片规范化");
             DrawImageSubTabButton(ImageToolSubTab.BatchRename, "✏️ 批量命名");
+            DrawImageSubTabButton(ImageToolSubTab.RedGoldImporter, "大红大金资源修改导入", 170);
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
@@ -91,14 +92,15 @@ namespace UIProbe
             {
                 case ImageToolSubTab.Normalizer:  DrawImageNormalizerContent(); break;
                 case ImageToolSubTab.BatchRename: DrawImageRenamerContent();    break;
+                case ImageToolSubTab.RedGoldImporter: DrawRedGoldResourceImporterContent(); break;
             }
         }
 
         /// <summary>子标签按钮辅助</summary>
-        private void DrawImageSubTabButton(ImageToolSubTab tab, string label)
+        private void DrawImageSubTabButton(ImageToolSubTab tab, string label, int width = 110)
         {
             GUI.backgroundColor = imageToolSubTab == tab ? Color.cyan : Color.white;
-            if (GUILayout.Button(label, EditorStyles.toolbarButton, GUILayout.Width(110)))
+            if (GUILayout.Button(label, EditorStyles.toolbarButton, GUILayout.Width(width)))
                 imageToolSubTab = tab;
             GUI.backgroundColor = Color.white;
         }
@@ -727,6 +729,9 @@ namespace UIProbe
 
             // 批量命名
             ApplyBatchRenameConfig();
+
+            // 大红大金资源修改导入
+            ApplyRedGoldResourceImporterConfig();
         }
 
         /// <summary>
@@ -758,6 +763,9 @@ namespace UIProbe
 
             // 批量命名
             CollectBatchRenameConfig();
+
+            // 大红大金资源修改导入
+            CollectRedGoldResourceImporterConfig();
         }
     }
 }

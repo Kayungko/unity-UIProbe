@@ -185,12 +185,39 @@ namespace UIProbe
     }
 
     /// <summary>
+    /// 大红大金资源修改导入工具配置
+    /// </summary>
+    [Serializable]
+    public class RedGoldResourceImporterConfig
+    {
+        public string tablePath = "";
+        public string imageSourceFolder = "";
+        public bool includeSubfolders = true;
+        public string nameColumn = "名称";
+        public string qualityColumn = "品质";
+        public string gridLongColumn = "格数：长";
+        public string gridWideColumn = "格数：宽";
+        public string gridCountColumn = "格数";
+        public string iconPathColumn = "图标路径";
+        public bool overrideGrid = false;
+        public int overrideGridLong = 2;
+        public int overrideGridWide = 3;
+        public int cellPixelSize = 100;
+        public int maxOutputEdge = 512;
+        public string redOutputFolder = "";
+        public string purpleOutputFolder = "";
+        public string goldOutputFolder = "";
+        public bool overwriteTable = false;
+        public string outputTablePath = "";
+    }
+
+    /// <summary>
     /// UIProbe 统一配置
     /// </summary>
     [Serializable]
     public class UIProbeConfig
     {
-        public string version = "3.3.0";
+        public string version = "3.4.0";
         public string lastUpdated = "";
 
         public IndexerConfig indexer = new IndexerConfig();
@@ -198,6 +225,7 @@ namespace UIProbe
         public DuplicateCheckerConfig duplicateChecker = new DuplicateCheckerConfig();
         public ImageNormalizerConfig imageNormalizer = new ImageNormalizerConfig();
         public BatchRenameConfig batchRename = new BatchRenameConfig();
+        public RedGoldResourceImporterConfig redGoldResourceImporter = new RedGoldResourceImporterConfig();
         public RecorderConfig recorder = new RecorderConfig();
         public CheckerRulesConfig checkerRules = new CheckerRulesConfig();
         public HelperConfig helper = new HelperConfig();
