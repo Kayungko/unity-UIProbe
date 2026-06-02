@@ -72,8 +72,9 @@ namespace UIProbe
             EditorGUILayout.Space(5);
             
             EditorGUILayout.LabelField("• 大红大金资源修改导入 (Red/Gold Resource Importer)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 图片工具新增 CSV/TSV 表格驱动的资源导入流程", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 支持红/紫/金品质分流、格数尺寸计算、预览校验和表格回写", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - CSV/TSV 表格驱动，按红/紫/金品质分流并回写图标路径", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 预览区区分新增/修改/无变化，自动处理同名源图取最新版本", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持输出文件名编辑、覆盖前备份与一键撤销", EditorStyles.miniLabel);
             
             EditorGUILayout.EndVertical();
             

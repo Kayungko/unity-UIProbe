@@ -453,7 +453,10 @@ public class BatchRenameConfig
 
 | 类名 | 用途 |
 |------|------|
-| `RedGoldImportRow` | 单行导入预览数据，包含表格行号、名称、品质、格数、源图、输出目录、计划路径和状态 |
+| `ModificationStatus` | 预览行变更状态，区分新增、已修改、无变化和未知 |
+| `RedGoldUndoEntry` | 覆盖生成前的撤销记录，保存备份文件路径与表格旧值 |
+| `RedGoldImportRow` | 单行导入预览数据，包含表格行号、名称、品质、格数、源图、输出目录、计划路径、变更状态和可编辑输出文件名 |
+| `UnmatchedSourceInfo` | 源目录中未被表格匹配到的图片信息 |
 | `RedGoldTableData` | 表格解析结果，保存分隔符、全部行数据以及关键列索引 |
 | `RedGoldNamingState` | 输出文件名分配状态，用于延续目录中已有命名序号并避免重名 |
 
@@ -469,9 +472,12 @@ public class BatchRenameConfig
 | `redGoldIconPathColumn` | string | 图标路径回写列名 |
 | `redGoldOverrideGrid` | bool | 是否统一覆盖格数 |
 | `redGoldCellPixelSize` | int | 非正方形比例的单格像素基准 |
-| `redGoldMaxOutputEdge` | int | 1:1 到 4:4 正方形资源的统一边长 |
+| `redGoldMaxOutputEdge` | int | 1:1 到 6:6 正方形资源的统一边长 |
 | `redGoldRedOutputFolder` / `redGoldPurpleOutputFolder` / `redGoldGoldOutputFolder` | string | 红、紫、金品质输出目录 |
 | `redGoldOverwriteTable` / `redGoldOutputTablePath` | bool / string | 表格覆盖或另存配置 |
+| `redGoldUnmatchedSources` | List | 源目录中未匹配到表格行的图片列表 |
+| `redGoldUndoEntries` / `redGoldUndoTableSnapshotPath` | List / string | 最近一次覆盖生成的撤销数据 |
+| `redGoldFoldReplaceable` / `redGoldFoldMissing` / `redGoldFoldUnmatched` | bool | 可替换、未找到、未匹配三个预览分组的折叠状态 |
 
 ### 5.3 处理流程
 
@@ -482,14 +488,18 @@ RedGoldLoadPreview()
   ├── RedGoldReadTableText()       读取 UTF-8，失败时回退系统默认编码
   ├── RedGoldChooseDelimiter()     根据扩展名和首行判断 CSV / TSV
   ├── RedGoldParseDelimited()      解析带引号的分隔文本
-  ├── RedGoldBuildImageMap()       建立源图文件名索引
-  └── RedGoldValidatePreviewRow()  标记缺图、格数无效、品质路径未配置等问题
+  ├── RedGoldBuildImageMap()       建立源图文件名索引，同名文件保留最新修改版本
+  ├── RedGoldFindSourceImage()     优先按图标文件名和名称匹配源图，再回退旧图标路径
+  ├── RedGoldValidatePreviewRow()  标记缺图、格数无效、品质路径未配置等问题
+  └── 收集未匹配源图并展示在独立预览分组
   ↓
 RedGoldGenerateAndWriteTable()
+  ├── 生成前备份已有输出文件，记录表格旧值用于撤销
   ├── 生成透明画布并等比适配源图
   ├── 按品质输出到红/紫/金目录
   ├── RedGoldWriteBackRow()        回写图标路径和可选格数
-  └── RedGoldWriteTable()          覆盖原表或另存结果表
+  ├── RedGoldWriteTable()          覆盖原表或另存结果表
+  └── RedGoldUndoLastOperation()   可恢复最近一次覆盖生成的文件和表格数据
 ```
 
 ### 5.4 配置持久化
