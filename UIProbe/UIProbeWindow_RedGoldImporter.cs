@@ -129,7 +129,7 @@ namespace UIProbe
             redGoldTablePath = EditorGUILayout.TextField(redGoldTablePath);
             if (GUILayout.Button("📄", GUILayout.Width(28)))
             {
-                string p = EditorUtility.OpenFilePanel("选择 CSV/TSV 表格", RedGoldPathHelper.GetExistingDirectory(redGoldTablePath), "");
+                string p = EditorUtility.OpenFilePanel("选择 CSV/TSV/Excel 表格", RedGoldPathHelper.GetExistingDirectory(redGoldTablePath), "csv,tsv,xlsx");
                 if (!string.IsNullOrEmpty(p)) redGoldTablePath = p;
             }
             GUILayout.EndHorizontal();
@@ -809,7 +809,16 @@ namespace UIProbe
 
             try
             {
-                redGoldTableData = DelimitedFileParser.ReadTable(tablePath);
+                // 按扩展名选择解析器
+                string ext = Path.GetExtension(tablePath).ToLowerInvariant();
+                if (ext == ".xlsx")
+                {
+                    redGoldTableData = ExcelFileParser.ReadTable(tablePath);
+                }
+                else
+                {
+                    redGoldTableData = DelimitedFileParser.ReadTable(tablePath);
+                }
                 if (redGoldTableData.Rows.Count < 2)
                 {
                     EditorUtility.DisplayDialog("提示", "表格没有可处理的数据行。", "确定");
@@ -1136,6 +1145,22 @@ namespace UIProbe
 
                 DelimitedFileParser.WriteTable(tableOutputPath, redGoldTableData);
                 AssetDatabase.Refresh();
+
+                // ▼ 资源引用联动（异步延迟扫描）
+                if (successCount > 0)
+                {
+                    var generatedAssetPaths = selectedRows
+                        .Where(r => !r.HasError && !string.IsNullOrEmpty(r.PlannedOutputPath))
+                        .Select(r => RedGoldPathHelper.ToTablePath(r.PlannedOutputPath))
+                        .Where(p => p.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    if (generatedAssetPaths.Count > 0)
+                    {
+                        EditorApplication.delayCall += () => RedGoldShowReferenceImpact(generatedAssetPaths, successCount);
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -1469,6 +1494,59 @@ namespace UIProbe
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 生成完成后延迟扫描输出图片的引用影响
+        /// </summary>
+        private void RedGoldShowReferenceImpact(List<string> generatedAssetPaths, int totalCount)
+        {
+            EditorApplication.delayCall -= () => RedGoldShowReferenceImpact(generatedAssetPaths, totalCount);
+
+            try
+            {
+                var referrerMap = new Dictionary<string, HashSet<string>>();
+                foreach (string assetPath in generatedAssetPaths)
+                {
+                    string[] deps = AssetDatabase.GetDependencies(assetPath, false);
+                    foreach (string dep in deps)
+                    {
+                        if (dep == assetPath) continue;
+                        if (!dep.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        if (!referrerMap.ContainsKey(dep))
+                            referrerMap[dep] = new HashSet<string>();
+                        referrerMap[dep].Add(assetPath);
+                    }
+                }
+
+                if (referrerMap.Count > 0)
+                {
+                    int prefabCount = referrerMap.Count;
+                    string msg = $"本次生成了 {totalCount} 个图标文件，影响到 {prefabCount} 个预制体：\n\n";
+                    int showCount = 0;
+                    foreach (var kvp in referrerMap.OrderBy(k => k.Key))
+                    {
+                        if (showCount >= 20) { msg += $"\n... 以及其它 {prefabCount - 20} 个预制体"; break; }
+                        string prefabName = Path.GetFileNameWithoutExtension(kvp.Key);
+                        msg += $"📍 {prefabName}\n";
+                        showCount++;
+                    }
+                    msg += $"\n可前往 Asset References 标签页查看完整引用详情。";
+
+                    EditorUtility.DisplayDialog("引用影响", msg, "确定");
+
+                    // 输出详细 JSON 到 Console
+                    var detail = referrerMap.OrderBy(k => k.Key)
+                        .Select(k => new { Prefab = k.Key, ReferencedAssets = k.Value.OrderBy(a => a).ToList() })
+                        .ToList();
+                    Debug.Log($"[UIProbe] 本次生成影响 {prefabCount} 个预制体:\n{UnityEngine.JsonUtility.ToJson(detail, true)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[UIProbe] 引用影响扫描跳过: {ex.Message}");
+            }
         }
 
         private void RedGoldPingPath(string absolutePath)
