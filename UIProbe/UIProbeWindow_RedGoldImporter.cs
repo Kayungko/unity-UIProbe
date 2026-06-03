@@ -27,9 +27,14 @@ namespace UIProbe
         private int redGoldCellPixelSize = 100;
         private int redGoldMaxOutputEdge = 512;
 
-        private string redGoldRedOutputFolder = "";
-        private string redGoldPurpleOutputFolder = "";
-        private string redGoldGoldOutputFolder = "";
+        // ▼ 品质列表（取代原来的 redGoldRed/Purple/GoldOutputFolder）
+        private List<QualityConfigEntry> redGoldQualityEntries = new List<QualityConfigEntry>
+        {
+            new QualityConfigEntry { keyword = "红", displayName = "红色品质", namingTemplate = "T_Icon_Red_{Pinyin}.png", usePinyin = true },
+            new QualityConfigEntry { keyword = "紫", displayName = "紫色品质" },
+            new QualityConfigEntry { keyword = "金", displayName = "金色品质" },
+        };
+        private bool redGoldFoldQuality = true;
         private bool redGoldOverwriteTable = false;
         private string redGoldOutputTablePath = "";
 
@@ -45,6 +50,9 @@ namespace UIProbe
         // ▼ 撤销系统状态
         private readonly RedGoldUndoManager redGoldUndoManager = new RedGoldUndoManager();
 
+        // ▼ 缩略图缓存
+        private readonly Dictionary<string, Texture2D> redGoldThumbnailCache = new Dictionary<string, Texture2D>();
+
         private bool redGoldFoldSource = true;
         private bool redGoldFoldColumns = true;
         private bool redGoldFoldRules = true;
@@ -56,7 +64,7 @@ namespace UIProbe
         private void DrawRedGoldResourceImporterContent()
         {
             EditorGUILayout.HelpBox(
-                "读取 CSV/TSV 表格，根据名称匹配图片，按品质输出到红 / 紫 / 金路径；画布按格数比例调整，内容等比适配不裁切，并把新图标路径写回表格。",
+                "读取 CSV/TSV 表格，根据名称匹配图片，按品质输出到配置目录；画布按格数比例调整，内容等比适配不裁切，并把新图标路径写回表格。",
                 MessageType.Info);
             EditorGUILayout.Space(5);
 
@@ -144,7 +152,60 @@ namespace UIProbe
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
 
-            GUILayout.BeginHorizontal();
+            // 品质列表（可配置）
+            redGoldFoldQuality = EditorGUILayout.Foldout(redGoldFoldQuality, "品质列表", true, EditorStyles.foldoutHeader);
+            if (redGoldFoldQuality)
+            {
+                for (int i = 0; i < redGoldQualityEntries.Count; i++)
+                {
+                    var entry = redGoldQualityEntries[i];
+                    int capturedIndex = i;
+
+                    GUILayout.BeginVertical(EditorStyles.helpBox);
+
+                    // 第一行：关键字 + 显示名 + 删除按钮
+                    GUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField($"#{i + 1}", GUILayout.Width(20));
+                    entry.keyword = EditorGUILayout.TextField(entry.keyword, GUILayout.Width(40));
+                    entry.displayName = EditorGUILayout.TextField(entry.displayName, GUILayout.Width(80));
+                    if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
+                    {
+                        redGoldQualityEntries.RemoveAt(capturedIndex);
+                        break;
+                    }
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    // 第二行：输出路径
+                    DrawRedGoldFolderField("路径:", ref entry.outputFolder);
+
+                    // 第三行：命名模板 + 拼音开关
+                    GUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("模板:", GUILayout.Width(35));
+                    entry.namingTemplate = EditorGUILayout.TextField(entry.namingTemplate, GUILayout.Width(150));
+                    entry.usePinyin = EditorGUILayout.ToggleLeft("拼音", entry.usePinyin, GUILayout.Width(50));
+                    if (!string.IsNullOrEmpty(entry.namingTemplate))
+                    {
+                        string sample = entry.namingTemplate
+                            .Replace("{Pinyin}", "HuoGuoShenXiang")
+                            .Replace("{Name}", "火锅神像");
+                        EditorGUILayout.LabelField($"→ {sample}", EditorStyles.miniLabel);
+                    }
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.EndVertical();
+                    EditorGUILayout.Space(2);
+                }
+
+                if (GUILayout.Button("+ 新增品质", EditorStyles.miniButton))
+                {
+                    redGoldQualityEntries.Add(new QualityConfigEntry { keyword = "新", displayName = "新品质" });
+                }
+                EditorGUILayout.Space(4);
+            }
+
+                    GUILayout.BeginHorizontal();
             redGoldOverrideGrid = EditorGUILayout.ToggleLeft("统一修改格数比例", redGoldOverrideGrid, GUILayout.Width(130));
             EditorGUI.BeginDisabledGroup(!redGoldOverrideGrid);
             EditorGUILayout.LabelField("长:", GUILayout.Width(22));
@@ -304,6 +365,24 @@ namespace UIProbe
                         row.IsSelected = EditorGUILayout.Toggle(row.IsSelected, GUILayout.Width(16));
                         EditorGUI.EndDisabledGroup();
 
+                        // 缩略图
+                        string thumbPath = !string.IsNullOrEmpty(row.SourceImagePath) ? row.SourceImagePath : row.PlannedOutputPath;
+                        Texture2D thumb = GetRedGoldThumbnail(thumbPath);
+                        if (thumb != null)
+                        {
+                            Rect thumbRect = EditorGUILayout.GetControlRect(GUILayout.Width(32), GUILayout.Height(32));
+                            GUI.DrawTexture(thumbRect, thumb, ScaleMode.ScaleToFit);
+                            if (Event.current.type == EventType.MouseDown && thumbRect.Contains(Event.current.mousePosition))
+                            {
+                                RedGoldPingPath(thumbPath);
+                                Event.current.Use();
+                            }
+                        }
+                        else
+                        {
+                            EditorGUILayout.LabelField("", GUILayout.Width(32), GUILayout.Height(32));
+                        }
+
                         EditorGUILayout.LabelField($"#{row.RowIndex + 1}", GUILayout.Width(28));
                         if (GUILayout.Button(row.Name, EditorStyles.label, GUILayout.Width(80)))
                             RedGoldPingPath(row.SourceImagePath);
@@ -459,6 +538,7 @@ namespace UIProbe
         {
             redGoldPreviewRows.Clear();
             redGoldTableData = null;
+            redGoldThumbnailCache.Clear(); // 清空缩略图缓存
 
             string tablePath = RedGoldPathHelper.ToAbsolutePath(redGoldTablePath);
             string imageFolder = RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolder);
@@ -537,16 +617,16 @@ namespace UIProbe
                     if (!previewRow.HasError)
                     {
                         string iconOutputFileName = RedGoldNameConverter.GetOutputFileNameFromIconPath(iconPath);
-                        string redPreferredName = RedGoldNameConverter.BuildRedOutputFileName(name);
-                        if (RedGoldIsRedQuality(quality) && !string.IsNullOrEmpty(redPreferredName))
+                        string namedOutputFileName = RedGoldBuildNamedOutputFileName(quality, name);
+                        if (!string.IsNullOrEmpty(namedOutputFileName))
                         {
+                            // 有命名模板的品质（如红品质拼音命名）
                             if (!namingStates.TryGetValue(outputFolder, out RedGoldNamingState state))
                             {
                                 state = RedGoldNamingState.Create(outputFolder);
                                 namingStates[outputFolder] = state;
                             }
-
-                            previewRow.PlannedOutputPath = state.ReservePreferred(outputFolder, redPreferredName);
+                            previewRow.PlannedOutputPath = state.ReservePreferred(outputFolder, namedOutputFileName);
                         }
                         else if (!string.IsNullOrEmpty(iconOutputFileName))
                         {
@@ -943,17 +1023,57 @@ namespace UIProbe
 
         private string RedGoldGetQualityFolder(string quality)
         {
-            string q = (quality ?? "").Trim().ToLowerInvariant();
-            if (RedGoldIsRedQuality(quality)) return RedGoldPathHelper.ToAbsolutePath(redGoldRedOutputFolder);
-            if (q.Contains("紫") || q.Contains("purple")) return RedGoldPathHelper.ToAbsolutePath(redGoldPurpleOutputFolder);
-            if (q.Contains("金") || q.Contains("gold")) return RedGoldPathHelper.ToAbsolutePath(redGoldGoldOutputFolder);
+            if (string.IsNullOrEmpty(quality)) return "";
+            string q = quality.Trim();
+
+            foreach (var entry in redGoldQualityEntries)
+            {
+                if (string.IsNullOrEmpty(entry.keyword)) continue;
+                if (q.IndexOf(entry.keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    string absPath = RedGoldPathHelper.ToAbsolutePath(entry.outputFolder);
+                    return string.IsNullOrEmpty(absPath) ? "" : absPath;
+                }
+            }
             return "";
         }
 
-        private bool RedGoldIsRedQuality(string quality)
+        /// <summary>
+        /// 查找品质配置中启用拼音命名的条目
+        /// </summary>
+        private QualityConfigEntry RedGoldFindPinyinQuality(string quality)
         {
-            string q = (quality ?? "").Trim().ToLowerInvariant();
-            return q.Contains("红") || q.Contains("red");
+            if (string.IsNullOrEmpty(quality)) return null;
+            string q = quality.Trim();
+
+            foreach (var entry in redGoldQualityEntries)
+            {
+                if (string.IsNullOrEmpty(entry.keyword)) continue;
+                if (entry.usePinyin && !string.IsNullOrEmpty(entry.namingTemplate)
+                    && q.IndexOf(entry.keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                    return entry;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 根据品质配置和命名模板生成输出文件名
+        /// </summary>
+        private string RedGoldBuildNamedOutputFileName(string quality, string name)
+        {
+            var entry = RedGoldFindPinyinQuality(quality);
+            if (entry == null || string.IsNullOrEmpty(entry.namingTemplate)) return "";
+
+            string pinyin = entry.usePinyin ? RedGoldNameConverter.BuildRedOutputFileName(name) : "";
+            string result = entry.namingTemplate
+                .Replace("{Pinyin}", string.IsNullOrEmpty(pinyin) ? name : pinyin.Replace("T_Icon_Red_", "").Replace(".png", ""))
+                .Replace("{Name}", name);
+
+            // 确保 .png 扩展名
+            if (!result.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                result += ".png";
+
+            return result;
         }
 
         private (int width, int height) RedGoldComputeOutputSize(int gridLong, int gridWide)
@@ -1016,6 +1136,47 @@ namespace UIProbe
             GUILayout.EndHorizontal();
         }
 
+        /// <summary>
+        /// 获取缩略图（32x32），优先从 AssetPreview 缓存读取，外部文件用 ImageNormalizer 缩略
+        /// </summary>
+        private Texture2D GetRedGoldThumbnail(string imagePath)
+        {
+            if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath)) return null;
+            if (redGoldThumbnailCache.TryGetValue(imagePath, out Texture2D cached))
+                return cached;
+
+            string assetPath = RedGoldPathHelper.ToTablePath(imagePath);
+            if (assetPath.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+            {
+                var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+                if (obj != null)
+                {
+                    Texture2D preview = AssetPreview.GetAssetPreview(obj) ?? AssetPreview.GetMiniThumbnail(obj);
+                    if (preview != null)
+                    {
+                        redGoldThumbnailCache[imagePath] = preview;
+                        return preview;
+                    }
+                }
+            }
+
+            // 项目外文件 → 用 ImageNormalizer 缩略
+            Texture2D tex = ImageNormalizer.LoadTexture(imagePath);
+            if (tex != null)
+            {
+                Texture2D thumb = ImageNormalizer.Normalize(tex, 32, 32,
+                    ContentAlignment.Center, ResizeMode.ProportionalFit);
+                UnityEngine.Object.DestroyImmediate(tex);
+                if (thumb != null)
+                {
+                    redGoldThumbnailCache[imagePath] = thumb;
+                    return thumb;
+                }
+            }
+
+            return null;
+        }
+
         private void RedGoldPingPath(string absolutePath)
         {
             if (string.IsNullOrEmpty(absolutePath)) return;
@@ -1053,9 +1214,24 @@ namespace UIProbe
             redGoldOverrideGridWide = Mathf.Max(1, cfg.overrideGridWide);
             redGoldCellPixelSize = cfg.cellPixelSize > 0 ? cfg.cellPixelSize : 100;
             redGoldMaxOutputEdge = Mathf.Max(0, cfg.maxOutputEdge);
-            redGoldRedOutputFolder = cfg.redOutputFolder;
-            redGoldPurpleOutputFolder = cfg.purpleOutputFolder;
-            redGoldGoldOutputFolder = cfg.goldOutputFolder;
+
+            // ▼ 品质列表向后兼容：优先读取 qualityEntries
+            if (cfg.qualityEntries != null && cfg.qualityEntries.Count > 0)
+            {
+                redGoldQualityEntries = cfg.qualityEntries;
+            }
+            else if (!string.IsNullOrEmpty(cfg.redOutputFolder) || !string.IsNullOrEmpty(cfg.purpleOutputFolder) || !string.IsNullOrEmpty(cfg.goldOutputFolder))
+            {
+                // 从旧字段迁移
+                redGoldQualityEntries = new List<QualityConfigEntry>();
+                if (!string.IsNullOrEmpty(cfg.redOutputFolder))
+                    redGoldQualityEntries.Add(new QualityConfigEntry { keyword = "红", displayName = "红色品质", outputFolder = cfg.redOutputFolder, namingTemplate = "T_Icon_Red_{Pinyin}.png", usePinyin = true });
+                if (!string.IsNullOrEmpty(cfg.purpleOutputFolder))
+                    redGoldQualityEntries.Add(new QualityConfigEntry { keyword = "紫", displayName = "紫色品质", outputFolder = cfg.purpleOutputFolder });
+                if (!string.IsNullOrEmpty(cfg.goldOutputFolder))
+                    redGoldQualityEntries.Add(new QualityConfigEntry { keyword = "金", displayName = "金色品质", outputFolder = cfg.goldOutputFolder });
+            }
+
             redGoldOverwriteTable = cfg.overwriteTable;
             redGoldOutputTablePath = cfg.outputTablePath;
         }
@@ -1081,9 +1257,10 @@ namespace UIProbe
             cfg.overrideGridWide = redGoldOverrideGridWide;
             cfg.cellPixelSize = redGoldCellPixelSize;
             cfg.maxOutputEdge = redGoldMaxOutputEdge;
-            cfg.redOutputFolder = redGoldRedOutputFolder;
-            cfg.purpleOutputFolder = redGoldPurpleOutputFolder;
-            cfg.goldOutputFolder = redGoldGoldOutputFolder;
+            cfg.qualityEntries = redGoldQualityEntries;
+            cfg.redOutputFolder = "";
+            cfg.purpleOutputFolder = "";
+            cfg.goldOutputFolder = "";
             cfg.overwriteTable = redGoldOverwriteTable;
             cfg.outputTablePath = redGoldOutputTablePath;
         }

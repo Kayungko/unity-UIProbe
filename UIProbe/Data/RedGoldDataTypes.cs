@@ -1,7 +1,21 @@
+using System;
 using System.Collections.Generic;
 
 namespace UIProbe
 {
+    /// <summary>
+    /// 品质配置条目：关键字匹配、输出路径、命名模板
+    /// </summary>
+    [Serializable]
+    internal class QualityConfigEntry
+    {
+        public string keyword = "";         // 匹配品质列值的关键字，如 "红"
+        public string displayName = "";     // UI 显示名，如 "红色品质"
+        public string outputFolder = "";    // 输出路径
+        public string namingTemplate = "";  // 命名模板，如 "T_Icon_Red_{Pinyin}.png"
+        public bool usePinyin = false;      // 是否使用拼音转换（旧红品质特殊行为）
+    }
+
     internal enum ModificationStatus
     {
         New,        // 新增 - 输出文件尚未生成

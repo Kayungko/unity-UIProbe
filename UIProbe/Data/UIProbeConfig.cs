@@ -209,6 +209,7 @@ namespace UIProbe
         public string goldOutputFolder = "";
         public bool overwriteTable = false;
         public string outputTablePath = "";
+        public List<QualityConfigEntry> qualityEntries = new List<QualityConfigEntry>();
     }
 
     /// <summary>
