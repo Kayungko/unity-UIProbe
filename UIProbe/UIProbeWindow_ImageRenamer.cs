@@ -19,6 +19,8 @@ namespace UIProbe
         public bool   IsManualOverride;    // 是否被用户手动修改
         public bool   HasConflict;
         public string ConflictReason;
+        public bool   IsSelected = true;   // 是否参与执行
+        public Texture2D Thumbnail;        // 预览缩略图
 
         /// <summary>最终文件名（含扩展名）</summary>
         public string FinalFileName => FinalNameNoExt + Extension;
@@ -102,8 +104,8 @@ namespace UIProbe
 
             // 源文件夹
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("源文件夹:", GUILayout.Width(75));
-            renamerSourceFolder = EditorGUILayout.TextField(renamerSourceFolder);
+            EditorGUILayout.LabelField("源文件夹:", GUILayout.MinWidth(60), GUILayout.ExpandWidth(false));
+            renamerSourceFolder = EditorGUILayout.TextField(renamerSourceFolder, GUILayout.ExpandWidth(true));
             if (GUILayout.Button("📁", GUILayout.Width(28)))
             {
                 string p = EditorUtility.OpenFolderPanel("选择源图片文件夹", renamerSourceFolder, "");
@@ -128,8 +130,8 @@ namespace UIProbe
             // 目标文件夹（原路径覆盖时置灰）
             EditorGUI.BeginDisabledGroup(renamerOverwriteInPlace);
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("目标文件夹:", GUILayout.Width(75));
-            renamerTargetFolder = EditorGUILayout.TextField(renamerTargetFolder);
+            EditorGUILayout.LabelField("目标文件夹:", GUILayout.MinWidth(60), GUILayout.ExpandWidth(false));
+            renamerTargetFolder = EditorGUILayout.TextField(renamerTargetFolder, GUILayout.ExpandWidth(true));
             if (GUILayout.Button("📁", GUILayout.Width(28)))
             {
                 string p = EditorUtility.OpenFolderPanel("选择目标文件夹", renamerTargetFolder, "");
@@ -160,8 +162,8 @@ namespace UIProbe
 
             // 前缀
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("前缀:", GUILayout.Width(50));
-            renamerPrefix = EditorGUILayout.TextField(renamerPrefix, GUILayout.Width(160));
+            EditorGUILayout.LabelField("前缀:", GUILayout.MinWidth(40));
+            renamerPrefix = EditorGUILayout.TextField(renamerPrefix, GUILayout.MinWidth(60), GUILayout.ExpandWidth(true));
             EditorGUILayout.LabelField("（不需要尾部下划线，自动添加分隔符）", EditorStyles.miniLabel);
             GUILayout.EndHorizontal();
 
@@ -184,8 +186,8 @@ namespace UIProbe
 
             // 后缀
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("后缀:", GUILayout.Width(50));
-            renamerSuffix = EditorGUILayout.TextField(renamerSuffix, GUILayout.Width(160));
+            EditorGUILayout.LabelField("后缀:", GUILayout.MinWidth(40));
+            renamerSuffix = EditorGUILayout.TextField(renamerSuffix, GUILayout.MinWidth(60), GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
 
             // 实时预览示例
@@ -221,13 +223,13 @@ namespace UIProbe
 
             // 表头
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
-            EditorGUILayout.LabelField("原文件名",              EditorStyles.toolbarButton, GUILayout.Width(190));
+            EditorGUILayout.LabelField("原文件名",              EditorStyles.toolbarButton, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             EditorGUILayout.LabelField("→",                                                GUILayout.Width(18));
             EditorGUILayout.LabelField("新文件名（可手动修改）", EditorStyles.toolbarButton, GUILayout.MinWidth(180));
             EditorGUILayout.LabelField("状态",                  EditorStyles.toolbarButton, GUILayout.Width(90));
             GUILayout.EndHorizontal();
 
-            renamePreviewScrollPos = EditorGUILayout.BeginScrollView(renamePreviewScrollPos, GUILayout.Height(220));
+            renamePreviewScrollPos = EditorGUILayout.BeginScrollView(renamePreviewScrollPos, GUILayout.ExpandHeight(true));
 
             for (int i = 0; i < renamePreviewList.Count; i++)
             {
@@ -239,12 +241,45 @@ namespace UIProbe
                                                      Color.clear;
 
                 Rect rowRect = EditorGUILayout.BeginHorizontal();
-                // 只在 Repaint 事件绘制背景色，Layout 事件时 rect.height 为 0 会导致绘制错误
                 if (rowBg != Color.clear && Event.current.type == EventType.Repaint)
                     EditorGUI.DrawRect(rowRect, rowBg);
 
+                // 勾选框
+                item.IsSelected = EditorGUILayout.Toggle(item.IsSelected, GUILayout.Width(16));
+
+                // 缩略图
+                if (item.Thumbnail == null && !string.IsNullOrEmpty(item.OriginalPath) && File.Exists(item.OriginalPath))
+                {
+                    string assetPath = RedGoldPathHelper.ToTablePath(item.OriginalPath);
+                    if (assetPath.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+                        if (obj != null)
+                            item.Thumbnail = AssetPreview.GetAssetPreview(obj) ?? AssetPreview.GetMiniThumbnail(obj);
+                    }
+                    if (item.Thumbnail == null)
+                    {
+                        Texture2D tex = ImageNormalizer.LoadTexture(item.OriginalPath);
+                        if (tex != null)
+                        {
+                            item.Thumbnail = ImageNormalizer.Normalize(tex, 32, 32,
+                                ContentAlignment.Center, ResizeMode.ProportionalFit);
+                            UnityEngine.Object.DestroyImmediate(tex);
+                        }
+                    }
+                }
+                if (item.Thumbnail != null)
+                {
+                    Rect thumbRect = EditorGUILayout.GetControlRect(GUILayout.Width(32), GUILayout.Height(32));
+                    GUI.DrawTexture(thumbRect, item.Thumbnail, ScaleMode.ScaleToFit);
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("", GUILayout.Width(32), GUILayout.Height(32));
+                }
+
                 // 原文件名（只读）
-                EditorGUILayout.LabelField(item.OriginalFileName, GUILayout.Width(190));
+                EditorGUILayout.LabelField(item.OriginalFileName, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
                 EditorGUILayout.LabelField("→", GUILayout.Width(18));
 
                 // 可编辑的新名（不含扩展名）
@@ -511,9 +546,23 @@ namespace UIProbe
                 return;
             }
 
-            int totalCount    = renamePreviewList.Count;
-            int manualCount   = renamePreviewList.Count(x => x.IsManualOverride);
+            var selectedItems = renamePreviewList.Where(x => x.IsSelected).ToList();
+            if (selectedItems.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有选中的文件，请先勾选要重命名的文件。", "确定");
+                return;
+            }
+
+            int totalCount    = selectedItems.Count;
+            int manualCount   = selectedItems.Count(x => x.IsManualOverride);
             string modeLabel  = renamerOverwriteInPlace ? "原路径覆盖（删除原文件）" : "复制到目标路径（保留原文件）";
+
+            // ▼ 初始化撤销系统
+            string undoDir = Path.Combine(
+                UIProbeStorage.GetMainFolderPath(),
+                "RedGoldUndo",
+                DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+            var undoEntries = new List<RedGoldUndoEntry>();
 
             bool confirmed = EditorUtility.DisplayDialog(
                 "确认执行重命名",
@@ -522,7 +571,7 @@ namespace UIProbe
                 $"目标路径：{effectiveTarget}\n" +
                 $"手动覆盖：{manualCount} 项\n" +
                 $"同步 .meta：{(renamerUpdateMeta ? "是" : "否")}\n\n" +
-                "此操作不可撤销，确认执行？",
+                "即将备份被覆盖的文件，执行后可撤销。",
                 "执行", "取消"
             );
             if (!confirmed) return;
@@ -538,7 +587,7 @@ namespace UIProbe
             int successCount = 0;
             var logItems     = new List<ImageRenameLogItem>();
 
-            foreach (var item in renamePreviewList)
+            foreach (var item in selectedItems)
             {
                 string destPath = Path.Combine(effectiveTarget, item.FinalFileName);
 
@@ -602,12 +651,21 @@ namespace UIProbe
             // 生成 CSV 日志
             string logPath = ImageRenameLogManager.GenerateLog(logItems);
 
+            // 推入撤销栈
+            if (undoEntries.Count > 0)
+            {
+                string desc = $"重命名 {successCount} 个文件（覆盖 {undoEntries.Count} 个）";
+                redGoldUndoManager.PushSnapshot(undoEntries, "", desc);
+            }
+
             // 清空预览列表
             renamePreviewList.Clear();
             renameConflictCount = 0;
 
             // 结果弹窗
             string resultMsg = $"重命名完成！\n成功：{successCount} / {totalCount}";
+            if (undoEntries.Count > 0)
+                resultMsg += $"\n\n已备份被覆盖的文件，可前往面板撤销。";
             if (logPath != null) resultMsg += $"\n\n日志已生成：\n{logPath}";
             EditorUtility.DisplayDialog("完成", resultMsg, "确定");
         }
