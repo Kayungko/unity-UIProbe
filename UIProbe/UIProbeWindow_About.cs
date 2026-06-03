@@ -71,6 +71,16 @@ namespace UIProbe
             EditorGUILayout.LabelField($"最新更新 (v{UIProbeUpdateChecker.VERSION})", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
 
+            EditorGUILayout.LabelField("• 批量命名模块全面升级 (v3.8.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 预览缩略图 32x32 + 行级勾选排除指定文件", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 执行前自动备份、支持撤销恢复", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 预览列表自适应高度 + 所有输入框 ExpandWidth", EditorStyles.miniLabel);
+
+            EditorGUILayout.LabelField("• 模块显示设置补齐 + 旧记录目录清理 (v3.8.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 新增 Filter节点排查 与 大红大金资源修改导入显示开关", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 大红大金子标签可单独隐藏，隐藏后自动回到图片规范化页", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 移除旧版 Assets/UIProbeRecords 自动创建与扫描逻辑", EditorStyles.miniLabel);
+
             EditorGUILayout.LabelField("• 品质可配置化 + 栈式多级撤销持久化 + 预览缩略图", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 可动态增删品质条目，每个品质独立配置关键字/路径/命名模板", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 撤销栈持久化到磁盘，重启 Unity 后仍可撤销，最多 10 层", EditorStyles.miniLabel);
@@ -79,7 +89,7 @@ namespace UIProbe
             EditorGUILayout.LabelField("• 命名模板扩展 + 预设系统 + 增量生成", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 模板支持 {Name}/{Pinyin}/{Seq:3}/{Quality} 变量", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 配置预设保存/加载/删除，多项目间复用", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - "仅变更行"/"清除未变更"按钮，生成按钮显示变更数量", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - “仅变更行”/“清除未变更”按钮，生成按钮显示变更数量", EditorStyles.miniLabel);
 
             EditorGUILayout.LabelField("• 行内编辑 + 冲突预警 + 批量操作栏", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 双击编辑名称、下拉改品质、批量前缀/后缀/替换", EditorStyles.miniLabel);
@@ -97,11 +107,6 @@ namespace UIProbe
             EditorGUILayout.LabelField("  - 根级 ScrollView + 侧栏可滚动 + 窗口最小尺寸 400x250", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 所有 Tab 固定宽度控件改为 ExpandWidth 自适应", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - Recorder 清空加确认、Picker 快捷键不再写死", EditorStyles.miniLabel);
-
-            EditorGUILayout.LabelField("• 批量命名模块全面升级 (v3.8.0)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 预览缩略图 32x32 + 行级勾选排除指定文件", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 执行前自动备份、支持撤销恢复", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 预览列表自适应高度 + 所有输入框 ExpandWidth", EditorStyles.miniLabel);
 
             EditorGUILayout.EndVertical();
             

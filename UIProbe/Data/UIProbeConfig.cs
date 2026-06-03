@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -161,6 +162,8 @@ namespace UIProbe
         public bool showScreenshot = true;
         public bool showRichTextGenerator = true;
         public bool showAdaptor = true;
+        public bool showFilterNodeScanner = true;
+        public bool showRedGoldResourceImporter = true;
         public bool showResourceDetector = true;
     }
 
@@ -219,7 +222,7 @@ namespace UIProbe
     [Serializable]
     public class UIProbeConfig
     {
-        public string version = "3.7.0";
+        public string version = "3.8.0";
         public string lastUpdated = "";
 
         public IndexerConfig indexer = new IndexerConfig();

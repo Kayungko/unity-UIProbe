@@ -66,7 +66,7 @@ namespace UIProbe
             return string.IsNullOrEmpty(pinyin) ? "" : $"T_Icon_Red_{pinyin}.png";
         }
 
-        private static string GetSemanticPinyin(string displayName)
+        public static string GetSemanticPinyin(string displayName)
         {
             string key = NormalizeSemanticName(displayName);
             if (!string.IsNullOrEmpty(key) && SemanticNameMap.TryGetValue(key, out string semanticName))

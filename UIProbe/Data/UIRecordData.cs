@@ -138,7 +138,6 @@ namespace UIProbe
     public static class UIRecordStorage
     {
         private const string AppDataFolderName = "UIProbe/Records";
-        private const string AssetsFolderName = "Assets/UIProbeRecords";
         
         /// <summary>
         /// 获取默认存储路径 (AppData，避免 Git 提交)
@@ -146,34 +145,7 @@ namespace UIProbe
         public static string GetDefaultStoragePath()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string path = Path.Combine(appData, "Unity", AppDataFolderName);
-            
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-            
-            return path;
-        }
-        
-        /// <summary>
-        /// 获取 Assets 存储路径 (可选，需用户主动选择)
-        /// </summary>
-        public static string GetAssetsStoragePath()
-        {
-            string path = Path.Combine(Application.dataPath, "..", AssetsFolderName);
-            path = Path.GetFullPath(path);
-            
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-                
-                // Create .gitignore to prevent accidental commits
-                string gitignorePath = Path.Combine(path, ".gitignore");
-                File.WriteAllText(gitignorePath, "# UI Probe Records - Auto-generated\n*\n!.gitignore\n");
-            }
-            
-            return path;
+            return Path.Combine(appData, "Unity", AppDataFolderName);
         }
         
         /// <summary>
@@ -181,11 +153,13 @@ namespace UIProbe
         /// </summary>
         public static string SaveSession(UIRecordSession session, string storagePath, Texture2D screenshot = null)
         {
-            if (storagePath == null)
+            if (string.IsNullOrEmpty(storagePath))
             {
                 storagePath = GetDefaultStoragePath();
             }
-            
+
+            EnsureDirectory(storagePath);
+
             string fileBaseName = $"UIRecord_{session.Version}_{DateTime.Now:yyyyMMdd_HHmmss}";
             string jsonPath = Path.Combine(storagePath, fileBaseName + ".json");
             
@@ -228,17 +202,9 @@ namespace UIProbe
         public static List<(string Path, UIRecordSession Session)> LoadAllSessions(string storagePath = null)
         {
             var results = new List<(string, UIRecordSession)>();
-            
-            // Load from default path
-            LoadFromPath(GetDefaultStoragePath(), results);
-            
-            // Also load from Assets path if exists
-            string assetsPath = GetAssetsStoragePath();
-            if (Directory.Exists(assetsPath))
-            {
-                LoadFromPath(assetsPath, results);
-            }
-            
+
+            LoadFromPath(storagePath ?? GetDefaultStoragePath(), results);
+
             return results;
         }
         
@@ -340,11 +306,13 @@ namespace UIProbe
         {
             try
             {
-                if (targetDirectory == null)
+                if (string.IsNullOrEmpty(targetDirectory))
                 {
                     targetDirectory = GetDefaultStoragePath();
                 }
-                
+
+                EnsureDirectory(targetDirectory);
+
                 using (var fs = new FileStream(importPath, FileMode.Open))
                 using (var reader = new BinaryReader(fs))
                 {
@@ -376,6 +344,19 @@ namespace UIProbe
             {
                 Debug.LogError($"[UI Probe] 导入失败: {e.Message}");
                 return false;
+            }
+        }
+
+        private static void EnsureDirectory(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
             }
         }
     }

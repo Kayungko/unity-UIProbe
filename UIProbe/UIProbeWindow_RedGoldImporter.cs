@@ -384,11 +384,6 @@ namespace UIProbe
             EditorGUILayout.HelpBox("尺寸计算：1:1 ~ 6:6 统一输出 512×512；其它比例按“格数 × 格子基准像素”输出，默认每格 100px，如 2:3 输出 200×300。", MessageType.None);
 
             EditorGUILayout.Space(4);
-            DrawRedGoldFolderField("红品质路径:", ref redGoldRedOutputFolder);
-            DrawRedGoldFolderField("紫品质路径:", ref redGoldPurpleOutputFolder);
-            DrawRedGoldFolderField("金品质路径:", ref redGoldGoldOutputFolder);
-
-            EditorGUILayout.Space(4);
             redGoldOverwriteTable = EditorGUILayout.ToggleLeft("直接覆盖原表格", redGoldOverwriteTable);
             EditorGUI.BeginDisabledGroup(redGoldOverwriteTable);
             GUILayout.BeginHorizontal();

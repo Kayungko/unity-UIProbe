@@ -68,9 +68,9 @@ namespace UIProbe
                         while (row.Count <= colIndex)
                             row.Add("");
                         row[colIndex] = cellValue;
-                    }
 
-                    if (colIndex > maxCol) maxCol = colIndex;
+                        if (colIndex > maxCol) maxCol = colIndex;
+                    }
                 }
 
                 // 清理尾部空列

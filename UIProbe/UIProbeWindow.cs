@@ -35,6 +35,7 @@ namespace UIProbe
             Screenshot,
             RichTextGenerator,
             Adaptor,
+            FilterNodeScanner,
             ResourceDetector,
             Settings,
             About
@@ -43,7 +44,7 @@ namespace UIProbe
         private Tab currentTab = Tab.Picker;
         private Vector2 mainScrollPos;
         private Vector2 sidebarScrollPos;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "资源使用检测", "设置", "关于" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "Filter节点排查", "资源使用检测", "设置", "关于" };
         
         // 统一配置
         private UIProbeConfig config;
@@ -125,6 +126,7 @@ namespace UIProbe
                     case Tab.Screenshot: isHidden = !config.modulesVisibility.showScreenshot; break;
                     case Tab.RichTextGenerator: isHidden = !config.modulesVisibility.showRichTextGenerator; break;
                     case Tab.Adaptor: isHidden = !config.modulesVisibility.showAdaptor; break;
+                    case Tab.FilterNodeScanner: isHidden = !config.modulesVisibility.showFilterNodeScanner; break;
                     case Tab.ResourceDetector: isHidden = !config.modulesVisibility.showResourceDetector; break;
                 }
                 if (isHidden)
@@ -178,6 +180,9 @@ namespace UIProbe
                 case Tab.Adaptor:
                     DrawAdaptorTab();
                     break;
+                case Tab.FilterNodeScanner:
+                    DrawFilterNodeScannerTab();
+                    break;
                 case Tab.ResourceDetector:
                     DrawResourceDetectorTab();
                     break;
@@ -212,6 +217,7 @@ namespace UIProbe
             if (config == null || config.modulesVisibility.showScreenshot) DrawSidebarButton(Tab.Screenshot, "游戏截屏");
             if (config == null || config.modulesVisibility.showRichTextGenerator) DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
             if (config == null || config.modulesVisibility.showAdaptor) DrawSidebarButton(Tab.Adaptor, "预制体助手");
+            if (config == null || config.modulesVisibility.showFilterNodeScanner) DrawSidebarButton(Tab.FilterNodeScanner, "Filter排查");
             if (config == null || config.modulesVisibility.showResourceDetector) DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
 
             GUILayout.FlexibleSpace();

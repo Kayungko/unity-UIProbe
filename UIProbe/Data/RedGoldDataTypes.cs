@@ -7,7 +7,7 @@ namespace UIProbe
     /// 品质配置条目：关键字匹配、输出路径、命名模板
     /// </summary>
     [Serializable]
-    internal class QualityConfigEntry
+    public class QualityConfigEntry
     {
         public string keyword = "";         // 匹配品质列值的关键字，如 "红"
         public string displayName = "";     // UI 显示名，如 "红色品质"

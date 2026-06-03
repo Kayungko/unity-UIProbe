@@ -1,6 +1,6 @@
 # UIProbe 图片工具模块开发文档
 
-> 适用版本：UIProbe v3.7+
+> 适用版本：UIProbe v3.8.0+
 > 涵盖模块：图片规范化（Image Normalizer）· 批量命名（Batch Rename）· 大红大金资源修改导入（Red/Gold Resource Importer）
 > 最后更新：2026-06
 
@@ -647,6 +647,8 @@ public class RedGoldResourceImporterConfig
 ```
 
 读写时机：`ApplyRedGoldResourceImporterConfig()` / `CollectRedGoldResourceImporterConfig()` 由图片工具总配置读写流程统一调用，与图片规范化和批量命名保持一致。
+
+显示入口：大红大金子标签由 `ModulesVisibilityConfig.showRedGoldResourceImporter` 控制，可在设置页的“功能模块显示设置”中单独隐藏；隐藏后图片工具会自动回到“图片规范化”子标签。
 
 ---
 

@@ -78,11 +78,19 @@ namespace UIProbe
             EditorGUILayout.LabelField("图片工具 (Image Tools)", EditorStyles.boldLabel);
             EditorGUILayout.Space(3);
 
+            if (!IsImageToolSubTabVisible(imageToolSubTab))
+            {
+                imageToolSubTab = ImageToolSubTab.Normalizer;
+            }
+
             // 子标签栏
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
             DrawImageSubTabButton(ImageToolSubTab.Normalizer,  "📐 图片规范化");
             DrawImageSubTabButton(ImageToolSubTab.BatchRename, "✏️ 批量命名");
-            DrawImageSubTabButton(ImageToolSubTab.RedGoldImporter, "大红大金资源修改导入", 170);
+            if (IsImageToolSubTabVisible(ImageToolSubTab.RedGoldImporter))
+            {
+                DrawImageSubTabButton(ImageToolSubTab.RedGoldImporter, "大红大金资源修改导入", 170);
+            }
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
@@ -103,6 +111,22 @@ namespace UIProbe
             if (GUILayout.Button(label, EditorStyles.toolbarButton, GUILayout.Width(width)))
                 imageToolSubTab = tab;
             GUI.backgroundColor = Color.white;
+        }
+
+        private bool IsImageToolSubTabVisible(ImageToolSubTab tab)
+        {
+            if (config == null || config.modulesVisibility == null)
+            {
+                return true;
+            }
+
+            switch (tab)
+            {
+                case ImageToolSubTab.RedGoldImporter:
+                    return config.modulesVisibility.showRedGoldResourceImporter;
+                default:
+                    return true;
+            }
         }
 
         /// <summary>

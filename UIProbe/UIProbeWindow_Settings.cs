@@ -179,6 +179,8 @@ namespace UIProbe
                 config.modulesVisibility.showScreenshot = EditorGUILayout.ToggleLeft("游戏截屏 (Screenshot)", config.modulesVisibility.showScreenshot);
                 config.modulesVisibility.showRichTextGenerator = EditorGUILayout.ToggleLeft("富文本生成 (Rich Text Generator)", config.modulesVisibility.showRichTextGenerator);
                 config.modulesVisibility.showAdaptor = EditorGUILayout.ToggleLeft("预制体助手 (Adaptor)", config.modulesVisibility.showAdaptor);
+                config.modulesVisibility.showFilterNodeScanner = EditorGUILayout.ToggleLeft("Filter节点排查 (Temporary)", config.modulesVisibility.showFilterNodeScanner);
+                config.modulesVisibility.showRedGoldResourceImporter = EditorGUILayout.ToggleLeft("大红大金资源修改导入 (RedGold Importer)", config.modulesVisibility.showRedGoldResourceImporter);
                 config.modulesVisibility.showResourceDetector = EditorGUILayout.ToggleLeft("资源使用检测 (Resource Detector)", config.modulesVisibility.showResourceDetector);
                 
                 if (EditorGUI.EndChangeCheck())
