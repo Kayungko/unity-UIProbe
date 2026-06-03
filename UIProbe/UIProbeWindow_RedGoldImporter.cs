@@ -3,211 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
 namespace UIProbe
 {
-    internal enum ModificationStatus
-    {
-        New,        // 新增 - 输出文件尚未生成
-        Modified,   // 已修改 - 源文件比现有输出文件更新
-        Unchanged,  // 无变化 - 源文件与现有输出文件相同或更早
-        Unknown     // 未知
-    }
-
-    internal class RedGoldUndoEntry
-    {
-        public string BackupFilePath;       // 备份文件的完整路径
-        public string OriginalOutputPath;   // 原始输出文件路径（还原时恢复到此路径）
-        public int TableRowIndex;           // 表格行索引
-        public string OldIconPath;          // 表格中旧的图标路径值（还原时写回）
-        public string OldCellGridLong;      // 旧的格数：长（还原时写回）
-        public string OldCellGridWide;      // 旧的格数：宽（还原时写回）
-        public string OldCellGridCount;     // 旧的总格数（还原时写回）
-    }
-
-    internal class RedGoldImportRow
-    {
-        public int RowIndex;
-        public string Name;
-        public string Quality;
-        public int GridLong;
-        public int GridWide;
-        public int OutputWidth;
-        public int OutputHeight;
-        public string SourceImagePath;
-        public string OutputFolder;
-        public string PlannedOutputPath;
-        public string Status;
-        public bool IsSelected = true;
-        public bool HasError;
-
-        // ▼ 新增字段：源文件信息 + 修改检测 + 撤销备份
-        public string SourceFileName;           // 源文件名（含扩展名，如 "weapon_01.png"）
-        public string SourceRelativePath;       // 相对于源根目录的路径（如 "v2/weapon_01.png"）
-        public string SourceModifiedTime;       // 源文件最后修改时间（格式化字符串）
-        public bool OutputExists;               // 目标输出文件是否已存在
-        public string OutputModifiedTime;       // 输出文件最后修改时间（格式化字符串）
-        public ModificationStatus ModStatus;    // 新增/已修改/无变化
-        public string BackupFilePath;           // 备份文件路径（生成前设置，供撤销使用）
-        public bool UseExistingOutput;          // true = 使用已有输出文件替代源文件（手动切换）
-        public string OutputFileNameOverride;   // 手动覆盖的输出文件名（含扩展名，如 "my_icon.png"），用于自定义命名
-    }
-
-
-    /// <summary>
-    /// 源文件夹中未匹配到表格行的文件信息
-    /// </summary>
-    internal class UnmatchedSourceInfo
-    {
-        public string FilePath;
-        public string FileName;
-        public string ModifiedTime;
-        public long FileSize;
-        public bool IsSelected = true;
-    }
-
-    internal class RedGoldTableData
-    {
-        public char Delimiter;
-        public List<List<string>> Rows = new List<List<string>>();
-        public int NameColumn = -1;
-        public int QualityColumn = -1;
-        public int GridLongColumn = -1;
-        public int GridWideColumn = -1;
-        public int GridCountColumn = -1;
-        public int IconPathColumn = -1;
-    }
-
-    internal class RedGoldNamingState
-    {
-        private string prefix = "";
-        private string suffix = "";
-        private int nextNumber = 1;
-        private int digits = 3;
-        private bool hasPattern;
-        private readonly HashSet<string> reservedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private readonly HashSet<string> allocatedPreferredNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        public static RedGoldNamingState Create(string folder)
-        {
-            var state = new RedGoldNamingState();
-            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
-                return state;
-
-            int bestNumber = -1;
-            var prefixCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            foreach (string file in Directory.GetFiles(folder, "*.png", SearchOption.TopDirectoryOnly))
-            {
-                string fileName = Path.GetFileName(file);
-                state.reservedNames.Add(fileName);
-
-                string nameNoExt = Path.GetFileNameWithoutExtension(file);
-                int lastUnderline = nameNoExt.LastIndexOf('_');
-                if (lastUnderline >= 0)
-                {
-                    string commonPrefix = nameNoExt.Substring(0, lastUnderline + 1);
-                    if (!prefixCounts.ContainsKey(commonPrefix))
-                        prefixCounts[commonPrefix] = 0;
-                    prefixCounts[commonPrefix]++;
-                }
-
-                MatchCollection matches = Regex.Matches(nameNoExt, "\\d+");
-                if (matches.Count == 0) continue;
-
-                Match numberMatch = matches[matches.Count - 1];
-                if (!int.TryParse(numberMatch.Value, out int number)) continue;
-                if (number <= bestNumber) continue;
-
-                bestNumber = number;
-                state.prefix = nameNoExt.Substring(0, numberMatch.Index);
-                state.suffix = nameNoExt.Substring(numberMatch.Index + numberMatch.Length);
-                state.digits = numberMatch.Length;
-                state.nextNumber = number + 1;
-                state.hasPattern = true;
-            }
-
-            if (!state.hasPattern && prefixCounts.Count > 0)
-            {
-                var bestPrefix = prefixCounts
-                    .OrderByDescending(x => x.Value)
-                    .ThenBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
-                    .First();
-                if (bestPrefix.Value >= 2)
-                {
-                    state.prefix = bestPrefix.Key;
-                    state.suffix = "";
-                    state.digits = 3;
-                    state.nextNumber = bestPrefix.Value + 1;
-                    state.hasPattern = true;
-                }
-            }
-
-            return state;
-        }
-
-        public string Allocate(string folder, string fallbackNameNoExt)
-        {
-            if (hasPattern)
-            {
-                while (true)
-                {
-                    string name = $"{prefix}{nextNumber.ToString("D" + digits)}{suffix}.png";
-                    nextNumber++;
-                    if (reservedNames.Add(name))
-                        return Path.Combine(folder, name);
-                }
-            }
-
-            string safeName = string.IsNullOrEmpty(fallbackNameNoExt) ? "image" : fallbackNameNoExt;
-            string candidate = safeName + ".png";
-            int index = 1;
-            while (!reservedNames.Add(candidate))
-            {
-                candidate = $"{safeName}_{index}.png";
-                index++;
-            }
-
-            return Path.Combine(folder, candidate);
-        }
-
-        public void ReserveFileName(string fileName)
-        {
-            if (!string.IsNullOrEmpty(fileName))
-                reservedNames.Add(fileName);
-        }
-
-        public string ReservePreferred(string folder, string preferredFileName)
-        {
-            if (string.IsNullOrEmpty(preferredFileName))
-                return "";
-
-            string extension = Path.GetExtension(preferredFileName);
-            string nameNoExt = Path.GetFileNameWithoutExtension(preferredFileName);
-            if (string.IsNullOrEmpty(extension))
-                extension = ".png";
-
-            string candidate = nameNoExt + extension;
-            if (allocatedPreferredNames.Add(candidate))
-            {
-                reservedNames.Add(candidate);
-                return Path.Combine(folder, candidate);
-            }
-
-            int index = 2;
-            while (true)
-            {
-                candidate = $"{nameNoExt}_{index}{extension}";
-                if (allocatedPreferredNames.Add(candidate) && reservedNames.Add(candidate))
-                    return Path.Combine(folder, candidate);
-                index++;
-            }
-        }
-    }
-
     public partial class UIProbeWindow
     {
         private string redGoldTablePath = "";
@@ -243,9 +43,7 @@ namespace UIProbe
         private float redGoldProgress;
 
         // ▼ 撤销系统状态
-        private List<RedGoldUndoEntry> redGoldUndoEntries = null;   // 非 null 表示有待撤销的操作
-        private string redGoldUndoTableSnapshotPath = "";            // 撤销时恢复此表格文件
-        private string redGoldUndoDescription = "";                  // 撤销操作描述（用于UI显示）
+        private readonly RedGoldUndoManager redGoldUndoManager = new RedGoldUndoManager();
 
         private bool redGoldFoldSource = true;
         private bool redGoldFoldColumns = true;
@@ -254,34 +52,6 @@ namespace UIProbe
         private bool redGoldFoldReplaceable = true;
         private bool redGoldFoldMissing = true;
         private bool redGoldFoldUnmatched = true;
-
-        private static readonly Dictionary<char, string> RedGoldPinyinMap = new Dictionary<char, string>
-        {
-            { '阿', "A" }, { '白', "Bai" }, { '宝', "Bao" }, { '爆', "Bao" }, { '兵', "Bing" },
-            { '裁', "Cai" }, { '茶', "Cha" }, { '辰', "Chen" }, { '处', "Chu" }, { '傩', "Nuo" },
-            { '地', "Di" }, { '赌', "Du" }, { '发', "Fa" }, { '骨', "Gu" }, { '锅', "Guo" },
-            { '红', "Hong" }, { '虹', "Hong" }, { '火', "Huo" }, { '画', "Hua" }, { '匠', "Jiang" },
-            { '祭', "Ji" }, { '甲', "Jia" }, { '金', "Jin" }, { '晶', "Jing" }, { '巨', "Ju" },
-            { '骼', "Ge" }, { '怪', "Guai" }, { '猎', "Lie" }, { '炉', "Lu" }, { '满', "Man" },
-            { '蒙', "Meng" }, { '霓', "Ni" }, { '球', "Qiu" }, { '神', "Shen" }, { '生', "Sheng" },
-            { '森', "Sen" }, { '坛', "Tan" }, { '堂', "Tang" }, { '特', "Te" }, { '天', "Tian" },
-            { '铁', "Tie" }, { '外', "Wai" }, { '文', "Wen" }, { '西', "Xi" }, { '戏', "Xi" },
-            { '先', "Xian" }, { '像', "Xiang" }, { '星', "Xing" }, { '型', "Xing" }, { '鸭', "Ya" },
-            { '源', "Yuan" }, { '之', "Zhi" }, { '桌', "Zhuo" }, { '死', "Si" },
-            { 'Ⅰ', "1" }, { 'Ⅱ', "2" }, { 'Ⅲ', "3" }, { 'Ⅳ', "4" }
-        };
-
-        private static readonly Dictionary<string, string> RedGoldSemanticNameMap = new Dictionary<string, string>
-        {
-            { "星辰画匠文森特", "XingChenHuaJiang" },
-            { "铁球先生", "TieQiuXianSheng" },
-            { "白死神西蒙", "BaiSiShen" },
-            { "傩戏外骨骼", "NuoXiWaiGuGe" },
-            { "霓虹茶桌", "NiHongChaZhuo" },
-            { "赌神祭坛", "DuShenJiTan" },
-            { "火锅神像", "HuoGuoShenXiang" },
-            { "满堂红天锅", "ManTangHongTianGuo" }
-        };
 
         private void DrawRedGoldResourceImporterContent()
         {
@@ -338,7 +108,7 @@ namespace UIProbe
             redGoldTablePath = EditorGUILayout.TextField(redGoldTablePath);
             if (GUILayout.Button("📄", GUILayout.Width(28)))
             {
-                string p = EditorUtility.OpenFilePanel("选择 CSV/TSV 表格", RedGoldGetExistingDirectory(redGoldTablePath), "");
+                string p = EditorUtility.OpenFilePanel("选择 CSV/TSV 表格", RedGoldPathHelper.GetExistingDirectory(redGoldTablePath), "");
                 if (!string.IsNullOrEmpty(p)) redGoldTablePath = p;
             }
             GUILayout.EndHorizontal();
@@ -348,7 +118,7 @@ namespace UIProbe
             redGoldImageSourceFolder = EditorGUILayout.TextField(redGoldImageSourceFolder);
             if (GUILayout.Button("📁", GUILayout.Width(28)))
             {
-                string p = EditorUtility.OpenFolderPanel("选择待修改图片文件夹", RedGoldToAbsolutePath(redGoldImageSourceFolder), "");
+                string p = EditorUtility.OpenFolderPanel("选择待修改图片文件夹", RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolder), "");
                 if (!string.IsNullOrEmpty(p)) redGoldImageSourceFolder = p;
             }
             GUILayout.EndHorizontal();
@@ -409,8 +179,8 @@ namespace UIProbe
             redGoldOutputTablePath = EditorGUILayout.TextField(redGoldOutputTablePath);
             if (GUILayout.Button("📄", GUILayout.Width(28)))
             {
-                string defaultDir = RedGoldGetExistingDirectory(redGoldTablePath);
-                string p = EditorUtility.SaveFilePanel("保存回写后的表格", defaultDir, RedGoldGetDefaultOutputTableName(), RedGoldGetTableExtension());
+                string defaultDir = RedGoldPathHelper.GetExistingDirectory(redGoldTablePath);
+                string p = EditorUtility.SaveFilePanel("保存回写后的表格", defaultDir, RedGoldPathHelper.GetDefaultOutputTableName(redGoldTablePath), RedGoldPathHelper.GetTableExtension(redGoldTablePath));
                 if (!string.IsNullOrEmpty(p)) redGoldOutputTablePath = p;
             }
             GUILayout.EndHorizontal();
@@ -437,16 +207,29 @@ namespace UIProbe
             EditorGUI.EndDisabledGroup();
 
             // ▼ 撤销按钮
-            if (redGoldUndoEntries != null && redGoldUndoEntries.Count > 0)
+            if (redGoldUndoManager.HasUndo)
             {
                 GUI.backgroundColor = new Color(0.9f, 0.4f, 0.3f);
-                if (GUILayout.Button("↩ 撤销", GUILayout.Height(30), GUILayout.Width(80)))
+                string undoLabel = $"↩ 撤销 ({redGoldUndoManager.StackDepth})";
+                if (GUILayout.Button(undoLabel, GUILayout.Height(30), GUILayout.Width(100)))
                 {
                     if (EditorUtility.DisplayDialog("确认撤销",
-                        $"即将撤销最近一次生成操作（{redGoldUndoDescription}）\n\n将恢复 {redGoldUndoEntries.Count} 个文件的旧版本并还原表格数据。",
+                        $"即将撤销最近一次生成操作（{redGoldUndoManager.CurrentDescription}）\n\n将恢复 {redGoldUndoManager.EntryCount} 个文件的旧版本并还原表格数据。"
+                        + (redGoldUndoManager.StackDepth > 1 ? $"\n\n当前还有 {redGoldUndoManager.StackDepth} 次可撤销操作。" : ""),
                         "确认撤销", "取消"))
                     {
-                        RedGoldUndoLastOperation();
+                        var result = redGoldUndoManager.TryUndo(redGoldTableData, redGoldOverrideGrid);
+                        if (result.Success)
+                        {
+                            RedGoldLoadPreview();
+                            EditorUtility.DisplayDialog("撤销完成",
+                                $"已恢复 {result.RestoredFileCount} 个文件，{result.RestoredTableCount} 行表格数据。\n请检查结果是否满足预期。",
+                                "确定");
+                        }
+                        else
+                        {
+                            EditorUtility.DisplayDialog("撤销失败", result.Error, "确定");
+                        }
                     }
                 }
                 GUI.backgroundColor = Color.white;
@@ -662,7 +445,7 @@ namespace UIProbe
                                 : $"{src.FileSize / 1024f:F0} KB";
                             EditorGUILayout.LabelField(sizeStr, EditorStyles.miniLabel, GUILayout.Width(50));
                         }
-                        string relPath = RedGoldToTablePath(src.FilePath);
+                        string relPath = RedGoldPathHelper.ToTablePath(src.FilePath);
                         relPath = relPath.Length > 50 ? "..." + relPath.Substring(relPath.Length - 47) : relPath;
                         EditorGUILayout.LabelField(relPath, EditorStyles.miniLabel);
                         EditorGUILayout.EndHorizontal();
@@ -677,8 +460,8 @@ namespace UIProbe
             redGoldPreviewRows.Clear();
             redGoldTableData = null;
 
-            string tablePath = RedGoldToAbsolutePath(redGoldTablePath);
-            string imageFolder = RedGoldToAbsolutePath(redGoldImageSourceFolder);
+            string tablePath = RedGoldPathHelper.ToAbsolutePath(redGoldTablePath);
+            string imageFolder = RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolder);
             if (string.IsNullOrEmpty(tablePath) || !File.Exists(tablePath))
             {
                 EditorUtility.DisplayDialog("错误", "请选择有效的 CSV/TSV 表格文件。", "确定");
@@ -693,7 +476,7 @@ namespace UIProbe
 
             try
             {
-                redGoldTableData = RedGoldReadTable(tablePath);
+                redGoldTableData = DelimitedFileParser.ReadTable(tablePath);
                 if (redGoldTableData.Rows.Count < 2)
                 {
                     EditorUtility.DisplayDialog("提示", "表格没有可处理的数据行。", "确定");
@@ -703,7 +486,7 @@ namespace UIProbe
                 if (!RedGoldResolveColumns(redGoldTableData))
                     return;
 
-                Dictionary<string, string> imageMap = RedGoldBuildImageMap(imageFolder, out List<string> duplicateWarnings);
+                Dictionary<string, string> imageMap = RedGoldImageMatcher.BuildImageMap(imageFolder, redGoldIncludeSubfolders, out List<string> duplicateWarnings);
                 if (duplicateWarnings.Count > 0)
                 {
                     string msg = "发现同名文件冲突，已自动选择最新版本的图片：\n\n"
@@ -725,16 +508,16 @@ namespace UIProbe
                 for (int i = 1; i < redGoldTableData.Rows.Count; i++)
                 {
                     List<string> tableRow = redGoldTableData.Rows[i];
-                    string name = RedGoldGetCell(tableRow, redGoldTableData.NameColumn)
+                    string name = RedGoldTableData.GetCell(tableRow, redGoldTableData.NameColumn)
                         .Replace("\r\n", "").Replace("\n", "").Replace("\r", "").Trim();
-                    string quality = RedGoldGetCell(tableRow, redGoldTableData.QualityColumn)
+                    string quality = RedGoldTableData.GetCell(tableRow, redGoldTableData.QualityColumn)
                         .Replace("\r\n", "").Replace("\n", "").Replace("\r", "").Trim();
-                    int gridLong = redGoldOverrideGrid ? redGoldOverrideGridLong : RedGoldParseInt(RedGoldGetCell(tableRow, redGoldTableData.GridLongColumn));
-                    int gridWide = redGoldOverrideGrid ? redGoldOverrideGridWide : RedGoldParseInt(RedGoldGetCell(tableRow, redGoldTableData.GridWideColumn));
+                    int gridLong = redGoldOverrideGrid ? redGoldOverrideGridLong : RedGoldParseInt(RedGoldTableData.GetCell(tableRow, redGoldTableData.GridLongColumn));
+                    int gridWide = redGoldOverrideGrid ? redGoldOverrideGridWide : RedGoldParseInt(RedGoldTableData.GetCell(tableRow, redGoldTableData.GridWideColumn));
                     string outputFolder = RedGoldGetQualityFolder(quality);
-                    string iconPath = RedGoldGetCell(tableRow, redGoldTableData.IconPathColumn)
+                    string iconPath = RedGoldTableData.GetCell(tableRow, redGoldTableData.IconPathColumn)
                         .Replace("\r\n", "").Replace("\n", "").Replace("\r", "").Trim();
-                    string sourcePath = RedGoldFindSourceImage(imageMap, name, iconPath);
+                    string sourcePath = RedGoldImageMatcher.FindSourceImage(imageMap, name, iconPath);
                     var (outW, outH) = RedGoldComputeOutputSize(gridLong, gridWide);
 
                     var previewRow = new RedGoldImportRow
@@ -753,8 +536,8 @@ namespace UIProbe
                     RedGoldValidatePreviewRow(previewRow);
                     if (!previewRow.HasError)
                     {
-                        string iconOutputFileName = RedGoldGetOutputFileNameFromIconPath(iconPath);
-                        string redPreferredName = RedGoldBuildRedOutputFileName(name);
+                        string iconOutputFileName = RedGoldNameConverter.GetOutputFileNameFromIconPath(iconPath);
+                        string redPreferredName = RedGoldNameConverter.BuildRedOutputFileName(name);
                         if (RedGoldIsRedQuality(quality) && !string.IsNullOrEmpty(redPreferredName))
                         {
                             if (!namingStates.TryGetValue(outputFolder, out RedGoldNamingState state))
@@ -785,7 +568,7 @@ namespace UIProbe
 
                             previewRow.PlannedOutputPath = state.Allocate(outputFolder, Path.GetFileNameWithoutExtension(sourcePath));
                         }
-                        previewRow.Status = RedGoldToTablePath(previewRow.PlannedOutputPath);
+                        previewRow.Status = RedGoldPathHelper.ToTablePath(previewRow.PlannedOutputPath);
 
                         // ▼ 计算源文件信息与修改检测
                         string srcPath = previewRow.SourceImagePath;
@@ -794,7 +577,7 @@ namespace UIProbe
                                 previewRow.SourceFileName = Path.GetFileName(srcPath);
 
                                 // 验证并规范路径，防止非法字符异常
-                                string absImageFolder = RedGoldToAbsolutePath(redGoldImageSourceFolder);
+                                string absImageFolder = RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolder);
                                 string absSrc = Path.GetFullPath(srcPath);
 
                                 if (!string.IsNullOrEmpty(absImageFolder) && absSrc.StartsWith(absImageFolder, StringComparison.OrdinalIgnoreCase))
@@ -893,10 +676,10 @@ namespace UIProbe
             }
 
             string tableOutputPath = redGoldOverwriteTable
-                ? RedGoldToAbsolutePath(redGoldTablePath)
-                : RedGoldToAbsolutePath(redGoldOutputTablePath);
+                ? RedGoldPathHelper.ToAbsolutePath(redGoldTablePath)
+                : RedGoldPathHelper.ToAbsolutePath(redGoldOutputTablePath);
             if (string.IsNullOrEmpty(tableOutputPath))
-                tableOutputPath = RedGoldGetDefaultOutputTablePath();
+                tableOutputPath = RedGoldPathHelper.GetDefaultOutputTablePath(redGoldTablePath);
 
             // 构建修改摘要用于确认对话框
             int swapInBatch = selectedRows.Count(x => x.UseExistingOutput);
@@ -977,15 +760,15 @@ namespace UIProbe
                         if (redGoldTableData != null && row.RowIndex < redGoldTableData.Rows.Count)
                         {
                             var tRow = redGoldTableData.Rows[row.RowIndex];
-                            oldGridLong = RedGoldGetCell(tRow, redGoldTableData.GridLongColumn);
-                            oldGridWide = RedGoldGetCell(tRow, redGoldTableData.GridWideColumn);
+                            oldGridLong = RedGoldTableData.GetCell(tRow, redGoldTableData.GridLongColumn);
+                            oldGridWide = RedGoldTableData.GetCell(tRow, redGoldTableData.GridWideColumn);
                             oldGridCount = redGoldTableData.GridCountColumn >= 0
-                                ? RedGoldGetCell(tRow, redGoldTableData.GridCountColumn) : "";
+                                ? RedGoldTableData.GetCell(tRow, redGoldTableData.GridCountColumn) : "";
                         }
 
                         string oldIconPath = "";
                         if (redGoldTableData != null && row.RowIndex < redGoldTableData.Rows.Count && redGoldTableData.IconPathColumn >= 0)
-                            oldIconPath = RedGoldGetCell(redGoldTableData.Rows[row.RowIndex], redGoldTableData.IconPathColumn);
+                            oldIconPath = RedGoldTableData.GetCell(redGoldTableData.Rows[row.RowIndex], redGoldTableData.IconPathColumn);
 
                         undoEntries.Add(new RedGoldUndoEntry
                         {
@@ -1005,7 +788,7 @@ namespace UIProbe
                     if (saved)
                     {
                         RedGoldWriteBackRow(row);
-                        row.Status = RedGoldToTablePath(row.PlannedOutputPath);
+                        row.Status = RedGoldPathHelper.ToTablePath(row.PlannedOutputPath);
                         successCount++;
                     }
                     else
@@ -1018,7 +801,7 @@ namespace UIProbe
                     Repaint();
                 }
 
-                RedGoldWriteTable(tableOutputPath, redGoldTableData);
+                DelimitedFileParser.WriteTable(tableOutputPath, redGoldTableData);
                 AssetDatabase.Refresh();
             }
             catch (Exception e)
@@ -1036,20 +819,12 @@ namespace UIProbe
             bool anyBackups = undoEntries.Count > 0 && undoEntries.Any(e => !string.IsNullOrEmpty(e.BackupFilePath));
             if (successCount > 0 && anyBackups)
             {
-                redGoldUndoEntries = undoEntries.Where(e => !string.IsNullOrEmpty(e.BackupFilePath)).ToList();
-                redGoldUndoTableSnapshotPath = tableOutputPath;
-                int modFiles = redGoldUndoEntries.Count;
+                int modFiles = undoEntries.Count(e => !string.IsNullOrEmpty(e.BackupFilePath));
                 int newFiles = successCount - modFiles;
-                redGoldUndoDescription = $"{successCount} 个文件";
-                if (newFiles > 0) redGoldUndoDescription += $"（新增 {newFiles}）";
-                if (modFiles > 0) redGoldUndoDescription += $"（修改 {modFiles}）";
-            }
-            else
-            {
-                // 没有覆盖已有文件的场景则无需撤销
-                redGoldUndoEntries = null;
-                redGoldUndoTableSnapshotPath = "";
-                redGoldUndoDescription = "";
+                string description = $"{successCount} 个文件";
+                if (newFiles > 0) description += $"（新增 {newFiles}）";
+                if (modFiles > 0) description += $"（修改 {modFiles}）";
+                redGoldUndoManager.PushSnapshot(undoEntries, tableOutputPath, description);
             }
 
             // 清理空撤销目录
@@ -1057,7 +832,7 @@ namespace UIProbe
 
             EditorUtility.DisplayDialog("完成",
                 $"生成完成：{successCount} / {selectedRows.Count}\n表格已写入：\n{tableOutputPath}"
-                + (redGoldUndoEntries != null && redGoldUndoEntries.Count > 0
+                + (redGoldUndoManager.HasUndo
                     ? "\n\n如需恢复旧版本，请点击面板中的「撤销」按钮。"
                     : ""),
                 "确定");
@@ -1121,404 +896,6 @@ namespace UIProbe
                 .ToLowerInvariant();
         }
 
-        private RedGoldTableData RedGoldReadTable(string path)
-        {
-            string text = RedGoldReadAllText(path);
-            char delimiter = RedGoldChooseDelimiter(path, text);
-            return new RedGoldTableData
-            {
-                Delimiter = delimiter,
-                Rows = RedGoldParseDelimited(text, delimiter)
-            };
-        }
-
-        private string RedGoldReadAllText(string path)
-        {
-            byte[] bytes;
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
-            {
-                if (stream.Length > int.MaxValue)
-                    throw new IOException("表格文件过大，无法读取。");
-
-                bytes = new byte[(int)stream.Length];
-                int offset = 0;
-                while (offset < bytes.Length)
-                {
-                    int read = stream.Read(bytes, offset, bytes.Length - offset);
-                    if (read == 0) break;
-                    offset += read;
-                }
-            }
-
-            try
-            {
-                return new UTF8Encoding(false, true).GetString(bytes);
-            }
-            catch (DecoderFallbackException)
-            {
-                return Encoding.Default.GetString(bytes);
-            }
-        }
-
-        private char RedGoldChooseDelimiter(string path, string text)
-        {
-            string ext = Path.GetExtension(path).ToLowerInvariant();
-            if (ext == ".tsv") return '\t';
-
-            string firstLine = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None).FirstOrDefault() ?? "";
-            int commaCount = firstLine.Count(c => c == ',');
-            int tabCount = firstLine.Count(c => c == '\t');
-            return tabCount > commaCount ? '\t' : ',';
-        }
-
-        private List<List<string>> RedGoldParseDelimited(string text, char delimiter)
-        {
-            var rows = new List<List<string>>();
-            var row = new List<string>();
-            var field = new StringBuilder();
-            bool inQuotes = false;
-
-            for (int i = 0; i < text.Length; i++)
-            {
-                char c = text[i];
-                if (c == '"')
-                {
-                    if (inQuotes && i + 1 < text.Length && text[i + 1] == '"')
-                    {
-                        field.Append('"');
-                        i++;
-                    }
-                    else
-                    {
-                        inQuotes = !inQuotes;
-                    }
-                }
-                else if (c == delimiter && !inQuotes)
-                {
-                    row.Add(field.ToString());
-                    field.Length = 0;
-                }
-                else if ((c == '\r' || c == '\n') && !inQuotes)
-                {
-                    row.Add(field.ToString());
-                    field.Length = 0;
-                    rows.Add(row);
-                    row = new List<string>();
-                    if (c == '\r' && i + 1 < text.Length && text[i + 1] == '\n') i++;
-                }
-                else
-                {
-                    field.Append(c);
-                }
-            }
-
-            if (field.Length > 0 || row.Count > 0)
-            {
-                row.Add(field.ToString());
-                rows.Add(row);
-            }
-
-            return rows.Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
-        }
-
-        private void RedGoldWriteTable(string path, RedGoldTableData table)
-        {
-            string dir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(dir))
-                Directory.CreateDirectory(dir);
-
-            var sb = new StringBuilder();
-            foreach (List<string> row in table.Rows)
-            {
-                for (int i = 0; i < row.Count; i++)
-                {
-                    if (i > 0) sb.Append(table.Delimiter);
-                    sb.Append(RedGoldEscapeCell(row[i], table.Delimiter));
-                }
-                sb.AppendLine();
-            }
-
-            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
-        }
-
-        private string RedGoldEscapeCell(string cell, char delimiter)
-        {
-            cell = cell ?? "";
-            if (cell.IndexOfAny(new[] { delimiter, '"', '\r', '\n' }) < 0)
-                return cell;
-
-            return "\"" + cell.Replace("\"", "\"\"") + "\"";
-        }
-
-        /// <summary>
-        /// 撤销最近一次生成操作：恢复所有被覆盖的文件和表格数据
-        /// </summary>
-        private void RedGoldUndoLastOperation()
-        {
-            if (redGoldUndoEntries == null || redGoldUndoEntries.Count == 0)
-            {
-                EditorUtility.DisplayDialog("提示", "没有可撤销的操作。", "确定");
-                return;
-            }
-
-            int restoredFileCount = 0;
-            int restoredTableCount = 0;
-
-            try
-            {
-                // 1. 恢复文件
-                foreach (var entry in redGoldUndoEntries)
-                {
-                    if (!string.IsNullOrEmpty(entry.BackupFilePath) && File.Exists(entry.BackupFilePath)
-                        && !string.IsNullOrEmpty(entry.OriginalOutputPath))
-                    {
-                        File.Copy(entry.BackupFilePath, entry.OriginalOutputPath, overwrite: true);
-                        restoredFileCount++;
-                    }
-                }
-
-                // 2. 恢复表格数据
-                if (!string.IsNullOrEmpty(redGoldUndoTableSnapshotPath) && File.Exists(redGoldUndoTableSnapshotPath)
-                    && redGoldTableData != null)
-                {
-                    foreach (var entry in redGoldUndoEntries)
-                    {
-                        var tRow = redGoldTableData.Rows[entry.TableRowIndex];
-                        RedGoldSetCell(tRow, redGoldTableData.IconPathColumn, entry.OldIconPath);
-                        if (redGoldOverrideGrid)
-                        {
-                            RedGoldSetCell(tRow, redGoldTableData.GridLongColumn, entry.OldCellGridLong);
-                            RedGoldSetCell(tRow, redGoldTableData.GridWideColumn, entry.OldCellGridWide);
-                            if (redGoldTableData.GridCountColumn >= 0)
-                                RedGoldSetCell(tRow, redGoldTableData.GridCountColumn, entry.OldCellGridCount);
-                        }
-                        restoredTableCount++;
-                    }
-
-                    RedGoldWriteTable(redGoldUndoTableSnapshotPath, redGoldTableData);
-                }
-
-                // 3. 刷新编辑器
-                AssetDatabase.Refresh();
-
-                // 4. 清理撤销状态
-                string undoDir = redGoldUndoEntries.Count > 0
-                    ? Path.GetDirectoryName(redGoldUndoEntries[0].BackupFilePath)
-                    : "";
-                redGoldUndoEntries = null;
-                redGoldUndoTableSnapshotPath = "";
-                redGoldUndoDescription = "";
-
-                // 5. 删除备份目录
-                if (!string.IsNullOrEmpty(undoDir) && Directory.Exists(undoDir))
-                {
-                    try { Directory.Delete(undoDir, recursive: true); } catch { }
-                }
-
-                // 6. 重新加载预览以刷新状态
-                RedGoldLoadPreview();
-
-                EditorUtility.DisplayDialog("撤销完成",
-                    $"已恢复 {restoredFileCount} 个文件，{restoredTableCount} 行表格数据。\n请检查结果是否满足预期。",
-                    "确定");
-            }
-            catch (Exception e)
-            {
-                EditorUtility.DisplayDialog("撤销失败",
-                    $"撤销过程中发生错误：\n{e.Message}\n\n部分文件可能已恢复，部分可能未恢复。请手动检查。",
-                    "确定");
-            }
-        }
-
-        /// <summary>
-        /// 构建图片文件名→路径映射，同名文件自动保留最后修改时间最新的那个
-        /// </summary>
-        /// <param name="folder">图片文件夹路径</param>
-        /// <param name="duplicateWarnings">输出：所有被忽略的重复文件列表（可用于弹窗提示）</param>
-        private Dictionary<string, string> RedGoldBuildImageMap(string folder, out List<string> duplicateWarnings)
-        {
-            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var dups = new List<string>();
-            SearchOption option = redGoldIncludeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            string[] extensions = { "*.png", "*.jpg", "*.jpeg" };
-            foreach (string pattern in extensions)
-            {
-                foreach (string file in Directory.GetFiles(folder, pattern, option))
-                {
-                    string key = Path.GetFileNameWithoutExtension(file);
-                    DateTime fileTime = File.GetLastWriteTime(file);
-
-                    if (!result.ContainsKey(key))
-                    {
-                        result.Add(key, file);
-                    }
-                    else
-                    {
-                        // 同名文件冲突 → 保留最新修改的那个
-                        string existingPath = result[key];
-                        DateTime existingTime = File.GetLastWriteTime(existingPath);
-
-                        string existingRel = RedGoldToTablePath(existingPath);
-                        string newRel = RedGoldToTablePath(file);
-                        string existingTimeStr = existingTime.ToString("yyyy-MM-dd HH:mm:ss");
-                        string newTimeStr = fileTime.ToString("yyyy-MM-dd HH:mm:ss");
-
-                        if (fileTime > existingTime)
-                        {
-                            // 新文件更新 → 替换
-                            dups.Add($"  [{key}] 新版本: {newRel} ({newTimeStr}) → 覆盖旧版本: {existingRel} ({existingTimeStr})");
-                            result[key] = file;
-                        }
-                        else if (fileTime == existingTime)
-                        {
-                            // 时间相同 → 按路径字母序保持稳定
-                            dups.Add($"  [{key}] 修改时间相同，保留: {existingRel}，忽略: {newRel}");
-                        }
-                        else
-                        {
-                            // 新文件更旧 → 保留现有
-                            dups.Add($"  [{key}] 保留: {existingRel} ({existingTimeStr})，忽略旧版: {newRel} ({newTimeStr})");
-                        }
-                    }
-                }
-            }
-
-            duplicateWarnings = dups;
-            return result;
-        }
-
-        /// <summary>
-        /// 从源文件夹或旧路径查找匹配的源图片
-        /// 匹配优先级：源文件夹(按图标文件名) > 源文件夹(按名称列) > 旧表格路径(兜底)
-        /// </summary>
-        private string RedGoldFindSourceImage(Dictionary<string, string> imageMap, string name, string iconPath)
-        {
-            // ① 优先从源文件夹查找：按表格图标路径列的文件名匹配
-            //    这样新放入源文件夹的图片会覆盖旧输出路径
-            if (!string.IsNullOrEmpty(iconPath))
-            {
-                string iconName = Path.GetFileNameWithoutExtension(iconPath);
-                if (!string.IsNullOrEmpty(iconName) && imageMap.TryGetValue(iconName, out string iconMatchPath))
-                    return iconMatchPath;
-            }
-
-            // ② 从源文件夹查找：按表格名称列匹配
-            if (!string.IsNullOrEmpty(name))
-            {
-                if (imageMap.TryGetValue(name, out string exactPath)) return exactPath;
-
-                string normalizedName = RedGoldNormalizeFileKey(name);
-                foreach (var pair in imageMap)
-                {
-                    if (RedGoldNormalizeFileKey(pair.Key) == normalizedName)
-                        return pair.Value;
-                }
-            }
-
-            // ③ 兜底：源文件夹找不到时，才用旧表格路径（已有输出文件）
-            //    这样不会因为旧输出还存在就跳过新资源
-            if (!string.IsNullOrEmpty(iconPath))
-            {
-                string absoluteIconPath = RedGoldToAbsolutePath(iconPath);
-                if (!string.IsNullOrEmpty(absoluteIconPath) && File.Exists(absoluteIconPath))
-                    return absoluteIconPath;
-            }
-
-            return "";
-        }
-
-        private string RedGoldGetOutputFileNameFromIconPath(string iconPath)
-        {
-            if (string.IsNullOrEmpty(iconPath)) return "";
-
-            string fileName = Path.GetFileName(iconPath.Replace('\\', '/'));
-            if (string.IsNullOrEmpty(fileName)) return "";
-
-            string extension = Path.GetExtension(fileName);
-            if (string.IsNullOrEmpty(extension))
-                fileName += ".png";
-            else if (!string.Equals(extension, ".png", StringComparison.OrdinalIgnoreCase))
-                fileName = Path.GetFileNameWithoutExtension(fileName) + ".png";
-
-            return fileName;
-        }
-
-        private string RedGoldBuildRedOutputFileName(string displayName)
-        {
-            string pinyin = RedGoldGetSemanticPinyin(displayName);
-            return string.IsNullOrEmpty(pinyin) ? "" : $"T_Icon_Red_{pinyin}.png";
-        }
-
-        private string RedGoldGetSemanticPinyin(string displayName)
-        {
-            string key = RedGoldNormalizeSemanticName(displayName);
-            if (!string.IsNullOrEmpty(key) && RedGoldSemanticNameMap.TryGetValue(key, out string semanticName))
-                return semanticName;
-
-            return RedGoldToShortPinyin(displayName);
-        }
-
-        private string RedGoldNormalizeSemanticName(string displayName)
-        {
-            if (string.IsNullOrEmpty(displayName)) return "";
-
-            var builder = new StringBuilder();
-            foreach (char c in displayName)
-            {
-                if (RedGoldIsCjk(c) || char.IsLetterOrDigit(c))
-                    builder.Append(c);
-            }
-
-            return builder.ToString();
-        }
-
-        private string RedGoldToShortPinyin(string displayName)
-        {
-            if (string.IsNullOrEmpty(displayName)) return "";
-
-            var builder = new StringBuilder();
-            bool capitalizeNextAscii = true;
-            foreach (char c in displayName)
-            {
-                if (RedGoldPinyinMap.TryGetValue(c, out string pinyin))
-                {
-                    builder.Append(pinyin);
-                    capitalizeNextAscii = true;
-                }
-                else if (c >= 'a' && c <= 'z')
-                {
-                    builder.Append(capitalizeNextAscii ? char.ToUpperInvariant(c) : c);
-                    capitalizeNextAscii = false;
-                }
-                else if (c >= 'A' && c <= 'Z')
-                {
-                    builder.Append(c);
-                    capitalizeNextAscii = false;
-                }
-                else if (c >= '0' && c <= '9')
-                {
-                    builder.Append(c);
-                    capitalizeNextAscii = false;
-                }
-                else if (RedGoldIsCjk(c))
-                {
-                    builder.Append("X");
-                    capitalizeNextAscii = true;
-                }
-                else
-                {
-                    capitalizeNextAscii = true;
-                }
-            }
-
-            return builder.ToString();
-        }
-
-        private bool RedGoldIsCjk(char c)
-        {
-            return c >= 0x4E00 && c <= 0x9FFF;
-        }
-
         private string RedGoldBuildPreviewProblemSummary()
         {
             if (redGoldPreviewRows.Count == 0)
@@ -1534,11 +911,6 @@ namespace UIProbe
                 return "";
 
             return "\n\n问题汇总：\n" + string.Join("\n", groups);
-        }
-
-        private string RedGoldNormalizeFileKey(string value)
-        {
-            return (value ?? "").Trim().Replace(" ", "").ToLowerInvariant();
         }
 
         private void RedGoldValidatePreviewRow(RedGoldImportRow row)
@@ -1572,9 +944,9 @@ namespace UIProbe
         private string RedGoldGetQualityFolder(string quality)
         {
             string q = (quality ?? "").Trim().ToLowerInvariant();
-            if (RedGoldIsRedQuality(quality)) return RedGoldToAbsolutePath(redGoldRedOutputFolder);
-            if (q.Contains("紫") || q.Contains("purple")) return RedGoldToAbsolutePath(redGoldPurpleOutputFolder);
-            if (q.Contains("金") || q.Contains("gold")) return RedGoldToAbsolutePath(redGoldGoldOutputFolder);
+            if (RedGoldIsRedQuality(quality)) return RedGoldPathHelper.ToAbsolutePath(redGoldRedOutputFolder);
+            if (q.Contains("紫") || q.Contains("purple")) return RedGoldPathHelper.ToAbsolutePath(redGoldPurpleOutputFolder);
+            if (q.Contains("金") || q.Contains("gold")) return RedGoldPathHelper.ToAbsolutePath(redGoldGoldOutputFolder);
             return "";
         }
 
@@ -1608,95 +980,20 @@ namespace UIProbe
             return 0;
         }
 
-        private string RedGoldGetCell(List<string> row, int index)
-        {
-            if (index < 0 || index >= row.Count) return "";
-            return row[index] ?? "";
-        }
-
-        private void RedGoldSetCell(List<string> row, int index, string value)
-        {
-            while (row.Count <= index) row.Add("");
-            row[index] = value ?? "";
-        }
 
         private void RedGoldWriteBackRow(RedGoldImportRow row)
         {
             List<string> tableRow = redGoldTableData.Rows[row.RowIndex];
             if (redGoldOverrideGrid)
             {
-                RedGoldSetCell(tableRow, redGoldTableData.GridLongColumn, row.GridLong.ToString());
-                RedGoldSetCell(tableRow, redGoldTableData.GridWideColumn, row.GridWide.ToString());
+                RedGoldTableData.SetCell(tableRow, redGoldTableData.GridLongColumn, row.GridLong.ToString());
+                RedGoldTableData.SetCell(tableRow, redGoldTableData.GridWideColumn, row.GridWide.ToString());
                 if (redGoldTableData.GridCountColumn >= 0)
-                    RedGoldSetCell(tableRow, redGoldTableData.GridCountColumn, (row.GridLong * row.GridWide).ToString());
+                    RedGoldTableData.SetCell(tableRow, redGoldTableData.GridCountColumn, (row.GridLong * row.GridWide).ToString());
             }
-            RedGoldSetCell(tableRow, redGoldTableData.IconPathColumn, RedGoldToTablePath(row.PlannedOutputPath));
+            RedGoldTableData.SetCell(tableRow, redGoldTableData.IconPathColumn, RedGoldPathHelper.ToTablePath(row.PlannedOutputPath));
         }
 
-        private string RedGoldToTablePath(string absolutePath)
-        {
-            if (string.IsNullOrEmpty(absolutePath)) return "";
-
-            string full = Path.GetFullPath(absolutePath).Replace('\\', '/');
-            string dataPath = Application.dataPath.Replace('\\', '/');
-            if (full.StartsWith(dataPath, StringComparison.OrdinalIgnoreCase))
-                return "Assets" + full.Substring(dataPath.Length);
-
-            return full;
-        }
-
-        private string RedGoldToAbsolutePath(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return "";
-
-            string normalized = path.Replace('\\', '/').Trim();
-            if (string.IsNullOrEmpty(normalized)) return "";
-            if (Path.IsPathRooted(normalized))
-                return normalized;
-
-            if (normalized.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase) || normalized == "Assets")
-            {
-                string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-                return Path.Combine(projectRoot, normalized);
-            }
-
-            return Path.GetFullPath(normalized);
-        }
-
-        private string RedGoldGetDefaultOutputTablePath()
-        {
-            string tablePath = RedGoldToAbsolutePath(redGoldTablePath);
-            if (string.IsNullOrEmpty(tablePath)) return "";
-            string dir = Path.GetDirectoryName(tablePath);
-            string name = Path.GetFileNameWithoutExtension(tablePath);
-            string ext = Path.GetExtension(tablePath);
-            return Path.Combine(dir, $"{name}_导入结果{ext}");
-        }
-
-        private string RedGoldGetDefaultOutputTableName()
-        {
-            string tablePath = RedGoldToAbsolutePath(redGoldTablePath);
-            if (string.IsNullOrEmpty(tablePath)) return "导入结果" + RedGoldGetTableExtension();
-            return Path.GetFileNameWithoutExtension(tablePath) + "_导入结果";
-        }
-
-        private string RedGoldGetTableExtension()
-        {
-            string ext = Path.GetExtension(redGoldTablePath);
-            if (string.IsNullOrEmpty(ext)) return "csv";
-            return ext.TrimStart('.');
-        }
-
-        private string RedGoldGetExistingDirectory(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return "";
-            string absolute = RedGoldToAbsolutePath(path);
-            if (string.IsNullOrEmpty(absolute)) return "";
-            if (Directory.Exists(absolute)) return absolute;
-
-            string directory = Path.GetDirectoryName(absolute);
-            return !string.IsNullOrEmpty(directory) && Directory.Exists(directory) ? directory : "";
-        }
 
         private void DrawRedGoldTextField(string label, ref string value)
         {
@@ -1713,7 +1010,7 @@ namespace UIProbe
             value = EditorGUILayout.TextField(value);
             if (GUILayout.Button("📁", GUILayout.Width(28)))
             {
-                string p = EditorUtility.OpenFolderPanel("选择生成资源路径", RedGoldToAbsolutePath(value), "");
+                string p = EditorUtility.OpenFolderPanel("选择生成资源路径", RedGoldPathHelper.ToAbsolutePath(value), "");
                 if (!string.IsNullOrEmpty(p)) value = p;
             }
             GUILayout.EndHorizontal();
@@ -1722,7 +1019,7 @@ namespace UIProbe
         private void RedGoldPingPath(string absolutePath)
         {
             if (string.IsNullOrEmpty(absolutePath)) return;
-            string assetPath = RedGoldToTablePath(absolutePath);
+            string assetPath = RedGoldPathHelper.ToTablePath(absolutePath);
             if (assetPath.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
             {
                 var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);

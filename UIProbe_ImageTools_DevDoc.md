@@ -1,8 +1,8 @@
 # UIProbe 图片工具模块开发文档
 
-> 适用版本：UIProbe v3.4+
+> 适用版本：UIProbe v3.5+
 > 涵盖模块：图片规范化（Image Normalizer）· 批量命名（Batch Rename）· 大红大金资源修改导入（Red/Gold Resource Importer）
-> 最后更新：2026-05
+> 最后更新：2026-06
 
 ---
 
@@ -52,15 +52,22 @@
 UIProbe/
 ├── UIProbeWindow_ImageNormalizer.cs    图片规范化 UI + 业务逻辑
 ├── UIProbeWindow_ImageRenamer.cs       批量命名 UI + 业务逻辑
-├── UIProbeWindow_RedGoldImporter.cs    大红大金资源修改导入 UI + 业务逻辑
+├── UIProbeWindow_RedGoldImporter.cs    大红大金资源修改导入 UI + 业务逻辑（~1091 行）
 │
 └── Data/
     ├── ImageNormalizer.cs              图片处理算法（缩放、裁切、画布操作）
     ├── ImageRenameLogManager.cs        批量命名操作日志管理
+    ├── DelimitedFileParser.cs          通用 CSV/TSV 分隔文件读写器
+    ├── RedGoldDataTypes.cs             大红大金数据类（枚举、导入行、撤销条目等）
+    ├── RedGoldPathHelper.cs            路径转换工具（绝对路径 ↔ Assets 相对路径）
+    ├── RedGoldNamingState.cs           文件名自动编号分配引擎
+    ├── RedGoldNameConverter.cs         拼音/语义命名转换器
+    ├── RedGoldUndoManager.cs           栈式多级撤销管理器（最多 10 层）
+    ├── RedGoldImageMatcher.cs          图片映射构建与源文件匹配
     └── UIProbeConfig.cs                配置数据类（含图片工具模块的持久化字段）
 ```
 
-**命名空间级数据类**（定义在对应 `.cs` 文件顶部，`partial class` 之外）：
+**命名空间级数据类**（定义在对应 `.cs` 文件中，独立于 `partial class`）：
 
 | 类名 | 所在文件 | 用途 |
 |------|----------|------|
@@ -69,6 +76,13 @@ UIProbe/
 | `NormalizerSizeGroup` | ImageNormalizer UI | 按分辨率聚合的分组 |
 | `RenamePreviewItem` | ImageRenamer UI | 单条重命名预览（原名、新名、冲突状态） |
 | `ImageRenameLogItem` | ImageRenameLogManager | CSV 日志条目 |
+| `ModificationStatus` (enum) | RedGoldDataTypes | 预览行变更状态（新增/已修改/无变化/未知） |
+| `RedGoldUndoEntry` | RedGoldDataTypes | 覆盖生成前的撤销记录，保存备份路径与表格旧值 |
+| `RedGoldImportRow` | RedGoldDataTypes | 单行导入预览数据（名称、品质、格数、源图、输出路径、状态等） |
+| `UnmatchedSourceInfo` | RedGoldDataTypes | 源目录中未被表格匹配到的图片信息 |
+| `RedGoldTableData` | RedGoldDataTypes | 表格解析结果（分隔符、行数据、列索引），含 `GetCell`/`SetCell` 静态方法 |
+| `RedGoldNamingState` | RedGoldNamingState | 文件名自动编号分配引擎，延续目录命名序号并避免重名 |
+| `RedGoldUndoSnapshot` | RedGoldUndoManager | 单次生成操作的撤销快照（条目列表、表格路径、备份目录） |
 
 ---
 
@@ -449,7 +463,31 @@ public class BatchRenameConfig
 
 ## 5. 大红大金资源修改导入模块
 
-### 5.1 数据类
+### 5.1 架构概览
+
+v3.5.0 重构后，原 1794 行的巨型文件拆分为 **1 个 UI 层文件 + 7 个 Data 层文件**：
+
+```
+UI 层（UIProbeWindow_RedGoldImporter.cs, ~1091 行）
+├── 状态字段（路径、折叠状态、滚动位置等）
+├── Draw* 方法（EditorGUI 绘制）
+├── 编排方法（RedGoldLoadPreview / RedGoldGenerateAndWriteTable）
+├── 读取 UI 状态的小方法（GetQualityFolder / ComputeOutputSize 等）
+└── Config 持久化（Apply/Collect）
+
+Data 层（UIProbe/Data/）
+├── RedGoldDataTypes.cs          数据类 + GetCell/SetCell
+├── RedGoldPathHelper.cs         路径转换（绝对 ↔ Assets 相对）
+├── DelimitedFileParser.cs       通用 CSV/TSV 读写
+├── RedGoldNamingState.cs        文件名自动编号引擎
+├── RedGoldNameConverter.cs      拼音/语义命名转换
+├── RedGoldUndoManager.cs        栈式多级撤销（最多 10 层）
+└── RedGoldImageMatcher.cs       图片映射构建 + 源文件匹配
+```
+
+**依赖关系**：UI 层调用 Data 层，Data 层之间仅 `RedGoldImageMatcher` → `RedGoldPathHelper`、`RedGoldUndoManager` → `DelimitedFileParser` + `RedGoldTableData` 存在依赖。
+
+### 5.2 数据类（`RedGoldDataTypes.cs`）
 
 | 类名 | 用途 |
 |------|------|
@@ -457,10 +495,91 @@ public class BatchRenameConfig
 | `RedGoldUndoEntry` | 覆盖生成前的撤销记录，保存备份文件路径与表格旧值 |
 | `RedGoldImportRow` | 单行导入预览数据，包含表格行号、名称、品质、格数、源图、输出目录、计划路径、变更状态和可编辑输出文件名 |
 | `UnmatchedSourceInfo` | 源目录中未被表格匹配到的图片信息 |
-| `RedGoldTableData` | 表格解析结果，保存分隔符、全部行数据以及关键列索引 |
-| `RedGoldNamingState` | 输出文件名分配状态，用于延续目录中已有命名序号并避免重名 |
+| `RedGoldTableData` | 表格解析结果，保存分隔符、全部行数据以及关键列索引；提供 `GetCell`/`SetCell` 静态方法 |
 
-### 5.2 UI 状态字段
+### 5.3 CSV/TSV 解析器（`DelimitedFileParser.cs`）
+
+通用分隔文件读写器，支持 RFC-4180 引号规则：
+
+```csharp
+// 读取（自动识别逗号/Tab 分隔符，UTF-8 优先、系统默认编码兜底）
+RedGoldTableData ReadTable(string path)
+
+// 写回（UTF-8 无 BOM）
+void WriteTable(string path, RedGoldTableData table)
+```
+
+内部方法：`ReadAllText`、`ChooseDelimiter`、`ParseDelimited`、`EscapeCell`。
+
+### 5.4 路径工具（`RedGoldPathHelper.cs`）
+
+```csharp
+static string ToTablePath(string absolutePath)        // 绝对路径 → "Assets/..." 相对路径
+static string ToAbsolutePath(string path)             // Assets/相对路径 → 绝对路径
+static string GetDefaultOutputTablePath(string tablePath)  // 生成 "{name}_导入结果{ext}" 路径
+static string GetDefaultOutputTableName(string tablePath)  // 同上，仅文件名
+static string GetTableExtension(string tablePath)          // 获取扩展名，默认 csv
+static string GetExistingDirectory(string path)            // 查找最近的已存在祖先目录
+```
+
+### 5.5 命名系统
+
+#### `RedGoldNamingState` — 文件名自动编号引擎
+
+检测目录中已有的命名模式（如 `icon_001.png`、`icon_002.png`），自动递增编号避免冲突：
+
+```csharp
+RedGoldNamingState.Create(folder)     // 扫描目录，检测命名模式
+state.Allocate(folder, fallbackName)  // 分配下一个文件名
+state.ReserveFileName(fileName)       // 预留文件名（防冲突）
+state.ReservePreferred(folder, name)  // 尝试使用首选名称，冲突时加后缀
+```
+
+#### `RedGoldNameConverter` — 拼音/语义命名转换
+
+红品质资源专用命名：中文名 → `T_Icon_Red_{拼音}.png`
+
+- 内置 ~60 字拼音映射表 + 8 条语义覆盖（如"铁球先生" → `TieQiuXianSheng`）
+- 未映射的 CJK 字符输出 "X"，ASCII 字符保持原样
+
+```csharp
+static string BuildRedOutputFileName(string displayName)  // "火锅神像" → "T_Icon_Red_HuoGuoShenXiang.png"
+static string GetOutputFileNameFromIconPath(string iconPath)  // 从路径提取文件名，确保 .png 扩展名
+```
+
+### 5.6 图片匹配器（`RedGoldImageMatcher.cs`）
+
+```csharp
+// 构建文件名→路径映射，同名文件自动保留最新版本
+static Dictionary<string,string> BuildImageMap(string folder, bool includeSubfolders, out List<string> duplicateWarnings)
+
+// 三级查找：图标文件名 → 名称列 → 旧表格路径（兜底）
+static string FindSourceImage(Dictionary<string,string> imageMap, string name, string iconPath)
+```
+
+### 5.7 撤销管理器（`RedGoldUndoManager.cs`）— 栈式多级
+
+v3.5.0 从单级撤销升级为栈式多级（最多 10 层）：
+
+```csharp
+// 压入快照（超限自动清理最旧备份目录）
+void PushSnapshot(List<RedGoldUndoEntry> entries, string tablePath, string description)
+
+// 弹出栈顶并恢复文件和表格数据
+UndoResult TryUndo(RedGoldTableData tableData, bool overrideGrid)
+
+// UI 展示属性
+bool HasUndo           // 是否有可撤销操作
+string CurrentDescription  // 栈顶操作描述
+int EntryCount         // 栈顶操作涉及的文件数
+int StackDepth         // 当前栈深度
+```
+
+`UndoResult` 包含 `Success`、`RestoredFileCount`、`RestoredTableCount`、`Error` 字段。
+
+**存储路径**：`{UIProbeStorage.GetMainFolderPath()}/RedGoldUndo/{yyyyMMdd_HHmmss}/`
+
+### 5.8 UI 状态字段
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -475,34 +594,36 @@ public class BatchRenameConfig
 | `redGoldMaxOutputEdge` | int | 1:1 到 6:6 正方形资源的统一边长 |
 | `redGoldRedOutputFolder` / `redGoldPurpleOutputFolder` / `redGoldGoldOutputFolder` | string | 红、紫、金品质输出目录 |
 | `redGoldOverwriteTable` / `redGoldOutputTablePath` | bool / string | 表格覆盖或另存配置 |
-| `redGoldUnmatchedSources` | List | 源目录中未匹配到表格行的图片列表 |
-| `redGoldUndoEntries` / `redGoldUndoTableSnapshotPath` | List / string | 最近一次覆盖生成的撤销数据 |
-| `redGoldFoldReplaceable` / `redGoldFoldMissing` / `redGoldFoldUnmatched` | bool | 可替换、未找到、未匹配三个预览分组的折叠状态 |
+| `redGoldUndoManager` | RedGoldUndoManager | 栈式多级撤销管理器实例 |
+| `redGoldFoldReplaceable` / `redGoldFoldMissing` / `redGoldFoldUnmatched` | bool | 三个预览分组的折叠状态 |
 
-### 5.3 处理流程
+### 5.9 处理流程
 
 ```
 选择表格和图片目录
   ↓
 RedGoldLoadPreview()
-  ├── RedGoldReadTableText()       读取 UTF-8，失败时回退系统默认编码
-  ├── RedGoldChooseDelimiter()     根据扩展名和首行判断 CSV / TSV
-  ├── RedGoldParseDelimited()      解析带引号的分隔文本
-  ├── RedGoldBuildImageMap()       建立源图文件名索引，同名文件保留最新修改版本
-  ├── RedGoldFindSourceImage()     优先按图标文件名和名称匹配源图，再回退旧图标路径
-  ├── RedGoldValidatePreviewRow()  标记缺图、格数无效、品质路径未配置等问题
+  ├── DelimitedFileParser.ReadTable()   读取 CSV/TSV
+  ├── RedGoldResolveColumns()           匹配表头列名
+  ├── RedGoldImageMatcher.BuildImageMap()  建立源图文件名索引
+  ├── RedGoldImageMatcher.FindSourceImage()  按图标文件名/名称匹配源图
+  ├── RedGoldValidatePreviewRow()       标记缺图、格数无效等问题
+  ├── RedGoldNamingState / RedGoldNameConverter  分配输出文件名
   └── 收集未匹配源图并展示在独立预览分组
   ↓
 RedGoldGenerateAndWriteTable()
-  ├── 生成前备份已有输出文件，记录表格旧值用于撤销
-  ├── 生成透明画布并等比适配源图
+  ├── 生成前备份已有输出文件，记录表格旧值
+  ├── ImageNormalizer.Normalize()       等比适配到目标画布
   ├── 按品质输出到红/紫/金目录
-  ├── RedGoldWriteBackRow()        回写图标路径和可选格数
-  ├── RedGoldWriteTable()          覆盖原表或另存结果表
-  └── RedGoldUndoLastOperation()   可恢复最近一次覆盖生成的文件和表格数据
+  ├── RedGoldWriteBackRow()             回写图标路径和可选格数
+  ├── DelimitedFileParser.WriteTable()  覆盖原表或另存结果表
+  └── redGoldUndoManager.PushSnapshot()  压入撤销栈
+  ↓
+↩ 撤销（UI 按钮，显示栈深度）
+  └── redGoldUndoManager.TryUndo()      恢复文件 + 表格数据 + AssetDatabase.Refresh
 ```
 
-### 5.4 配置持久化
+### 5.10 配置持久化
 
 配置类：`RedGoldResourceImporterConfig`（位于 `UIProbeConfig.cs`）
 
@@ -534,6 +655,8 @@ UIProbe/（主目录，默认在 AppData）
 ├── ImageRenameLogs/        批量命名操作日志
 │   └── yyyy-MM-dd/
 │       └── ImageRename_HHmmss.csv
+├── RedGoldUndo/            大红大金撤销备份
+│   └── yyyyMMdd_HHmmss/    每次生成操作的旧文件备份
 └── Settings/
     └── config.json         所有配置的统一持久化文件
 ```

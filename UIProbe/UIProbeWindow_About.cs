@@ -68,14 +68,14 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v3.4.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v3.5.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
-            
-            EditorGUILayout.LabelField("• 大红大金资源修改导入 (Red/Gold Resource Importer)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - CSV/TSV 表格驱动，按红/紫/金品质分流并回写图标路径", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 预览区区分新增/修改/无变化，自动处理同名源图取最新版本", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 支持输出文件名编辑、覆盖前备份与一键撤销", EditorStyles.miniLabel);
-            
+
+            EditorGUILayout.LabelField("• 大红大金模块架构重构", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 1794行巨型文件拆分为 1 个 UI 层 + 7 个 Data 层独立类", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 撤销系统从单级升级为栈式多级（最多 10 层）", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - CSV 解析、拼音命名、图片匹配等逻辑模块化，方便后续扩展", EditorStyles.miniLabel);
+
             EditorGUILayout.EndVertical();
             
             EditorGUILayout.Space(15);
