@@ -1,6 +1,6 @@
 # UIProbe 图片工具模块开发文档
 
-> 适用版本：UIProbe v3.5+
+> 适用版本：UIProbe v3.6+
 > 涵盖模块：图片规范化（Image Normalizer）· 批量命名（Batch Rename）· 大红大金资源修改导入（Red/Gold Resource Importer）
 > 最后更新：2026-06
 
@@ -52,7 +52,7 @@
 UIProbe/
 ├── UIProbeWindow_ImageNormalizer.cs    图片规范化 UI + 业务逻辑
 ├── UIProbeWindow_ImageRenamer.cs       批量命名 UI + 业务逻辑
-├── UIProbeWindow_RedGoldImporter.cs    大红大金资源修改导入 UI + 业务逻辑（~1091 行）
+├── UIProbeWindow_RedGoldImporter.cs    大红大金资源修改导入 UI + 业务逻辑（~1400 行）
 │
 └── Data/
     ├── ImageNormalizer.cs              图片处理算法（缩放、裁切、画布操作）
@@ -64,6 +64,8 @@ UIProbe/
     ├── RedGoldNameConverter.cs         拼音/语义命名转换器
     ├── RedGoldUndoManager.cs           栈式多级撤销管理器（最多 10 层）
     ├── RedGoldImageMatcher.cs          图片映射构建与源文件匹配
+    ├── RedGoldPresetManager.cs          预设系统（保存/加载/删除配置）
+    ├── ExcelFileParser.cs              零依赖 .xlsx 读取器
     └── UIProbeConfig.cs                配置数据类（含图片工具模块的持久化字段）
 ```
 
@@ -83,6 +85,8 @@ UIProbe/
 | `RedGoldTableData` | RedGoldDataTypes | 表格解析结果（分隔符、行数据、列索引），含 `GetCell`/`SetCell` 静态方法 |
 | `RedGoldNamingState` | RedGoldNamingState | 文件名自动编号分配引擎，延续目录命名序号并避免重名 |
 | `RedGoldUndoSnapshot` | RedGoldUndoManager | 单次生成操作的撤销快照（条目列表、表格路径、备份目录） |
+| `QualityConfigEntry` | RedGoldDataTypes | 品质配置条目（关键字、路径、命名模板、拼音开关） |
+| `RedGoldPreset` | RedGoldPresetManager | 预设数据（品质列表、格数规则、尺寸参数） |
 
 ---
 

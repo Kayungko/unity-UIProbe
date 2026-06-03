@@ -68,13 +68,30 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v3.5.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("最新更新 (v3.6.0)", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
 
-            EditorGUILayout.LabelField("• 大红大金模块架构重构", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 1794行巨型文件拆分为 1 个 UI 层 + 7 个 Data 层独立类", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 撤销系统从单级升级为栈式多级（最多 10 层）", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - CSV 解析、拼音命名、图片匹配等逻辑模块化，方便后续扩展", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 品质可配置化 + 栈式多级撤销持久化 + 预览缩略图", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 可动态增删品质条目，每个品质独立配置关键字/路径/命名模板", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 撤销栈持久化到磁盘，重启 Unity 后仍可撤销，最多 10 层", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 预览列表每行 32x32 缩略图，项目内用 AssetPreview", EditorStyles.miniLabel);
+
+            EditorGUILayout.LabelField("• 命名模板扩展 + 预设系统 + 增量生成", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 模板支持 {Name}/{Pinyin}/{Seq:3}/{Quality} 变量", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 配置预设保存/加载/删除，多项目间复用", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - "仅变更行"/"清除未变更"按钮，生成按钮显示变更数量", EditorStyles.miniLabel);
+
+            EditorGUILayout.LabelField("• 行内编辑 + 冲突预警 + 批量操作栏", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 双击编辑名称、下拉改品质、批量前缀/后缀/替换", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 同源冲突/目标冲突自动检测，黄色背景标记", EditorStyles.miniLabel);
+
+            EditorGUILayout.LabelField("• 多源文件夹 + Excel 解析 + 资源引用联动", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持多个源文件夹按优先级匹配，零外部依赖读取 .xlsx", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 生成后自动扫描受影响的预制体并弹窗展示", EditorStyles.miniLabel);
+
+            EditorGUILayout.LabelField("• 后台分帧生成 + 差异报告", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - EditorApplication.update 分帧处理，编辑器不再卡死", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 支持取消按钮，生成 Markdown 差异报告", EditorStyles.miniLabel);
 
             EditorGUILayout.EndVertical();
             
