@@ -817,7 +817,7 @@ namespace UIProbe
                 GUI.backgroundColor = new Color(0.7f, 0.9f, 1f);
             }
             
-            renameInputs[obj] = EditorGUILayout.TextField(renameInputs[obj], GUILayout.Width(200));
+            renameInputs[obj] = EditorGUILayout.TextField(renameInputs[obj], GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             
             GUI.backgroundColor = Color.white;
             
@@ -1556,7 +1556,7 @@ namespace UIProbe
             }
             
             // 预制体名称
-            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.Width(200));
+            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             
             if (GUILayout.Button("📍 定位", EditorStyles.miniButton, GUILayout.Width(60)))
             {
@@ -1590,7 +1590,7 @@ namespace UIProbe
             // 其他信息
             GUILayout.BeginHorizontal();
             GUILayout.Space(20);
-            EditorGUILayout.LabelField($"RenderMode: {info.RenderMode}", EditorStyles.miniLabel, GUILayout.Width(250));
+            EditorGUILayout.LabelField($"RenderMode: {info.RenderMode}", EditorStyles.miniLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             EditorGUILayout.LabelField($"SortOrder: {info.SortingOrder}", EditorStyles.miniLabel);
             GUILayout.EndHorizontal();
             

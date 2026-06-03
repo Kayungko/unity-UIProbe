@@ -326,11 +326,11 @@ namespace UIProbe
             }
             
             // 预制体名称
-            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.Width(250));
-            
+            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.MinWidth(100), GUILayout.ExpandWidth(true));
+
             // 统计信息
-            EditorGUILayout.LabelField($"(嵌套 {info.NestedPrefabs.Count} 种预制体，共 {info.TotalInstanceCount} 个实例)", 
-                EditorStyles.miniLabel, GUILayout.Width(220));
+            EditorGUILayout.LabelField($"(嵌套 {info.NestedPrefabs.Count} 种预制体，共 {info.TotalInstanceCount} 个实例)",
+                EditorStyles.miniLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             
             GUILayout.FlexibleSpace();
             
@@ -613,9 +613,9 @@ namespace UIProbe
             
             // 标题栏
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField($"📦 {childName}", EditorStyles.boldLabel, GUILayout.Width(250));
-            EditorGUILayout.LabelField($"(被 {parents.Count} 个预制体引用，共 {totalInstances} 个实例)", 
-                EditorStyles.miniLabel, GUILayout.Width(250));
+            EditorGUILayout.LabelField($"📦 {childName}", EditorStyles.boldLabel, GUILayout.MinWidth(100), GUILayout.ExpandWidth(true));
+            EditorGUILayout.LabelField($"(被 {parents.Count} 个预制体引用，共 {totalInstances} 个实例)",
+                EditorStyles.miniLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             
             GUILayout.FlexibleSpace();
             
@@ -1198,11 +1198,11 @@ namespace UIProbe
             }
             
             // 预制体名称
-            EditorGUILayout.LabelField($"⚠️ {info.ParentPrefabName}", EditorStyles.boldLabel, GUILayout.Width(250));
-            
+            EditorGUILayout.LabelField($"⚠️ {info.ParentPrefabName}", EditorStyles.boldLabel, GUILayout.MinWidth(100), GUILayout.ExpandWidth(true));
+
             // 统计信息
-            EditorGUILayout.LabelField($"({info.OverrideInstances.Count} 个嵌套实例被修改，共 {info.TotalOverrideCount} 处修改)", 
-                EditorStyles.miniLabel, GUILayout.Width(280));
+            EditorGUILayout.LabelField($"({info.OverrideInstances.Count} 个嵌套实例被修改，共 {info.TotalOverrideCount} 处修改)",
+                EditorStyles.miniLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             
             GUILayout.FlexibleSpace();
             

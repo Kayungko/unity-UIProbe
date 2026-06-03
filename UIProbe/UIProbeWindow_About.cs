@@ -68,7 +68,7 @@ namespace UIProbe
             
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("最新更新 (v3.6.0)", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField($"最新更新 (v{UIProbeUpdateChecker.VERSION})", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
 
             EditorGUILayout.LabelField("• 品质可配置化 + 栈式多级撤销持久化 + 预览缩略图", EditorStyles.miniLabel);

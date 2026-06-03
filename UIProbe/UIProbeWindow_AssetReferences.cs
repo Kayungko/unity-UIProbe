@@ -236,7 +236,7 @@ namespace UIProbe
             
             // 预制体名称和路径
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.Width(200));
+            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
             
             if (GUILayout.Button("打开", EditorStyles.miniButton, GUILayout.Width(40)))
             {
@@ -271,10 +271,10 @@ namespace UIProbe
                 EditorGUILayout.LabelField(icon, GUILayout.Width(20));
                 
                 // 节点路径
-                EditorGUILayout.LabelField($"{reference.NodePath}", EditorStyles.miniLabel, GUILayout.Width(300));
+                EditorGUILayout.LabelField($"{reference.NodePath}", EditorStyles.miniLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
                 
                 // 资源名称（可点击）
-                if (GUILayout.Button(reference.AssetName, EditorStyles.linkLabel, GUILayout.Width(200)))
+                if (GUILayout.Button(reference.AssetName, EditorStyles.linkLabel, GUILayout.MinWidth(60), GUILayout.ExpandWidth(true)))
                 {
                     var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(reference.AssetPath);
                     if (asset != null)

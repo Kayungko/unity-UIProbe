@@ -60,7 +60,10 @@ namespace UIProbe
             
             if (GUILayout.Button("清空", GUILayout.Height(25)))
             {
-                ClearCurrentSession();
+                if (EditorUtility.DisplayDialog("确认清空", "确定要清空当前界面记录吗？此操作不可撤销。", "清空", "取消"))
+                {
+                    ClearCurrentSession();
+                }
             }
             GUILayout.EndHorizontal();
 

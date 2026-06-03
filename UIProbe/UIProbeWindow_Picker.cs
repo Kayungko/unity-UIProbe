@@ -74,7 +74,7 @@ namespace UIProbe
             // 显示当前拾取方式
             string inputModeText = GetPickerInputModeText();
             EditorGUILayout.LabelField($"拾取方式: {inputModeText}", EditorStyles.miniLabel, GUILayout.Width(150));
-            EditorGUILayout.LabelField("快捷键: F1", EditorStyles.miniLabel, GUILayout.Width(70));
+            EditorGUILayout.LabelField("快捷键: 见设置", EditorStyles.miniLabel, GUILayout.Width(80));
             GUILayout.EndHorizontal();
 
             if (!Application.isPlaying)

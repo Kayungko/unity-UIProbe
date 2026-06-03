@@ -155,7 +155,6 @@ namespace UIProbe
                 EditorGUI.ProgressBar(GUILayoutUtility.GetRect(18, 18), resourceScanner.Progress, "扫描中...");
                 if (GUILayout.Button("停止扫描"))
                 {
-                    // TODO: Implement cancel token
                     isScanningResource = false;
                 }
             }

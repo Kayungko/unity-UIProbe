@@ -88,7 +88,7 @@ namespace UIProbe
             GUILayout.BeginHorizontal();
             
             // Left: Session list
-            GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(180));
+            GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MinWidth(100), GUILayout.MaxWidth(250), GUILayout.ExpandWidth(false));
             
             if (isBrowserBatchMode)
             {
