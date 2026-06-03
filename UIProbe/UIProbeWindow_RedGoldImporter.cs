@@ -141,8 +141,8 @@ namespace UIProbe
             GUILayout.BeginVertical(EditorStyles.helpBox);
 
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("表格文件:", GUILayout.Width(75));
-            redGoldTablePath = EditorGUILayout.TextField(redGoldTablePath);
+            EditorGUILayout.LabelField("表格文件:", GUILayout.MinWidth(60));
+            redGoldTablePath = EditorGUILayout.TextField(redGoldTablePath, GUILayout.ExpandWidth(true));
             if (GUILayout.Button("📄", GUILayout.Width(28)))
             {
                 string p = EditorUtility.OpenFilePanel("选择 CSV/TSV/Excel 表格", RedGoldPathHelper.GetExistingDirectory(redGoldTablePath), "csv,tsv,xlsx");
@@ -155,7 +155,7 @@ namespace UIProbe
             {
                 int capturedIdx = i;
                 GUILayout.BeginHorizontal();
-                redGoldImageSourceFolders[i] = EditorGUILayout.TextField(redGoldImageSourceFolders[i], GUILayout.Width(200));
+                redGoldImageSourceFolders[i] = EditorGUILayout.TextField(redGoldImageSourceFolders[i], GUILayout.ExpandWidth(true));
                 if (GUILayout.Button("📁", GUILayout.Width(28)))
                 {
                     string p = EditorUtility.OpenFolderPanel("选择待修改图片文件夹", RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolders[i]), "");
@@ -328,6 +328,10 @@ namespace UIProbe
 
                     // 第二行：输出路径
                     DrawRedGoldFolderField("路径:", ref entry.outputFolder);
+                    if (!string.IsNullOrEmpty(entry.outputFolder))
+                    {
+                        EditorGUILayout.LabelField(RedGoldPathHelper.ToTablePath(entry.outputFolder), EditorStyles.miniLabel, GUILayout.ExpandWidth(true));
+                    }
 
                     // 第三行：命名模板 + 拼音开关
                     GUILayout.BeginHorizontal();
@@ -337,7 +341,7 @@ namespace UIProbe
                     if (!string.IsNullOrEmpty(entry.namingTemplate))
                     {
                         string sample = RedGoldPreviewTemplate(entry);
-                        EditorGUILayout.LabelField(sample, EditorStyles.miniLabel, GUILayout.Width(180));
+                        EditorGUILayout.LabelField(sample, EditorStyles.miniLabel, GUILayout.ExpandWidth(true));
                     }
                     else
                     {
@@ -388,8 +392,8 @@ namespace UIProbe
             redGoldOverwriteTable = EditorGUILayout.ToggleLeft("直接覆盖原表格", redGoldOverwriteTable);
             EditorGUI.BeginDisabledGroup(redGoldOverwriteTable);
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("输出表格:", GUILayout.Width(75));
-            redGoldOutputTablePath = EditorGUILayout.TextField(redGoldOutputTablePath);
+            EditorGUILayout.LabelField("输出表格:", GUILayout.MinWidth(60));
+            redGoldOutputTablePath = EditorGUILayout.TextField(redGoldOutputTablePath, GUILayout.ExpandWidth(true));
             if (GUILayout.Button("📄", GUILayout.Width(28)))
             {
                 string defaultDir = RedGoldPathHelper.GetExistingDirectory(redGoldTablePath);
@@ -556,7 +560,7 @@ namespace UIProbe
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
 
-                    redGoldScrollPos = EditorGUILayout.BeginScrollView(redGoldScrollPos, GUILayout.Height(200));
+                    redGoldScrollPos = EditorGUILayout.BeginScrollView(redGoldScrollPos, GUILayout.ExpandHeight(true));
                     foreach (var row in replaceableRows)
                     {
                         Rect rowRect = EditorGUILayout.BeginHorizontal();
@@ -744,7 +748,7 @@ namespace UIProbe
 
                 if (redGoldFoldMissing)
                 {
-                    redGoldScrollPosMissing = EditorGUILayout.BeginScrollView(redGoldScrollPosMissing, GUILayout.Height(120));
+                    redGoldScrollPosMissing = EditorGUILayout.BeginScrollView(redGoldScrollPosMissing, GUILayout.Height(100));
                     foreach (var row in missingRows)
                     {
                         Rect er = EditorGUILayout.BeginHorizontal();
@@ -781,7 +785,7 @@ namespace UIProbe
 
                 if (redGoldFoldUnmatched)
                 {
-                    redGoldScrollPosUnmatched = EditorGUILayout.BeginScrollView(redGoldScrollPosUnmatched, GUILayout.Height(120));
+                    redGoldScrollPosUnmatched = EditorGUILayout.BeginScrollView(redGoldScrollPosUnmatched, GUILayout.Height(100));
                     foreach (var src in redGoldUnmatchedSources)
                     {
                         Rect sr = EditorGUILayout.BeginHorizontal();
@@ -1493,16 +1497,16 @@ namespace UIProbe
         private void DrawRedGoldTextField(string label, ref string value)
         {
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(label, GUILayout.Width(90));
-            value = EditorGUILayout.TextField(value);
+            EditorGUILayout.LabelField(label, GUILayout.MinWidth(60), GUILayout.ExpandWidth(false));
+            value = EditorGUILayout.TextField(value, GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
         }
 
         private void DrawRedGoldFolderField(string label, ref string value)
         {
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(label, GUILayout.Width(75));
-            value = EditorGUILayout.TextField(value);
+            EditorGUILayout.LabelField(label, GUILayout.MinWidth(60), GUILayout.ExpandWidth(false));
+            value = EditorGUILayout.TextField(value, GUILayout.ExpandWidth(true));
             if (GUILayout.Button("📁", GUILayout.Width(28)))
             {
                 string p = EditorUtility.OpenFolderPanel("选择生成资源路径", RedGoldPathHelper.ToAbsolutePath(value), "");
@@ -1724,14 +1728,14 @@ namespace UIProbe
 
             // 第1行: 前缀/后缀/查找替换
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("前缀:", GUILayout.Width(30));
-            redGoldBatchPrefix = EditorGUILayout.TextField(redGoldBatchPrefix, GUILayout.Width(50));
-            EditorGUILayout.LabelField("后缀:", GUILayout.Width(30));
-            redGoldBatchSuffix = EditorGUILayout.TextField(redGoldBatchSuffix, GUILayout.Width(50));
-            EditorGUILayout.LabelField("替换:", GUILayout.Width(30));
-            redGoldBatchFind = EditorGUILayout.TextField(redGoldBatchFind, GUILayout.Width(50));
+            EditorGUILayout.LabelField("前缀:", GUILayout.MinWidth(25));
+            redGoldBatchPrefix = EditorGUILayout.TextField(redGoldBatchPrefix, GUILayout.MinWidth(40), GUILayout.ExpandWidth(true));
+            EditorGUILayout.LabelField("后缀:", GUILayout.MinWidth(25));
+            redGoldBatchSuffix = EditorGUILayout.TextField(redGoldBatchSuffix, GUILayout.MinWidth(40), GUILayout.ExpandWidth(true));
+            EditorGUILayout.LabelField("替换:", GUILayout.MinWidth(25));
+            redGoldBatchFind = EditorGUILayout.TextField(redGoldBatchFind, GUILayout.MinWidth(40), GUILayout.ExpandWidth(true));
             EditorGUILayout.LabelField("→", GUILayout.Width(14));
-            redGoldBatchReplace = EditorGUILayout.TextField(redGoldBatchReplace, GUILayout.Width(50));
+            redGoldBatchReplace = EditorGUILayout.TextField(redGoldBatchReplace, GUILayout.MinWidth(40), GUILayout.ExpandWidth(true));
             if (GUILayout.Button("应用命名", EditorStyles.miniButton, GUILayout.Width(64)))
             {
                 var targets = redGoldPreviewRows.Where(r => r.IsSelected && !r.HasError).ToList();
@@ -1754,17 +1758,17 @@ namespace UIProbe
 
             // 第2行: 统一格数 / 品质 / 输出路径
             GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("格数:", GUILayout.Width(30));
-            redGoldBatchGridLong = EditorGUILayout.IntField(redGoldBatchGridLong, GUILayout.Width(30));
+            EditorGUILayout.LabelField("格数:", GUILayout.Width(25));
+            redGoldBatchGridLong = EditorGUILayout.IntField(redGoldBatchGridLong, GUILayout.MinWidth(25), GUILayout.ExpandWidth(true));
             EditorGUILayout.LabelField("×", GUILayout.Width(12));
-            redGoldBatchGridWide = EditorGUILayout.IntField(redGoldBatchGridWide, GUILayout.Width(30));
+            redGoldBatchGridWide = EditorGUILayout.IntField(redGoldBatchGridWide, GUILayout.MinWidth(25), GUILayout.ExpandWidth(true));
 
             string[] qualityKeywords = redGoldQualityEntries.Select(e => e.keyword).Where(k => !string.IsNullOrEmpty(k)).ToArray();
             int curQIdx = Mathf.Max(0, Array.IndexOf(qualityKeywords, redGoldBatchQuality));
-            int newQIdx = EditorGUILayout.Popup(curQIdx, qualityKeywords, GUILayout.Width(56));
+            int newQIdx = EditorGUILayout.Popup(curQIdx, qualityKeywords, GUILayout.MinWidth(50), GUILayout.ExpandWidth(true));
             if (newQIdx != curQIdx) redGoldBatchQuality = qualityKeywords[newQIdx];
-            EditorGUILayout.LabelField("路径:", GUILayout.Width(30));
-            redGoldBatchOutputPath = EditorGUILayout.TextField(redGoldBatchOutputPath, GUILayout.Width(100));
+            EditorGUILayout.LabelField("路径:", GUILayout.Width(25));
+            redGoldBatchOutputPath = EditorGUILayout.TextField(redGoldBatchOutputPath, GUILayout.MinWidth(60), GUILayout.ExpandWidth(true));
 
             if (GUILayout.Button("应用设置", EditorStyles.miniButton, GUILayout.Width(64)))
             {

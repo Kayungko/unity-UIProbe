@@ -9,7 +9,8 @@ namespace UIProbe
         [MenuItem("UI Probe/打开面板")]
         public static void ShowWindow()
         {
-            GetWindow<UIProbeWindow>("UI Probe 界面探针");
+            var window = GetWindow<UIProbeWindow>("UI Probe 界面探针");
+            window.minSize = new Vector2(400, 250);
         }
 
         [MenuItem("UI Probe/切换选择模式 _F1")]
@@ -40,6 +41,8 @@ namespace UIProbe
         }
 
         private Tab currentTab = Tab.Picker;
+        private Vector2 mainScrollPos;
+        private Vector2 sidebarScrollPos;
         private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "资源使用检测", "设置", "关于" };
         
         // 统一配置
@@ -137,6 +140,9 @@ namespace UIProbe
             
             // Right Side: Content
             GUILayout.BeginVertical(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+
+            // 根级滚动视图（更新横幅 + Tab 内容统一滚动）
+            mainScrollPos = EditorGUILayout.BeginScrollView(mainScrollPos, GUILayout.ExpandHeight(true));
             switch (currentTab)
             {
                 case Tab.Picker:
@@ -182,7 +188,8 @@ namespace UIProbe
                     DrawAboutTab();
                     break;
             }
-            
+
+            EditorGUILayout.EndScrollView();
             GUILayout.EndVertical();
             
             GUILayout.EndHorizontal();
@@ -190,8 +197,9 @@ namespace UIProbe
 
         private void DrawSidebar()
         {
-            GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(100), GUILayout.ExpandHeight(true));
+            GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MinWidth(80), GUILayout.MaxWidth(180), GUILayout.ExpandHeight(true));
             GUILayout.Space(5);
+            sidebarScrollPos = GUILayout.BeginScrollView(sidebarScrollPos, GUILayout.ExpandHeight(true));
 
             if (config == null || config.modulesVisibility.showPicker) DrawSidebarButton(Tab.Picker, "运行时拾取");
             if (config == null || config.modulesVisibility.showIndexer) DrawSidebarButton(Tab.Indexer, "预制体索引");
@@ -205,12 +213,13 @@ namespace UIProbe
             if (config == null || config.modulesVisibility.showRichTextGenerator) DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
             if (config == null || config.modulesVisibility.showAdaptor) DrawSidebarButton(Tab.Adaptor, "预制体助手");
             if (config == null || config.modulesVisibility.showResourceDetector) DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
-            
+
             GUILayout.FlexibleSpace();
-            
+
             DrawSidebarButton(Tab.Settings, "设置");
             DrawSidebarButton(Tab.About, "关于");
-            
+
+            GUILayout.EndScrollView();
             GUILayout.Space(5);
             GUILayout.EndVertical();
         }
