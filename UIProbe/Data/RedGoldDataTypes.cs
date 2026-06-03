@@ -50,6 +50,7 @@ namespace UIProbe
         public string Status;
         public bool IsSelected = true;
         public bool HasError;
+        public bool UserEdited; // 用户手动编辑过行内字段
 
         // ▼ 新增字段：源文件信息 + 修改检测 + 撤销备份
         public string SourceFileName;           // 源文件名（含扩展名，如 "weapon_01.png"）

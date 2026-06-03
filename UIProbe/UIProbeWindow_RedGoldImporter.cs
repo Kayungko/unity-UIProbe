@@ -63,6 +63,17 @@ namespace UIProbe
         private bool redGoldFoldMissing = true;
         private bool redGoldFoldUnmatched = true;
 
+        // ▼ 批量操作栏状态
+        private bool redGoldFoldBatchOps = false;
+        private string redGoldBatchPrefix = "";
+        private string redGoldBatchSuffix = "";
+        private string redGoldBatchFind = "";
+        private string redGoldBatchReplace = "";
+        private int redGoldBatchGridLong = 2;
+        private int redGoldBatchGridWide = 2;
+        private string redGoldBatchQuality = "";
+        private string redGoldBatchOutputPath = "";
+
         private void DrawRedGoldResourceImporterContent()
         {
             EditorGUILayout.HelpBox(
@@ -462,6 +473,26 @@ namespace UIProbe
             }
             GUILayout.EndHorizontal();
 
+            // ──── 冲突统计 + 批量操作栏 ────
+            var conflictGroups = redGoldPreviewRows.Where(r => !r.HasError)
+                .Where(r => !string.IsNullOrEmpty(r.SourceImagePath))
+                .GroupBy(r => r.SourceImagePath, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .ToList();
+            int conflictCount = conflictGroups.Sum(g => g.Count());
+            var conflictSourcePaths = new HashSet<string>(conflictGroups.Select(g => g.Key), StringComparer.OrdinalIgnoreCase);
+            var conflictOutputPathsSet = redGoldPreviewRows.Where(r => !r.HasError && !string.IsNullOrEmpty(r.PlannedOutputPath))
+                .GroupBy(r => r.PlannedOutputPath, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .SelectMany(g => g)
+                .Select(r => r.SourceImagePath)
+                .Where(p => !string.IsNullOrEmpty(p))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            conflictSourcePaths.UnionWith(conflictOutputPathsSet);
+
+            // ──── 批量操作栏 ────
+            DrawRedGoldBatchOpsBar(conflictSourcePaths);
+
             EditorGUILayout.Space(3);
 
             // ────────── ① 可替换图片资源 ──────────
@@ -469,8 +500,9 @@ namespace UIProbe
             if (replaceableRows.Count > 0)
             {
                 GUILayout.BeginVertical(EditorStyles.helpBox);
+                string conflictSuffix = conflictSourcePaths.Count > 0 ? $" ⚠ 冲突 {conflictSourcePaths.Count}" : "";
                 redGoldFoldReplaceable = EditorGUILayout.Foldout(redGoldFoldReplaceable,
-                    $"📦 可替换图片资源（{replaceableRows.Count}）", true, EditorStyles.foldoutHeader);
+                    $"📦 可替换图片资源（{replaceableRows.Count}）{conflictSuffix}", true, EditorStyles.foldoutHeader);
 
                 if (redGoldFoldReplaceable)
                 {
@@ -488,9 +520,13 @@ namespace UIProbe
                     foreach (var row in replaceableRows)
                     {
                         Rect rowRect = EditorGUILayout.BeginHorizontal();
+                        bool hasConflict = conflictSourcePaths.Contains(row.SourceImagePath);
                         if (Event.current.type == EventType.Repaint)
                         {
-                            if (row.UseExistingOutput) EditorGUI.DrawRect(rowRect, new Color(0.3f, 0.5f, 0.8f, 0.06f));
+                            // 冲突行背景（优先于其他状态）
+                            if (hasConflict) EditorGUI.DrawRect(rowRect, new Color(1f, 0.8f, 0f, 0.15f));
+                            else if (row.UserEdited) EditorGUI.DrawRect(rowRect, new Color(1f, 0.8f, 0.2f, 0.10f));
+                            else if (row.UseExistingOutput) EditorGUI.DrawRect(rowRect, new Color(0.3f, 0.5f, 0.8f, 0.06f));
                             else if (row.ModStatus == ModificationStatus.New) EditorGUI.DrawRect(rowRect, new Color(0.2f, 0.8f, 0.2f, 0.06f));
                             else if (row.ModStatus == ModificationStatus.Modified) EditorGUI.DrawRect(rowRect, new Color(1f, 0.6f, 0.1f, 0.07f));
                             if (row.IsSelected) EditorGUI.DrawRect(rowRect, new Color(0.3f, 0.6f, 1f, 0.08f));
@@ -519,10 +555,72 @@ namespace UIProbe
                         }
 
                         EditorGUILayout.LabelField($"#{row.RowIndex + 1}", GUILayout.Width(28));
-                        if (GUILayout.Button(row.Name, EditorStyles.label, GUILayout.Width(80)))
-                            RedGoldPingPath(row.SourceImagePath);
-                        EditorGUILayout.LabelField(row.Quality, GUILayout.Width(28));
-                        EditorGUILayout.LabelField($"{row.GridLong}×{row.GridWide}", GUILayout.Width(36));
+
+                        // 名称（双击编辑）
+                        string nameControlId = $"RG_Name_{row.RowIndex}";
+                        if (row.UserEdited)
+                        {
+                            GUI.SetNextControlName(nameControlId);
+                            string newName = EditorGUILayout.TextField(row.Name, EditorStyles.miniTextField, GUILayout.Width(80));
+                            if (newName != row.Name)
+                            {
+                                row.Name = newName;
+                                string iconOutputFileName = RedGoldNameConverter.GetOutputFileNameFromIconPath(row.SourceImagePath);
+                                if (!string.IsNullOrEmpty(iconOutputFileName))
+                                    row.PlannedOutputPath = Path.Combine(row.OutputFolder, iconOutputFileName);
+                                row.Status = RedGoldPathHelper.ToTablePath(row.PlannedOutputPath);
+                            }
+                            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Return)
+                            {
+                                row.UserEdited = false;
+                                Event.current.Use();
+                            }
+                        }
+                        else
+                        {
+                            Rect nameRect = EditorGUILayout.GetControlRect(GUILayout.Width(80), GUILayout.Height(18));
+                            if (GUI.Button(nameRect, row.Name, EditorStyles.label))
+                                RedGoldPingPath(row.SourceImagePath);
+                            if (Event.current.type == EventType.MouseDown && Event.current.clickCount == 2 && nameRect.Contains(Event.current.mousePosition))
+                            {
+                                row.UserEdited = true;
+                                Event.current.Use();
+                            }
+                        }
+
+                        // 品质（下拉选择）
+                        if (row.UserEdited)
+                        {
+                            string[] qualityKeywords = redGoldQualityEntries
+                                .Select(e => e.keyword).Where(k => !string.IsNullOrEmpty(k)).ToArray();
+                            int curQIdx = Array.IndexOf(qualityKeywords, row.Quality);
+                            if (curQIdx < 0) curQIdx = 0;
+                            int newQIdx = EditorGUILayout.Popup(curQIdx, qualityKeywords, GUILayout.Width(56));
+                            if (newQIdx != curQIdx)
+                            {
+                                row.Quality = qualityKeywords[newQIdx];
+                                row.OutputFolder = RedGoldGetQualityFolder(row.Quality);
+                                RedGoldNameConverter.GetOutputFileNameFromIconPath(row.SourceImagePath);
+                                string iconFileName = RedGoldNameConverter.GetOutputFileNameFromIconPath(row.SourceImagePath);
+                                if (!string.IsNullOrEmpty(iconFileName))
+                                    row.PlannedOutputPath = Path.Combine(row.OutputFolder, iconFileName);
+                                row.Status = RedGoldPathHelper.ToTablePath(row.PlannedOutputPath);
+                            }
+                        }
+                        else
+                        {
+                            EditorGUILayout.LabelField(row.Quality, GUILayout.Width(28));
+                        }
+
+                        // 格数（双击编辑）
+                        if (row.UserEdited)
+                        {
+                            EditorGUILayout.LabelField("", GUILayout.Width(36)); // 格数在编辑模式下保持只读
+                        }
+                        else
+                        {
+                            EditorGUILayout.LabelField($"{row.GridLong}x{row.GridWide}", GUILayout.Width(36));
+                        }
 
                         // 徽标
                         ModificationStatus effStatus = row.UseExistingOutput && row.OutputExists ? ModificationStatus.Unchanged : row.ModStatus;
@@ -1369,6 +1467,87 @@ namespace UIProbe
             }
 
             EditorUtility.RevealInFinder(absolutePath);
+        }
+
+        private void DrawRedGoldBatchOpsBar(HashSet<string> conflictSourcePaths)
+        {
+            redGoldFoldBatchOps = EditorGUILayout.Foldout(redGoldFoldBatchOps, $"⚡ 批量操作 {(conflictSourcePaths.Count > 0 ? $"⚠ 冲突 {conflictSourcePaths.Count}" : "")}", true, EditorStyles.foldoutHeader);
+            if (!redGoldFoldBatchOps) return;
+
+            GUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // 第1行: 前缀/后缀/查找替换
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("前缀:", GUILayout.Width(30));
+            redGoldBatchPrefix = EditorGUILayout.TextField(redGoldBatchPrefix, GUILayout.Width(50));
+            EditorGUILayout.LabelField("后缀:", GUILayout.Width(30));
+            redGoldBatchSuffix = EditorGUILayout.TextField(redGoldBatchSuffix, GUILayout.Width(50));
+            EditorGUILayout.LabelField("替换:", GUILayout.Width(30));
+            redGoldBatchFind = EditorGUILayout.TextField(redGoldBatchFind, GUILayout.Width(50));
+            EditorGUILayout.LabelField("→", GUILayout.Width(14));
+            redGoldBatchReplace = EditorGUILayout.TextField(redGoldBatchReplace, GUILayout.Width(50));
+            if (GUILayout.Button("应用命名", EditorStyles.miniButton, GUILayout.Width(64)))
+            {
+                var targets = redGoldPreviewRows.Where(r => r.IsSelected && !r.HasError).ToList();
+                foreach (var row in targets)
+                {
+                    string oldName = Path.GetFileNameWithoutExtension(row.PlannedOutputPath ?? row.Name);
+                    string newName = oldName;
+                    if (!string.IsNullOrEmpty(redGoldBatchFind))
+                        newName = newName.Replace(redGoldBatchFind, redGoldBatchReplace);
+                    newName = redGoldBatchPrefix + newName + redGoldBatchSuffix;
+                    string dir = Path.GetDirectoryName(row.PlannedOutputPath);
+                    if (!string.IsNullOrEmpty(dir))
+                        row.PlannedOutputPath = Path.Combine(dir, newName + ".png");
+                    row.OutputFileNameOverride = newName + ".png";
+                    row.UserEdited = true;
+                }
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+
+            // 第2行: 统一格数 / 品质 / 输出路径
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("格数:", GUILayout.Width(30));
+            redGoldBatchGridLong = EditorGUILayout.IntField(redGoldBatchGridLong, GUILayout.Width(30));
+            EditorGUILayout.LabelField("×", GUILayout.Width(12));
+            redGoldBatchGridWide = EditorGUILayout.IntField(redGoldBatchGridWide, GUILayout.Width(30));
+
+            string[] qualityKeywords = redGoldQualityEntries.Select(e => e.keyword).Where(k => !string.IsNullOrEmpty(k)).ToArray();
+            int curQIdx = Mathf.Max(0, Array.IndexOf(qualityKeywords, redGoldBatchQuality));
+            int newQIdx = EditorGUILayout.Popup(curQIdx, qualityKeywords, GUILayout.Width(56));
+            if (newQIdx != curQIdx) redGoldBatchQuality = qualityKeywords[newQIdx];
+            EditorGUILayout.LabelField("路径:", GUILayout.Width(30));
+            redGoldBatchOutputPath = EditorGUILayout.TextField(redGoldBatchOutputPath, GUILayout.Width(100));
+
+            if (GUILayout.Button("应用设置", EditorStyles.miniButton, GUILayout.Width(64)))
+            {
+                var targets = redGoldPreviewRows.Where(r => r.IsSelected && !r.HasError).ToList();
+                foreach (var row in targets)
+                {
+                    if (redGoldBatchGridLong > 0 && redGoldBatchGridWide > 0)
+                    {
+                        row.GridLong = redGoldBatchGridLong;
+                        row.GridWide = redGoldBatchGridWide;
+                        (row.OutputWidth, row.OutputHeight) = RedGoldComputeOutputSize(row.GridLong, row.GridWide);
+                    }
+                    if (!string.IsNullOrEmpty(redGoldBatchQuality))
+                    {
+                        row.Quality = redGoldBatchQuality;
+                        row.OutputFolder = RedGoldGetQualityFolder(row.Quality);
+                    }
+                    if (!string.IsNullOrEmpty(redGoldBatchOutputPath))
+                    {
+                        row.OutputFolder = RedGoldPathHelper.ToAbsolutePath(redGoldBatchOutputPath);
+                    }
+                    row.UserEdited = true;
+                }
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
+            EditorGUILayout.Space(3);
         }
 
         private void ApplyRedGoldResourceImporterConfig()
