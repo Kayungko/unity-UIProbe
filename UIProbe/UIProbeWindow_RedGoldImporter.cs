@@ -27,7 +27,7 @@ namespace UIProbe
         private int redGoldCellPixelSize = 100;
         private int redGoldMaxOutputEdge = 512;
 
-        // ▼ 品质列表（取代原来的 redGoldRed/Purple/GoldOutputFolder）
+        // ▼ 品质列表 + 预设状态
         private List<QualityConfigEntry> redGoldQualityEntries = new List<QualityConfigEntry>
         {
             new QualityConfigEntry { keyword = "红", displayName = "红色品质", namingTemplate = "T_Icon_Red_{Pinyin}.png", usePinyin = true },
@@ -35,6 +35,8 @@ namespace UIProbe
             new QualityConfigEntry { keyword = "金", displayName = "金色品质" },
         };
         private bool redGoldFoldQuality = true;
+        private string redGoldCurrentPreset = "";
+        private string[] redGoldPresetNames = new string[0];
         private bool redGoldOverwriteTable = false;
         private string redGoldOutputTablePath = "";
 
@@ -148,9 +150,117 @@ namespace UIProbe
             GUILayout.EndVertical();
         }
 
+        private void DrawRedGoldPresetBar()
+        {
+            GUILayout.BeginVertical(EditorStyles.helpBox);
+            GUILayout.BeginHorizontal();
+
+            EditorGUILayout.LabelField("预设:", GUILayout.Width(40));
+
+            // 刷新预设列表
+            redGoldPresetNames = RedGoldPresetManager.ListPresets().Prepend("").ToArray();
+            int selectedIdx = Mathf.Max(0, Array.IndexOf(redGoldPresetNames, redGoldCurrentPreset));
+            int newIdx = EditorGUILayout.Popup(selectedIdx, redGoldPresetNames, GUILayout.Width(120));
+            if (newIdx != selectedIdx)
+            {
+                string newName = newIdx > 0 ? redGoldPresetNames[newIdx] : "";
+                if (!string.IsNullOrEmpty(newName))
+                {
+                    var preset = RedGoldPresetManager.LoadPreset(newName);
+                    if (preset != null)
+                    {
+                        ApplyPreset(preset);
+                        redGoldCurrentPreset = newName;
+                    }
+                }
+                else
+                {
+                    redGoldCurrentPreset = "";
+                }
+            }
+
+            if (GUILayout.Button("保存", EditorStyles.miniButton, GUILayout.Width(40)))
+            {
+                if (string.IsNullOrEmpty(redGoldCurrentPreset))
+                {
+                    SavePresetDialog();
+                }
+                else
+                {
+                    var preset = BuildCurrentPreset();
+                    preset.name = redGoldCurrentPreset;
+                    RedGoldPresetManager.SavePreset(preset);
+                }
+            }
+
+            if (GUILayout.Button("另存为...", EditorStyles.miniButton, GUILayout.Width(64)))
+            {
+                SavePresetDialog();
+            }
+
+            if (!string.IsNullOrEmpty(redGoldCurrentPreset) && GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(20)))
+            {
+                if (EditorUtility.DisplayDialog("删除预设", $"确认删除预设「{redGoldCurrentPreset}」？", "删除", "取消"))
+                {
+                    RedGoldPresetManager.DeletePreset(redGoldCurrentPreset);
+                    redGoldCurrentPreset = "";
+                }
+            }
+
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            if (!string.IsNullOrEmpty(redGoldCurrentPreset))
+            {
+                EditorGUILayout.LabelField($"当前: {redGoldCurrentPreset}", EditorStyles.miniLabel);
+            }
+            GUILayout.EndVertical();
+            EditorGUILayout.Space(3);
+        }
+
+        private void SavePresetDialog()
+        {
+            string name = EditorUtility.SaveFilePanelInProject("保存预设", "my_preset", "json", "输入预设名称");
+            if (string.IsNullOrEmpty(name)) return;
+
+            string presetName = System.IO.Path.GetFileNameWithoutExtension(name);
+            var preset = BuildCurrentPreset();
+            preset.name = presetName;
+            RedGoldPresetManager.SavePreset(preset);
+            redGoldCurrentPreset = presetName;
+        }
+
+        private RedGoldPreset BuildCurrentPreset()
+        {
+            return new RedGoldPreset
+            {
+                name = "",
+                description = "",
+                qualityEntries = new List<QualityConfigEntry>(redGoldQualityEntries),
+                cellPixelSize = redGoldCellPixelSize,
+                maxOutputEdge = redGoldMaxOutputEdge,
+                overrideGrid = redGoldOverrideGrid,
+                overrideGridLong = redGoldOverrideGridLong,
+                overrideGridWide = redGoldOverrideGridWide,
+            };
+        }
+
+        private void ApplyPreset(RedGoldPreset preset)
+        {
+            if (preset.qualityEntries != null)
+                redGoldQualityEntries = preset.qualityEntries;
+            redGoldCellPixelSize = preset.cellPixelSize;
+            redGoldMaxOutputEdge = preset.maxOutputEdge;
+            redGoldOverrideGrid = preset.overrideGrid;
+            redGoldOverrideGridLong = preset.overrideGridLong;
+            redGoldOverrideGridWide = preset.overrideGridWide;
+        }
+
         private void DrawRedGoldOutputSettings()
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // ──── 预设栏 ────
+            DrawRedGoldPresetBar();
 
             // 品质列表（可配置）
             redGoldFoldQuality = EditorGUILayout.Foldout(redGoldFoldQuality, "品质列表", true, EditorStyles.foldoutHeader);
@@ -186,10 +296,12 @@ namespace UIProbe
                     entry.usePinyin = EditorGUILayout.ToggleLeft("拼音", entry.usePinyin, GUILayout.Width(50));
                     if (!string.IsNullOrEmpty(entry.namingTemplate))
                     {
-                        string sample = entry.namingTemplate
-                            .Replace("{Pinyin}", "HuoGuoShenXiang")
-                            .Replace("{Name}", "火锅神像");
-                        EditorGUILayout.LabelField($"→ {sample}", EditorStyles.miniLabel);
+                        string sample = RedGoldPreviewTemplate(entry);
+                        EditorGUILayout.LabelField(sample, EditorStyles.miniLabel, GUILayout.Width(180));
+                    }
+                    else
+                    {
+                        EditorGUILayout.LabelField("未设置模板 → 使用图标路径或自动编号", EditorStyles.miniLabel);
                     }
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
@@ -262,8 +374,13 @@ namespace UIProbe
             string generateLabel = redGoldPreviewRows.Count > 0
                 ? $"生成资源并写回表格 ({validSelected})"
                 : "生成资源并写回表格";
+            // 变更数量
+            int changedCount = redGoldPreviewRows.Count(x => !x.HasError && x.ModStatus != ModificationStatus.Unchanged);
+            string generateLabel2 = redGoldPreviewRows.Count > 0
+                ? $"生成资源并写回表格 ({validSelected})" + (changedCount > 0 ? $" [变更 {changedCount}]" : "")
+                : "生成资源并写回表格";
             EditorGUI.BeginDisabledGroup(redGoldProcessing || string.IsNullOrEmpty(redGoldTablePath) || string.IsNullOrEmpty(redGoldImageSourceFolder));
-            if (GUILayout.Button(generateLabel, GUILayout.Height(30)))
+            if (GUILayout.Button(generateLabel2, GUILayout.Height(30)))
                 RedGoldGenerateAndWriteTable();
             EditorGUI.EndDisabledGroup();
 
@@ -313,6 +430,24 @@ namespace UIProbe
             if (unchangedCount > 0) { GUI.backgroundColor = new Color(0.6f, 0.6f, 0.6f); GUILayout.Label($"  - {unchangedCount}", EditorStyles.miniButton, GUILayout.Width(50)); }
             GUI.backgroundColor = Color.white;
             GUILayout.FlexibleSpace();
+
+            // 增量生成控制
+            if (GUILayout.Button("☑ 仅变更行", EditorStyles.miniButton, GUILayout.Width(80)))
+            {
+                foreach (var row in redGoldPreviewRows)
+                {
+                    if (!row.HasError)
+                        row.IsSelected = row.ModStatus != ModificationStatus.Unchanged;
+                }
+            }
+            if (GUILayout.Button("✕ 清除未变更", EditorStyles.miniButton, GUILayout.Width(88)))
+            {
+                foreach (var row in redGoldPreviewRows)
+                {
+                    if (!row.HasError && row.ModStatus == ModificationStatus.Unchanged)
+                        row.IsSelected = false;
+                }
+            }
             if (GUILayout.Button("全部展开", EditorStyles.miniButton, GUILayout.Width(60)))
             {
                 redGoldFoldReplaceable = true;
@@ -1039,35 +1174,76 @@ namespace UIProbe
         }
 
         /// <summary>
-        /// 查找品质配置中启用拼音命名的条目
+        /// 查找品质配置中配置了命名模板的条目
         /// </summary>
-        private QualityConfigEntry RedGoldFindPinyinQuality(string quality)
+        private QualityConfigEntry RedGoldFindNamedQuality(string quality)
         {
             if (string.IsNullOrEmpty(quality)) return null;
             string q = quality.Trim();
 
             foreach (var entry in redGoldQualityEntries)
             {
-                if (string.IsNullOrEmpty(entry.keyword)) continue;
-                if (entry.usePinyin && !string.IsNullOrEmpty(entry.namingTemplate)
-                    && q.IndexOf(entry.keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (string.IsNullOrEmpty(entry.keyword) || string.IsNullOrEmpty(entry.namingTemplate)) continue;
+                if (q.IndexOf(entry.keyword, StringComparison.OrdinalIgnoreCase) >= 0)
                     return entry;
             }
             return null;
         }
 
         /// <summary>
+        /// 预览命名模板样例（用于 UI 展示）
+        /// </summary>
+        private string RedGoldPreviewTemplate(QualityConfigEntry entry)
+        {
+            if (string.IsNullOrEmpty(entry.namingTemplate)) return "";
+            const string sampleName = "火锅神像";
+            const string sampleQuality = "红";
+
+            string result = entry.namingTemplate;
+            result = result.Replace("{Name}", sampleName);
+            result = result.Replace("{Quality}", sampleQuality);
+            result = System.Text.RegularExpressions.Regex.Replace(result, @"\{Seq(:\d+)?\}", m => {
+                int digits = m.Groups[1].Success ? int.Parse(m.Groups[1].Value.TrimStart(':')) : 4;
+                return 1.ToString("D" + digits);
+            });
+            if (result.Contains("{Pinyin}"))
+            {
+                string pinyin = RedGoldNameConverter.GetSemanticPinyin(sampleName);
+                result = result.Replace("{Pinyin}", string.IsNullOrEmpty(pinyin) ? sampleName : pinyin);
+            }
+            if (!result.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                result += ".png";
+            return $"→ {result}";
+        }
+
+        /// <summary>
         /// 根据品质配置和命名模板生成输出文件名
         /// </summary>
-        private string RedGoldBuildNamedOutputFileName(string quality, string name)
+        private string RedGoldBuildNamedOutputFileName(string quality, string name, int rowIndex = 0)
         {
-            var entry = RedGoldFindPinyinQuality(quality);
+            var entry = RedGoldFindNamedQuality(quality);
             if (entry == null || string.IsNullOrEmpty(entry.namingTemplate)) return "";
 
-            string pinyin = entry.usePinyin ? RedGoldNameConverter.BuildRedOutputFileName(name) : "";
-            string result = entry.namingTemplate
-                .Replace("{Pinyin}", string.IsNullOrEmpty(pinyin) ? name : pinyin.Replace("T_Icon_Red_", "").Replace(".png", ""))
-                .Replace("{Name}", name);
+            string result = entry.namingTemplate;
+
+            // {Name} → 原始名称
+            result = result.Replace("{Name}", name);
+
+            // {Quality} → 品质关键字
+            result = result.Replace("{Quality}", entry.keyword);
+
+            // {Seq:3} → 三位序号（默认 4 位）
+            result = System.Text.RegularExpressions.Regex.Replace(result, @"\{Seq(:\d+)?\}", match => {
+                int digits = match.Groups[1].Success ? int.Parse(match.Groups[1].Value.TrimStart(':')) : 4;
+                return (rowIndex + 1).ToString("D" + digits);
+            });
+
+            // {Pinyin} → 拼音
+            if (result.Contains("{Pinyin}"))
+            {
+                string pinyin = RedGoldNameConverter.GetSemanticPinyin(name);
+                result = result.Replace("{Pinyin}", string.IsNullOrEmpty(pinyin) ? name : pinyin);
+            }
 
             // 确保 .png 扩展名
             if (!result.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
