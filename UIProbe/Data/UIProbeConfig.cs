@@ -192,6 +192,7 @@ namespace UIProbe
     {
         public string tablePath = "";
         public string imageSourceFolder = "";
+        public List<string> imageSourceFolders = new List<string>();
         public bool includeSubfolders = true;
         public string nameColumn = "名称";
         public string qualityColumn = "品质";

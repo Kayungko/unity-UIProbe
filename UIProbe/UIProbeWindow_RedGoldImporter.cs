@@ -11,7 +11,7 @@ namespace UIProbe
     public partial class UIProbeWindow
     {
         private string redGoldTablePath = "";
-        private string redGoldImageSourceFolder = "";
+        private readonly List<string> redGoldImageSourceFolders = new List<string> { "" };
         private bool redGoldIncludeSubfolders = true;
 
         private string redGoldNameColumn = "名称";
@@ -134,15 +134,28 @@ namespace UIProbe
             }
             GUILayout.EndHorizontal();
 
-            GUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("图片文件夹:", GUILayout.Width(75));
-            redGoldImageSourceFolder = EditorGUILayout.TextField(redGoldImageSourceFolder);
-            if (GUILayout.Button("📁", GUILayout.Width(28)))
+            EditorGUILayout.LabelField("图片文件夹（优先级从上到下）:", EditorStyles.miniLabel);
+            for (int i = 0; i < redGoldImageSourceFolders.Count; i++)
             {
-                string p = EditorUtility.OpenFolderPanel("选择待修改图片文件夹", RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolder), "");
-                if (!string.IsNullOrEmpty(p)) redGoldImageSourceFolder = p;
+                int capturedIdx = i;
+                GUILayout.BeginHorizontal();
+                redGoldImageSourceFolders[i] = EditorGUILayout.TextField(redGoldImageSourceFolders[i], GUILayout.Width(200));
+                if (GUILayout.Button("📁", GUILayout.Width(28)))
+                {
+                    string p = EditorUtility.OpenFolderPanel("选择待修改图片文件夹", RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolders[i]), "");
+                    if (!string.IsNullOrEmpty(p)) redGoldImageSourceFolders[i] = p;
+                }
+                if (GUILayout.Button("✕", EditorStyles.miniButton, GUILayout.Width(22)))
+                {
+                    redGoldImageSourceFolders.RemoveAt(capturedIdx);
+                    break;
+                }
+                GUILayout.EndHorizontal();
             }
-            GUILayout.EndHorizontal();
+            if (GUILayout.Button("+ 新增源文件夹", EditorStyles.miniButton))
+            {
+                redGoldImageSourceFolders.Add("");
+            }
 
             redGoldIncludeSubfolders = EditorGUILayout.Toggle("包含子文件夹", redGoldIncludeSubfolders);
 
@@ -376,7 +389,7 @@ namespace UIProbe
         private void DrawRedGoldActions()
         {
             GUILayout.BeginHorizontal();
-            EditorGUI.BeginDisabledGroup(redGoldProcessing || string.IsNullOrEmpty(redGoldTablePath) || string.IsNullOrEmpty(redGoldImageSourceFolder));
+            EditorGUI.BeginDisabledGroup(redGoldProcessing || string.IsNullOrEmpty(redGoldTablePath) || redGoldImageSourceFolders.All(string.IsNullOrEmpty));
             if (GUILayout.Button("读取表格并预览", GUILayout.Height(30)))
                 RedGoldLoadPreview();
             EditorGUI.EndDisabledGroup();
@@ -390,7 +403,7 @@ namespace UIProbe
             string generateLabel2 = redGoldPreviewRows.Count > 0
                 ? $"生成资源并写回表格 ({validSelected})" + (changedCount > 0 ? $" [变更 {changedCount}]" : "")
                 : "生成资源并写回表格";
-            EditorGUI.BeginDisabledGroup(redGoldProcessing || string.IsNullOrEmpty(redGoldTablePath) || string.IsNullOrEmpty(redGoldImageSourceFolder));
+            EditorGUI.BeginDisabledGroup(redGoldProcessing || string.IsNullOrEmpty(redGoldTablePath) || redGoldImageSourceFolders.All(string.IsNullOrEmpty));
             if (GUILayout.Button(generateLabel2, GUILayout.Height(30)))
                 RedGoldGenerateAndWriteTable();
             EditorGUI.EndDisabledGroup();
@@ -773,17 +786,24 @@ namespace UIProbe
             redGoldTableData = null;
             redGoldThumbnailCache.Clear(); // 清空缩略图缓存
 
-            string tablePath = RedGoldPathHelper.ToAbsolutePath(redGoldTablePath);
-            string imageFolder = RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolder);
-            if (string.IsNullOrEmpty(tablePath) || !File.Exists(tablePath))
+            // 收集所有非空源文件夹的绝对路径
+            var imageFolders = redGoldImageSourceFolders
+                .Select(f => RedGoldPathHelper.ToAbsolutePath(f))
+                .Where(f => !string.IsNullOrEmpty(f) && Directory.Exists(f))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (imageFolders.Count == 0)
             {
-                EditorUtility.DisplayDialog("错误", "请选择有效的 CSV/TSV 表格文件。", "确定");
+                EditorUtility.DisplayDialog("错误", "请选择有效的图片文件夹。", "确定");
                 return;
             }
 
-            if (string.IsNullOrEmpty(imageFolder) || !Directory.Exists(imageFolder))
+            // ... existing code ...
+
+            string tablePath = RedGoldPathHelper.ToAbsolutePath(redGoldTablePath);
+            if (string.IsNullOrEmpty(tablePath) || !File.Exists(tablePath))
             {
-                EditorUtility.DisplayDialog("错误", "请选择有效的图片文件夹。", "确定");
+                EditorUtility.DisplayDialog("错误", "请选择有效的 CSV/TSV 表格文件。", "确定");
                 return;
             }
 
@@ -799,7 +819,7 @@ namespace UIProbe
                 if (!RedGoldResolveColumns(redGoldTableData))
                     return;
 
-                Dictionary<string, string> imageMap = RedGoldImageMatcher.BuildImageMap(imageFolder, redGoldIncludeSubfolders, out List<string> duplicateWarnings);
+                Dictionary<string, string> imageMap = RedGoldImageMatcher.BuildImageMap(imageFolders, redGoldIncludeSubfolders, out List<string> duplicateWarnings);
                 if (duplicateWarnings.Count > 0)
                 {
                     string msg = "发现同名文件冲突，已自动选择最新版本的图片：\n\n"
@@ -890,7 +910,7 @@ namespace UIProbe
                                 previewRow.SourceFileName = Path.GetFileName(srcPath);
 
                                 // 验证并规范路径，防止非法字符异常
-                                string absImageFolder = RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolder);
+                                string absImageFolder = RedGoldPathHelper.ToAbsolutePath(redGoldImageSourceFolders.FirstOrDefault(f => !string.IsNullOrEmpty(f)) ?? "");
                                 string absSrc = Path.GetFullPath(srcPath);
 
                                 if (!string.IsNullOrEmpty(absImageFolder) && absSrc.StartsWith(absImageFolder, StringComparison.OrdinalIgnoreCase))
@@ -1556,7 +1576,22 @@ namespace UIProbe
 
             var cfg = config.redGoldResourceImporter;
             redGoldTablePath = cfg.tablePath;
-            redGoldImageSourceFolder = cfg.imageSourceFolder;
+            // 多源文件夹向后兼容
+            if (cfg.imageSourceFolders != null && cfg.imageSourceFolders.Count > 0)
+            {
+                redGoldImageSourceFolders.Clear();
+                redGoldImageSourceFolders.AddRange(cfg.imageSourceFolders);
+            }
+            else if (!string.IsNullOrEmpty(cfg.imageSourceFolder))
+            {
+                redGoldImageSourceFolders.Clear();
+                redGoldImageSourceFolders.Add(cfg.imageSourceFolder);
+            }
+            else
+            {
+                if (redGoldImageSourceFolders.Count == 0 || redGoldImageSourceFolders.All(string.IsNullOrEmpty))
+                    redGoldImageSourceFolders.Add("");
+            }
             redGoldIncludeSubfolders = cfg.includeSubfolders;
             redGoldNameColumn = string.IsNullOrEmpty(cfg.nameColumn) ? "名称" : cfg.nameColumn;
             redGoldQualityColumn = string.IsNullOrEmpty(cfg.qualityColumn) ? "品质" : cfg.qualityColumn;
@@ -1599,7 +1634,8 @@ namespace UIProbe
 
             var cfg = config.redGoldResourceImporter;
             cfg.tablePath = redGoldTablePath;
-            cfg.imageSourceFolder = redGoldImageSourceFolder;
+            cfg.imageSourceFolders = new List<string>(redGoldImageSourceFolders.Where(f => !string.IsNullOrEmpty(f)));
+            cfg.imageSourceFolder = cfg.imageSourceFolders.FirstOrDefault() ?? "";
             cfg.includeSubfolders = redGoldIncludeSubfolders;
             cfg.nameColumn = redGoldNameColumn;
             cfg.qualityColumn = redGoldQualityColumn;

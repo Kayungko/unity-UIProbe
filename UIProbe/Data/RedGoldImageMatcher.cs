@@ -10,15 +10,52 @@ namespace UIProbe
     internal static class RedGoldImageMatcher
     {
         /// <summary>
-        /// 构建图片文件名→路径映射，同名文件自动保留最后修改时间最新的那个
+        /// 构建图片文件名→路径映射（单文件夹）
         /// </summary>
-        /// <param name="folder">图片文件夹路径</param>
-        /// <param name="includeSubfolders">是否包含子文件夹</param>
-        /// <param name="duplicateWarnings">输出：所有被忽略的重复文件列表（可用于弹窗提示）</param>
         public static Dictionary<string, string> BuildImageMap(string folder, bool includeSubfolders, out List<string> duplicateWarnings)
         {
+            return BuildImageMap(new List<string> { folder }, includeSubfolders, out duplicateWarnings);
+        }
+
+        /// <summary>
+        /// 构建图片文件名→路径映射（多文件夹，按优先级）
+        /// 同名文件时，靠前的文件夹优先级更高（先到先得）
+        /// </summary>
+        public static Dictionary<string, string> BuildImageMap(List<string> folders, bool includeSubfolders, out List<string> duplicateWarnings)
+        {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var dups = new List<string>();
+            var allDups = new List<string>();
+
+            foreach (var folder in folders)
+            {
+                if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) continue;
+
+                var folderMap = BuildSingleFolderMap(folder, includeSubfolders);
+                foreach (var kvp in folderMap)
+                {
+                    if (!result.ContainsKey(kvp.Key))
+                    {
+                        result[kvp.Key] = kvp.Value;
+                    }
+                    else
+                    {
+                        string existingRel = RedGoldPathHelper.ToTablePath(result[kvp.Key]);
+                        string skippedRel = RedGoldPathHelper.ToTablePath(kvp.Value);
+                        allDups.Add($"  [{kvp.Key}] 优先级较低，忽略: {skippedRel}（已有: {existingRel}）");
+                    }
+                }
+            }
+
+            duplicateWarnings = allDups;
+            return result;
+        }
+
+        /// <summary>
+        /// 单文件夹扫描，返回完整映射（含内部同名冲突，已按最新修改时间处理）
+        /// </summary>
+        private static Dictionary<string, string> BuildSingleFolderMap(string folder, bool includeSubfolders)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             SearchOption option = includeSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             string[] extensions = { "*.png", "*.jpg", "*.jpeg" };
             foreach (string pattern in extensions)
@@ -34,32 +71,12 @@ namespace UIProbe
                     }
                     else
                     {
-                        string existingPath = result[key];
-                        DateTime existingTime = File.GetLastWriteTime(existingPath);
-
-                        string existingRel = RedGoldPathHelper.ToTablePath(existingPath);
-                        string newRel = RedGoldPathHelper.ToTablePath(file);
-                        string existingTimeStr = existingTime.ToString("yyyy-MM-dd HH:mm:ss");
-                        string newTimeStr = fileTime.ToString("yyyy-MM-dd HH:mm:ss");
-
+                        DateTime existingTime = File.GetLastWriteTime(result[key]);
                         if (fileTime > existingTime)
-                        {
-                            dups.Add($"  [{key}] 新版本: {newRel} ({newTimeStr}) → 覆盖旧版本: {existingRel} ({existingTimeStr})");
                             result[key] = file;
-                        }
-                        else if (fileTime == existingTime)
-                        {
-                            dups.Add($"  [{key}] 修改时间相同，保留: {existingRel}，忽略: {newRel}");
-                        }
-                        else
-                        {
-                            dups.Add($"  [{key}] 保留: {existingRel} ({existingTimeStr})，忽略旧版: {newRel} ({newTimeStr})");
-                        }
                     }
                 }
             }
-
-            duplicateWarnings = dups;
             return result;
         }
 
