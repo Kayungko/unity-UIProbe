@@ -98,6 +98,11 @@ namespace UIProbe
             EditorGUILayout.LabelField("  - 所有 Tab 固定宽度控件改为 ExpandWidth 自适应", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - Recorder 清空加确认、Picker 快捷键不再写死", EditorStyles.miniLabel);
 
+            EditorGUILayout.LabelField("• 批量命名模块全面升级 (v3.8.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 预览缩略图 32x32 + 行级勾选排除指定文件", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 执行前自动备份、支持撤销恢复", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 预览列表自适应高度 + 所有输入框 ExpandWidth", EditorStyles.miniLabel);
+
             EditorGUILayout.EndVertical();
             
             EditorGUILayout.Space(15);
