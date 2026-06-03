@@ -1,6 +1,6 @@
 # UIProbe 图片工具模块开发文档
 
-> 适用版本：UIProbe v3.6+
+> 适用版本：UIProbe v3.7+
 > 涵盖模块：图片规范化（Image Normalizer）· 批量命名（Batch Rename）· 大红大金资源修改导入（Red/Gold Resource Importer）
 > 最后更新：2026-06
 

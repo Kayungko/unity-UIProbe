@@ -6,7 +6,25 @@
 
 📖 **[点击查看完整使用手册 (User Manual)](UserManual.md)**
 
-## ✨ 最新更新 (v3.6.0)
+## ✨ 最新更新 (v3.7.0)
+
+### 🖥️ 面板布局自适应 + 全功能交互优化
+
+**全 Tab 溢出修复**
+- 根级 `BeginScrollView` 包裹整个内容区，更新横幅 + 所有 Tab 统一滚动
+- 侧栏加 `BeginScrollView` 可滚动，改为 `MinWidth(80)~MaxWidth(180)` 自适应
+- 窗口最小尺寸设为 400x250，无法缩到比内容更窄
+- 资源引用节点路径 `300px`、嵌套总览统计 `280px`、重名检测输入 `200px` 等全部改为 `ExpandWidth` 自适应
+
+**交互缺陷修复**
+- Recorder "清空" 加确认弹窗，防止误删
+- Picker 快捷键提示不再写死 "F1" 改为 "见设置"
+- About 页版本号从 `UIProbeUpdateChecker.VERSION` 动态读取
+- ResourceDetector 移除空 TODO 注释
+
+---
+
+## ✨ v3.6.0 功能
 
 ### 🛠️ 大红大金模块功能大升级
 

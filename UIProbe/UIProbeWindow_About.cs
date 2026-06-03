@@ -93,6 +93,11 @@ namespace UIProbe
             EditorGUILayout.LabelField("  - EditorApplication.update 分帧处理，编辑器不再卡死", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 支持取消按钮，生成 Markdown 差异报告", EditorStyles.miniLabel);
 
+            EditorGUILayout.LabelField("• 面板布局自适应 + 全 Tab 溢出修复 (v3.7.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 根级 ScrollView + 侧栏可滚动 + 窗口最小尺寸 400x250", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 所有 Tab 固定宽度控件改为 ExpandWidth 自适应", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - Recorder 清空加确认、Picker 快捷键不再写死", EditorStyles.miniLabel);
+
             EditorGUILayout.EndVertical();
             
             EditorGUILayout.Space(15);
