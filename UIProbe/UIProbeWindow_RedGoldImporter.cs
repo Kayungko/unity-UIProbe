@@ -50,7 +50,7 @@ namespace UIProbe
         private float redGoldProgress;
 
         // ▼ 撤销系统状态
-        private readonly RedGoldUndoManager redGoldUndoManager = new RedGoldUndoManager();
+        private RedGoldUndoManager redGoldUndoManager;
 
         // ▼ 缩略图缓存
         private readonly Dictionary<string, Texture2D> redGoldThumbnailCache = new Dictionary<string, Texture2D>();
@@ -83,6 +83,16 @@ namespace UIProbe
         private string redGoldProcessingTableOutputPath;
         private string redGoldProcessingUndoDir;
         private bool redGoldProcessingCancelled;
+
+        private RedGoldUndoManager EnsureRedGoldUndoManager()
+        {
+            if (redGoldUndoManager == null)
+            {
+                redGoldUndoManager = new RedGoldUndoManager();
+            }
+
+            return redGoldUndoManager;
+        }
 
         private void DrawRedGoldResourceImporterContent()
         {
@@ -435,18 +445,19 @@ namespace UIProbe
             EditorGUI.EndDisabledGroup();
 
             // ▼ 撤销按钮
-            if (redGoldUndoManager.HasUndo)
+            var undoManager = EnsureRedGoldUndoManager();
+            if (undoManager.HasUndo)
             {
                 GUI.backgroundColor = new Color(0.9f, 0.4f, 0.3f);
-                string undoLabel = $"↩ 撤销 ({redGoldUndoManager.StackDepth})";
+                string undoLabel = $"↩ 撤销 ({undoManager.StackDepth})";
                 if (GUILayout.Button(undoLabel, GUILayout.Height(30), GUILayout.Width(100)))
                 {
                     if (EditorUtility.DisplayDialog("确认撤销",
-                        $"即将撤销最近一次生成操作（{redGoldUndoManager.CurrentDescription}）\n\n将恢复 {redGoldUndoManager.EntryCount} 个文件的旧版本并还原表格数据。"
-                        + (redGoldUndoManager.StackDepth > 1 ? $"\n\n当前还有 {redGoldUndoManager.StackDepth} 次可撤销操作。" : ""),
+                        $"即将撤销最近一次生成操作（{undoManager.CurrentDescription}）\n\n将恢复 {undoManager.EntryCount} 个文件的旧版本并还原表格数据。"
+                        + (undoManager.StackDepth > 1 ? $"\n\n当前还有 {undoManager.StackDepth} 次可撤销操作。" : ""),
                         "确认撤销", "取消"))
                     {
-                        var result = redGoldUndoManager.TryUndo(redGoldTableData, redGoldOverrideGrid);
+                        var result = undoManager.TryUndo(redGoldTableData, redGoldOverrideGrid);
                         if (result.Success)
                         {
                             RedGoldLoadPreview();
@@ -1235,14 +1246,14 @@ namespace UIProbe
                     string description = $"{successCount} 个文件";
                     if (newFiles > 0) description += $"（新增 {newFiles}）";
                     if (modFiles > 0) description += $"（修改 {modFiles}）";
-                    redGoldUndoManager.PushSnapshot(undoEntries, tableOutputPath, description);
+                    EnsureRedGoldUndoManager().PushSnapshot(undoEntries, tableOutputPath, description);
                 }
                 try { if (Directory.Exists(undoDir) && Directory.GetFiles(undoDir).Length == 0) Directory.Delete(undoDir); } catch { }
 
                 string cancelSuffix = redGoldProcessingCancelled ? "（已取消）" : "";
                 EditorUtility.DisplayDialog("完成",
                     $"生成完成：{successCount} / {selectedRows.Count}{cancelSuffix}\n表格已写入：\n{tableOutputPath}"
-                    + (redGoldUndoManager.HasUndo ? "\n\n如需恢复旧版本，请点击面板中的「撤销」按钮。" : ""),
+                    + (EnsureRedGoldUndoManager().HasUndo ? "\n\n如需恢复旧版本，请点击面板中的「撤销」按钮。" : ""),
                     "确定");
             }
             else

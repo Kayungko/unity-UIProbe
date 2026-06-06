@@ -68,6 +68,7 @@ namespace UIProbe
             LoadIndexCache();
             
             // 应用配置到图片规范化工具
+            EnsureRedGoldUndoManager();
             ApplyImageNormalizerConfig();
             ApplyHelperConfig();
             

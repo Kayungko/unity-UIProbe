@@ -655,7 +655,7 @@ namespace UIProbe
             if (undoEntries.Count > 0)
             {
                 string desc = $"重命名 {successCount} 个文件（覆盖 {undoEntries.Count} 个）";
-                redGoldUndoManager.PushSnapshot(undoEntries, "", desc);
+                EnsureRedGoldUndoManager().PushSnapshot(undoEntries, "", desc);
             }
 
             // 清空预览列表
