@@ -1,0 +1,4 @@
+Severity,RuleId,PrefabPath,Message
+Info,UIDUP_BTN,Assets/UI/LoginButton.prefab,按钮预制建议复用基础组件
+Warning,UIDUP_TGL,Assets/UI/SoundToggle.prefab,Toggle 命名建议统一前缀
+Info,UIDUP_TXT,Assets/UI/TitleText.prefab,文本节点建议挂 TMP

@@ -64,9 +64,17 @@
         },
         {
           "id": "T1-5",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-14T22:00:00Z",
+          "completed_at": "2026-06-14T22:12:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "两轮 batchmode runTests EditMode 各 18/18 Passed(13 旧 + 5 新),0 error CS;首轮录制示例基线,次轮验证 diff 路径全绿",
+            "timestamp": "2026-06-14T22:12:00Z"
+          },
+          "evidence": "建立黄金样本回归机制(全部在 UIProbe.Tests.Editor 程序集,零生产代码改动)。GoldenSampleRunner.cs:AssertGolden(name, actual, GoldenFormat, baselineDir) 支持 string/CSV/JSON 三格式(扩展名区分,核心为规范化文本逐行比较消除 CRLF 差异);刷新开关双保险(环境变量 UIPROBE_UPDATE_GOLDEN=1 或常量 ForceUpdateConstant,默认 false 绝不误覆盖已存在基线);基线目录经 [CallerFilePath] 自动定位 GoldenSampleFixtures,不耦合 Unity 挂载点名;基线缺失或刷新时写入并通过,否则 diff 不一致 Assert.Fail 打印首处差异 + before/after 全文。UIDuplicateFakeFixture.cs:内存假体 seed 3 个受控 prefab + 确定性 fake 检测器(按 PrefabPath ordinal 排序产 Issue 列表)+ 三导出器(ToText/ToCsv/ToJson)。GoldenSampleTests.cs 5 用例:temp 目录 round-trip(首写->二次 diff 通过)、篡改失败并含差异、三格式示例基线各一通过。录制基线 ui_dup.txt/csv/json 经 junction 落入真实仓库并纳入版本控制。两轮 runTests 18/18 Passed,gate high=0/medium=0。"
         }
       ],
       "coverage_gate": {

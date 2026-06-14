@@ -1,0 +1,22 @@
+{
+    "issues": [
+        {
+            "severity": "Info",
+            "ruleId": "UIDUP_BTN",
+            "prefabPath": "Assets/UI/LoginButton.prefab",
+            "message": "按钮预制建议复用基础组件"
+        },
+        {
+            "severity": "Warning",
+            "ruleId": "UIDUP_TGL",
+            "prefabPath": "Assets/UI/SoundToggle.prefab",
+            "message": "Toggle 命名建议统一前缀"
+        },
+        {
+            "severity": "Info",
+            "ruleId": "UIDUP_TXT",
+            "prefabPath": "Assets/UI/TitleText.prefab",
+            "message": "文本节点建议挂 TMP"
+        }
+    ]
+}

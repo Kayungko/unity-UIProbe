@@ -146,8 +146,8 @@ IFileSystem 的生产 / 测试实现对。
 
 | ID | 标题 | 阶段 | 状态 | 里程碑 |
 |---|---|---|---|---|
-| T1-3 | 定义 Adapter 接缝接口 + Unity 实现 + 内存假体 | prep | NOT_STARTED | M1 |
-| T1-5 | 黄金样本回归基线机制 | exec | NOT_STARTED | M1 |
+| T1-3 | 定义 Adapter 接缝接口 + Unity 实现 + 内存假体 | prep | DONE | M1 |
+| T1-5 | 黄金样本回归基线机制 | exec | DONE | M1 |
 
 ## 错误处理
 

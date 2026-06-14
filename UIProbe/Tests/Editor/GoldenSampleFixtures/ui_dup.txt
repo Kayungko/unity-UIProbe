@@ -1,0 +1,3 @@
+Assets/UI/LoginButton.prefab	Info	UIDUP_BTN
+Assets/UI/SoundToggle.prefab	Warning	UIDUP_TGL
+Assets/UI/TitleText.prefab	Info	UIDUP_TXT
