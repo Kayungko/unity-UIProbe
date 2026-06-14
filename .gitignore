@@ -72,3 +72,10 @@ crashlytics-build.properties
 
 # UIProbe AI Agent files
 UIProbe/.agent/
+
+# Python bytecode (harness scripts)
+__pycache__/
+*.pyc
+
+# Harness graph cache (regenerated)
+.claude/wiki/.graph-cache.json
