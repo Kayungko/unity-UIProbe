@@ -8,9 +8,17 @@
       "tasks": [
         {
           "id": "T1-1",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-14T12:34:19Z",
+          "completed_at": "2026-06-14T12:34:19Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "Unity 2022.3.23f1 batchmode 编译通过,Assembly-CSharp-Editor.dll 生成,0 error CS",
+            "timestamp": "2026-06-14T12:34:19Z"
+          },
+          "evidence": "UIProbe/Core/Contract/ 落地 8 个契约文件(ToolDescriptor/ToolRequest/ToolResult/Change/Issue/ToolError/IUIProbeTool/ToolContext),字段对齐 Docs/ToolContract.md;临时宿主工程 batchmode 编译通过,结构自检 gate high=0。"
         },
         {
           "id": "T1-2",

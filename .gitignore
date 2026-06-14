@@ -79,3 +79,6 @@ __pycache__/
 
 # Harness graph cache (regenerated)
 .claude/wiki/.graph-cache.json
+
+# Harness write-check reports (regenerated per run)
+.claude/progress/write-check-*.md
