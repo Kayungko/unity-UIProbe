@@ -37,6 +37,7 @@ UIProbe MCP 要提供统一替代层：
 - 统一 ToolRegistry。
 - 统一工具命名、分类、参数 schema、结果结构。
 - 统一安全等级和 preview / execute 规则。
+- 统一能力档位（Capability Profile），允许团队按项目需要启用更高风险能力。
 - 统一 Domain Reload 恢复策略。
 - 统一运行历史、报告与错误追踪。
 
@@ -44,7 +45,7 @@ UIProbe MCP 要提供统一替代层：
 
 ## 2. 非目标范围
 
-为了避免 UIProbe 变成无限制的 Unity 全能执行器，以下不作为默认目标：
+为了避免 UIProbe 变成无限制的 Unity 全能执行器，以下不作为默认能力：
 
 - 默认开放任意 C# 执行。
 - 默认开放任意反射调用。
@@ -55,7 +56,16 @@ UIProbe MCP 要提供统一替代层：
 - 默认提供 PSD 解析 / PSD 导入 / PSD → Prefab 自动生成。
 - 默认提供通用 Prefab 自动生成或通用 Prefab 更新流水线。
 
-这些能力如果后续确实需要，只能作为显式启用的高级工具或其他项目能力，不进入 UIProbe MCP 默认能力集。
+但为了替代其他 Unity MCP，UIProbe MCP 可以提供这些高级能力的可选档位。原则是：
+
+- 默认安装保持安全，只启用只读和低风险工具。
+- 高风险能力通过 Capability Profile 显式启用。
+- 高风险档位需要工作台 UI 中可见、可审计、可关闭。
+- 写操作、代码执行、反射、外部进程、外部网络等能力必须有独立权限开关。
+- 团队可以在项目级配置中锁定允许的最高档位。
+- 个人本地可以临时升档，但需要明确提示风险并记录日志。
+
+这些能力不是默认目标，但可以作为 `Trusted` / `Admin` / `Debug` 档位的一部分，用于替代其他 MCP 中的全能工具。
 
 ---
 
@@ -113,6 +123,7 @@ Unity Editor API / Project Tools
 - 统一执行入口。
 - 统一 preview / execute 协议。
 - 统一 ToolResult。
+- 根据当前 Capability Profile 过滤、禁用或要求确认特定工具。
 
 ### 3.4 Core Services
 
@@ -209,6 +220,33 @@ public sealed class ProjectSomeTool : UIProbeTool<ProjectSomeToolParams>
 
 目标：项目内扩展只写业务工具，不再重复实现 MCP 协议层、连接层和权限层。
 
+### 4.5 第五阶段：可选替代高风险全能能力
+
+为了替代其他 MCP 的全能能力，可以在高档位中提供：
+
+```text
+ui_probe.execute_menu_item
+ui_probe.read_project_file
+ui_probe.write_project_file_preview
+ui_probe.write_project_file_execute
+ui_probe.run_editor_script_preview
+ui_probe.run_editor_script_execute
+ui_probe.reflect_type_info
+ui_probe.reflect_method_call
+ui_probe.run_external_process
+```
+
+这些能力不进入默认档位，只能在 `TrustedProject` / `AdminDebug` 等能力档位中启用。
+
+要求：
+
+- 必须标记为 `CodeExecution`、`Reflection`、`ExternalProcess`、`WriteDestructive` 等安全等级。
+- 默认不出现在普通 `list_tools` 结果里，除非当前 profile 允许。
+- 必须记录调用者、时间、输入摘要、输出摘要和风险提示。
+- 对文件写入必须限制在项目目录或显式 allowlist 目录内。
+- 对菜单执行必须提供 allowlist，不允许默认任意菜单。
+- 对反射和代码执行必须支持 dry-run / preview 或强确认。
+
 ---
 
 ## 5. 工具来源与命名规范
@@ -216,9 +254,9 @@ public sealed class ProjectSomeTool : UIProbeTool<ProjectSomeToolParams>
 即使目标是替代其他 MCP，也需要清楚标记工具来源。
 
 ```text
-builtin     UIProbe 内置工具
-project     项目扩展注册工具
-legacy      从旧 MCP / 旧扩展迁移来的兼容工具
+builtin      UIProbe 内置工具
+project      项目扩展注册工具
+legacy       从旧 MCP / 旧扩展迁移来的兼容工具
 experimental 实验工具
 ```
 
@@ -244,11 +282,12 @@ ReadOnly          只读，不修改项目
 PreviewOnly       只生成计划，不执行写入
 WriteSafe         写入但可控，通常可撤销
 WriteDestructive  可能覆盖、删除、重命名、移动资源
-CodeExecution     可执行代码，默认禁用
-Reflection        可反射调用，默认禁用
-ExternalProcess   可启动外部进程，默认禁用
-ExternalNetwork   可访问外部网络，默认禁用
-Experimental      实验能力，默认禁用或需确认
+CodeExecution     可执行代码
+Reflection        可反射调用
+MenuExecution     可执行 Unity 菜单命令
+ExternalProcess   可启动外部进程
+ExternalNetwork   可访问外部网络
+Experimental      实验能力
 ```
 
 默认策略：
@@ -256,9 +295,131 @@ Experimental      实验能力，默认禁用或需确认
 - `ReadOnly` 默认启用。
 - `PreviewOnly` 默认启用。
 - `WriteSafe` 需要用户授权。
-- `WriteDestructive` 默认禁用。
-- `CodeExecution`、`Reflection`、`ExternalProcess`、`ExternalNetwork` 默认禁用。
+- `WriteDestructive` 默认禁用，或仅在受信任档位启用。
+- `CodeExecution`、`Reflection`、`MenuExecution`、`ExternalProcess`、`ExternalNetwork` 默认禁用，但可在高级 Capability Profile 中显式启用。
 - 所有写操作必须支持 preview / execute 分离，除非明确标记为不可预览且需要强确认。
+
+### 6.1 Capability Profile 能力档位
+
+UIProbe MCP 不采用“永远安全但能力不足”的单一策略，而是提供可选档位。
+
+```text
+SafeDefault       默认档位。只读 + 预览 + 少量安全写操作。
+TeamAutomation   团队自动化档。允许编译、测试、Play Mode、截图、报告、受控文件读写。
+TrustedProject   受信任项目档。允许项目扩展工具、受控菜单命令、受控文件写入、部分反射读取。
+AdminDebug        管理员调试档。允许代码执行、反射调用、外部进程等高风险能力。
+```
+
+#### SafeDefault
+
+默认安装后的档位。
+
+允许：
+
+- health / ping / editor state
+- 工具发现
+- Console 摘要
+- 选择对象检查
+- UIProbe Prefab Index / Asset Reference / UI Checks
+- 报告导出
+- preview-only 操作
+
+不允许：
+
+- 任意写文件
+- 任意菜单执行
+- 代码执行
+- 反射调用
+- 外部进程
+- 外部网络
+
+#### TeamAutomation
+
+适合 CI、本地自动化、团队常规 AI 辅助。
+
+在 SafeDefault 基础上允许：
+
+- trigger compile
+- get compile result
+- run tests
+- enter / exit play mode
+- take screenshot
+- 受控目录内读取文件
+- 受控报告输出
+- 支持 preview / execute 的安全写操作
+
+仍然不允许：
+
+- 任意 C# 执行
+- 任意反射调用
+- 任意菜单执行
+- 任意外部进程
+
+#### TrustedProject
+
+适合项目内已经认可的自动化工具和扩展。
+
+在 TeamAutomation 基础上允许：
+
+- 项目扩展注册工具
+- allowlist 菜单命令
+- allowlist 文件写入
+- 只读反射查询，例如类型、组件、字段结构
+- 受控 batch operation
+
+要求：
+
+- 项目级配置显式启用。
+- 所有写操作有日志。
+- 高风险工具可以单独关闭。
+
+#### AdminDebug
+
+适合少数管理员或本地调试，不适合作为团队默认档位。
+
+在 TrustedProject 基础上允许：
+
+- 代码执行
+- 反射调用方法
+- 外部进程
+- 外部网络
+- 兼容旧 MCP 的高风险工具
+
+要求：
+
+- 默认关闭。
+- 每次启用需要明显提示。
+- 可以设置临时有效期。
+- 必须记录审计日志。
+- 建议只绑定 loopback，不允许远程访问。
+
+### 6.2 Profile 与 ToolDescriptor
+
+ToolDescriptor 建议包含：
+
+```json
+{
+  "id": "ui_probe.run_editor_script_execute",
+  "category": "Unity/Code",
+  "safety": "CodeExecution",
+  "minProfile": "AdminDebug",
+  "enabledByDefault": false,
+  "requiresConfirmation": true,
+  "supportsPreview": true,
+  "supportsUndo": false,
+  "auditRequired": true
+}
+```
+
+工具最终是否可用由以下条件共同决定：
+
+```text
+当前 Capability Profile
+项目级 allow / deny policy
+用户本地授权
+工具自身 enabled 状态
+MCP client / session 权限
+```
 
 ---
 
@@ -397,6 +558,22 @@ ui_probe.take_screenshot
 
 这些可以作为 v0.2 / v0.3 逐步加入，不必全部进入第一版。
 
+### 9.5 高风险替代候选（非默认档位）
+
+```text
+ui_probe.execute_menu_item
+ui_probe.read_project_file
+ui_probe.write_project_file_preview
+ui_probe.write_project_file_execute
+ui_probe.run_editor_script_preview
+ui_probe.run_editor_script_execute
+ui_probe.reflect_type_info
+ui_probe.reflect_method_call
+ui_probe.run_external_process
+```
+
+这些工具只用于替代其他 MCP 的高级能力，不进入默认安装档位。
+
 ---
 
 ## 10. 与现有工作台重构的关系
@@ -414,6 +591,7 @@ MCP 替代方案依赖非 MCP 工作台重构中的服务化结果。
 6. 写操作 preview / execute
 7. 项目扩展 Tool API
 8. 旧 MCP 能力迁移与废弃
+9. Capability Profile 与高风险工具治理
 ```
 
 原则：
@@ -422,6 +600,7 @@ MCP 替代方案依赖非 MCP 工作台重构中的服务化结果。
 - MCP 不绕过 ToolRegistry。
 - MCP 与 UI Toolkit 工作台共用 ToolDescriptor / ToolResult / ReportService。
 - 项目扩展优先接入 UIProbe ToolRegistry，而不是继续新增独立 MCP。
+- 高风险能力不是删除，而是放入更高 Capability Profile 并受策略治理。
 
 ---
 
@@ -437,3 +616,5 @@ MCP 替代方案依赖非 MCP 工作台重构中的服务化结果。
 - Tool Center UI 的信息架构。
 - 长任务取消、进度和日志格式。
 - 多 Unity Editor 实例如何识别和选择。
+- Capability Profile 如何保存、继承和锁定。
+- AdminDebug 档位是否允许远程访问，默认建议不允许。
