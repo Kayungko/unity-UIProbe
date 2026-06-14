@@ -1,0 +1,17 @@
+{
+    "name": "UIProbe.Core.Services",
+    "rootNamespace": "",
+    "references": [
+        "UIProbe.Contract",
+        "UIProbe.Infrastructure"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

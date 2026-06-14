@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "UIProbe.Contract",
         "UIProbe.Infrastructure",
+        "UIProbe.Core.Services",
         "UIProbe.Editor"
     ],
     "includePlatforms": [

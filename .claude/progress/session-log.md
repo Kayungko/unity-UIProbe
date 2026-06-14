@@ -6,7 +6,7 @@
 
 <!-- 未完成 / 阻塞 / 下一步。永不压缩。 -->
 
-- [ ] Next: T1-4 — ToolRegistry 骨架(工具注册/发现/按 ToolPhase 分发),消费 IUIProbeTool + ToolContext
+- [ ] Next: T1-5 — 黄金样本回归基线机制(M1 最后一个任务)
 - [ ] 编译/测试基建就绪:临时宿主 `E:\uiprobe-compile-host`(junction 挂 UIProbe→Assets/UIProbe,manifest 含 com.unity.test-framework 1.1.33)。编译:`Unity.exe -batchmode -quit -nographics -projectPath <host> -logFile <log>`;测试:加 `-runTests -testPlatform EditMode -testResults <xml>`。绝对路径机器相关,暂不入库
 
 ## 归档 (Archive)
@@ -36,3 +36,8 @@ _尚无快速任务或调试记录。_
 - build: 2026-06-14 — 新建第 4 个程序集 `UIProbe.Infrastructure`(运行时/全平台,引擎引用)承载 3 接口:IAssetGateway(FindAssets/LoadAssetAtPath<T>/MoveAsset/GUID 互转,注释标明须主线程)、IFileSystem(读写/Exists/Backup/Restore 走 token 支撑 FileBackup 撤销)、IEditorPrefs(GetString/SetString/HasKey/DeleteKey)。`UIProbe.Editor` 落 3 个 Unity 生产实现(AssetDatabase/File/EditorPrefs);`UIProbe.Tests.Editor` 落 3 个内存假体(Dictionary 模拟,MaxEntries 可控规模 + Seed)+ AdapterFakesTests(4 用例)。Editor/Tests asmdef 各 +引用 UIProbe.Infrastructure。
 - 关键取舍:接口须在运行时程序集而 Contract 是 noEngineReferences 纯托管(容不下需 UnityEngine.Object 的 IAssetGateway),故新建 UIProbe.Infrastructure,与 unity-adapters 模块所有权对齐、保持 Contract 纯净。不改任何现有业务调用点(迁移留到 Service 抽离里程碑)。
 - verify: PASSED — 编译 0 error CS(首轮 InMemoryAssetGateway 因 System/UnityEngine 双 using 致 Object 二义 12 err,限定 UnityEngine.Object 后通过);EditMode 6/6 Passed;gate high=0/medium=0。
+
+#### T1-4: ToolRegistry 骨架(注册/发现/只读调用,经 Adapter) (DONE)
+- build: 2026-06-14 — 新建第 5 个运行时程序集 `UIProbe.Core.Services`(引用 Contract+Infrastructure)。`ToolRegistration.cs`:注册条目 + `OperationTicket`(写两阶段占位)+ `ToolRunnerBase<TParams>`(契约 §8 留白的 Run 接线:JsonUtility 反序列化→Validate 短路→按 Phase 分派 Describe/Preview/Execute)。`ToolRegistry.cs`:构造注入三 Adapter;Register(同 Id 去重抛异常)/ListTools(按 MinProfile 过滤)/DescribeTool(返回 ToolResult,缺失 TOOL_NOT_FOUND)/Invoke(查找→TOOL_NOT_FOUND→建 ToolContext→tool.Run)/RegisterFromAssembly(反射 [UIProbeTool] 按 ctor 签名注入 Adapter)。`ToolRegistryTests.cs` 7 用例(fake 只读工具真实调 AssetGateway 证明注入)。
+- 关键取舍:① 经两个子 agent 独立评审后定案;② Adapter 经工具 **ctor 注入**而非 ToolContext(任务字面"转交给 ToolContext"与冻结契约冲突,ToolContext 在 noEngineReferences 的 Contract 层容不下 Adapter,以契约为准);③ Run 分派落 `ToolRunnerBase<TParams>`(Registry 只持非泛型 IUIProbeTool 看不见 TParams);④ DescribeTool 返回 ToolResult 以承载缺失码;⑤ ARCH-001 偏差:实际落点 `Core/Services` 与 CLAUDE.md 声明的 `Core/Tools` 不一致,以任务 write-path 为准,已记 tool-registry wiki。
+- verify: PASSED — batchmode 编译 0 error CS;EditMode 13/13 Passed(7 ToolRegistry + 4 Adapter 假体 + 2 契约 smoke);gate high=0/medium=0。

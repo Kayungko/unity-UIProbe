@@ -12,7 +12,17 @@
 
 ## 所属路径
 
-- UIProbe/Core/Tools
+- UIProbe/Core/Tools(声明边界)
+- **实际落点(M1/T1-4)**: `UIProbe/Core/Services/`,程序集 `UIProbe.Core.Services`(运行时/全平台,引用 `UIProbe.Contract` + `UIProbe.Infrastructure`)。任务 write-path 指定 `Core/Services`,与本页声明的 `Core/Tools` 存在偏差,以任务 write-path 为准;`Core/Tools/Models` 归 tool-contract。
+
+## v0.1 实现状态(M1/T1-4 骨架)
+
+骨架已落地,真实业务 Service 接入留 M2。相对原契约的关键接线决策(供后续工具作者参考):
+
+- **Adapter 经工具构造函数注入,不经 ToolContext**。`ToolContext` 是冻结契约且在 `noEngineReferences` 的 Contract 程序集,无法持有需 UnityEngine 的 Adapter;Registry 持有三 Adapter,在反射构造 `[UIProbeTool]` 工具时按 ctor 签名选择性注入。任务说明字面的"转交给 ToolContext"与冻结契约冲突,以契约为准。
+- **Run 分派落在 `ToolRunnerBase<TParams>`**(`UIProbe.Core.Services`)。契约 §8 的 `UIProbeTool<TParams>.Run` 为 abstract、留白"由 Registry 接线";因 Registry 只持非泛型 `IUIProbeTool` 看不见 `TParams`,反序列化(JsonUtility,v0.1 最小)+ Validate 短路 + Phase 路由统一在此泛型基类承载,工具继承复用。Describe→回 schema;Preview/Execute→对应阶段;Validate 失败→`INVALID_PARAMS` + Issues,绝不进 Execute。
+- **`DescribeTool` 返回 `ToolResult`**(非裸 `ToolDescriptor`):命中 `Success` + `Data` 填 descriptor JSON,缺失 `Failed` + `TOOL_NOT_FOUND`,以承载缺失错误码。
+- **`OperationTicket` 仅留字段占位**,v0.1 只读路径不实现校验逻辑(写两阶段授权语义留 M5)。
 
 ## 实体
 
@@ -193,7 +203,7 @@ Preview 产出的操作票据,Execute 时校验。
 
 | ID | 标题 | 阶段 | 状态 | 里程碑 |
 |---|---|---|---|---|
-| T1-4 | ToolRegistry 骨架:注册/发现/调用(经 Adapter,只读路径) | exec | NOT_STARTED | M1 |
+| T1-4 | ToolRegistry 骨架:注册/发现/调用(经 Adapter,只读路径) | exec | DONE | M1 |
 | T4-3 | v0.1 只读工具接入 Registry 并端到端打通(AI 向验收) | exec | NOT_STARTED | M4 |
 
 ## 错误处理

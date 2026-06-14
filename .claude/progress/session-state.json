@@ -50,9 +50,17 @@
         },
         {
           "id": "T1-4",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-14T21:30:00Z",
+          "completed_at": "2026-06-14T21:44:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "batchmode 编译 0 error CS;EditMode 测试 13/13 Passed(7 ToolRegistry + 4 Adapter 假体 + 2 契约 smoke)",
+            "timestamp": "2026-06-14T21:44:00Z"
+          },
+          "evidence": "新建第 5 个运行时程序集 UIProbe.Core.Services(引用 Contract+Infrastructure)承载 ToolRegistry。ToolRegistration.cs:注册条目 + OperationTicket 写两阶段占位 + ToolRunnerBase<TParams>(契约 §8 留白的 Run 接线:反序列化(JsonUtility)→Validate 短路→按 Phase 分派 Describe/Preview/Execute)。ToolRegistry.cs:构造注入三 Adapter;Register(同 Id 去重抛异常)/ListTools(按 MinProfile 过滤)/DescribeTool(返回 ToolResult,缺失 TOOL_NOT_FOUND)/Invoke(查找→TOOL_NOT_FOUND→建 ToolContext→tool.Run)/RegisterFromAssembly(反射 [UIProbeTool] 按 ctor 签名注入 Adapter)。关键取舍:Adapter 经工具 ctor 注入而非 ToolContext,保 Contract 纯净。ToolRegistryTests 7 用例(fake 只读工具真实调 AssetGateway 证明注入)全绿。编译 0 error,gate high=0/medium=0。实际落点 Core/Services 与 CLAUDE.md 声明的 Core/Tools 偏差,以任务 write-path 为准,已记 wiki。"
         },
         {
           "id": "T1-5",
