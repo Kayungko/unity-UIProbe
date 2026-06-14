@@ -1,9 +1,25 @@
 # UIProbe 工作台化重构计划（非 MCP 部分）
 
 > 分支：`plan/workbench-refactor`  
-> 范围：先记录 UIProbe 往“Unity UI 工作台”扩展所需的核心重构。  
-> MCP 相关设计暂不展开，待后续确认 MCP 架构、边界、核心工具清单后另补文档。  
-> 边界更新：PSD 解析、PSD → Prefab 自动生成、通用 Prefab 自动化属于其他项目需求，不纳入本仓库当前工作台规划。
+> 范围：UIProbe 往"Unity UI 工作台"扩展所需的核心服务化重构。  
+> 上位文档：`RefactorRoadmap.md`（关键路径、MVP、决策总账）。工具结果/契约一律引用 `ToolContract.md`，不在本文档另行定义。  
+> 边界：PSD 解析、PSD → Prefab、通用 Prefab 自动化属于其他项目需求，不纳入本仓库规划。  
+> 平台基线：**Unity 2022.3 LTS+**。
+
+---
+
+## 0. 基于现状的关键修正（实证）
+
+抽查现有代码后，以下与原计划假设不符，规划须据此调整：
+
+- **`Core/` 目录已被占用**：已存在 `ResourceCacheManager.cs`、`ResourceScanner.cs`。新增 Service 不可当空地规划，需先理清与既有 Core 类的职责边界，避免撞名/重叠。
+- **主窗口实际有约 15 个 Tab，本计划的 Service 蓝图只覆盖约 8 个**。Picker（运行时拾取）、界面记录（UIRecordDiffer）、Adaptor、FilterNodeScanner、RichTextGenerator、NestingOverview 在蓝图里无归属，需补全功能对照清单（见 §12），否则迁移易烂尾。
+- **`UIProbeConfig` 已有 `version` 字段 + `MigrateFromEditorPrefs()`**：复用此迁移雏形，扩展为统一迁移链，不另起炉灶。
+- **全仓库无 asmdef**：测试与 package 化的前置工作，见 §3.2 与 `DistributionAndVersioning.md` §2.1。
+
+## 0.1 实施顺序的硬性纠正
+
+**`ToolContract`（统一 ToolResult / Change）必须在第一个 Service 之前冻结**。原 §10 把它排在第 8 步，会导致每个 Service 各写一套结果模型再返工。本计划的实施顺序据此调整（见 §10）。
 
 ---
 
@@ -104,15 +120,31 @@ UIProbe/
 
 ### 3.2 asmdef / package 化
 
-后续建议补充：
-
 ```text
 UIProbe.Runtime.asmdef       可选，放纯数据/运行时安全类型
-UIProbe.Editor.asmdef        当前 Editor 工具主体
-UIProbe.Tests.Editor.asmdef  后续测试
+UIProbe.Editor.asmdef        Editor 工具主体（Editor-only，引用 UI Toolkit 程序集）
+UIProbe.Tests.Editor.asmdef  测试
 ```
 
-本阶段可以先记录，不强制实施。
+现状全仓库无 asmdef、在 Assets 下全局编译。asmdef 化是测试与 package 化的**前置工作**，不能一直推迟。package 分发细节见 `DistributionAndVersioning.md` §2.1。
+
+### 3.3 Unity API 抽象接缝（可测性前提）
+
+现有业务大量直接调用 `AssetDatabase` / `PrefabStageUtility` / `EditorPrefs` / `File` 静态 API，导致 Service 抽离后仍无法单元测试。**约定：Service 不直接调用静态 Unity API，而经 Adapter 接口注入**：
+
+```csharp
+public interface IAssetGateway { /* FindAssets / Load / Move / GUID 等 */ }
+public interface IFileSystem   { /* 读写 / 备份 / 存在性 */ }
+public interface IEditorPrefs  { /* 配置读写 */ }
+```
+
+Service 依赖接口，生产用 Unity 实现，测试用内存假体。没有这层接缝，`UIProbe.Tests.Editor.asmdef` 形同虚设。
+
+### 3.4 测试策略与回归基线
+
+- **单元测试**：纯算法（如 `ImageNormalizer` 的内容边界计算）与经 Adapter 注入的 Service 逻辑。
+- **黄金样本回归基线**：当前零测试，渐进迁移最大风险是"抽离后行为悄悄变了"。先对每个模块录制黄金样本（输入 prefab/图集 → 输出快照/CSV），作为迁移前后 diff 基线，保证用户可见行为零变化。
+- 优先为即将抽离的模块补基线，再动手抽离。
 
 ---
 
@@ -257,7 +289,7 @@ public sealed class RedGoldImportService
 - 命名分配。
 - 品质输出路径。
 - 覆盖前备份。
-- 多级撤销。
+- 多级撤销（映射到 `ToolContract.md` §10 的 `UndoCapability.MultiLevelStack`：多级栈 + 表格回滚；区别于图片规范化的 `FileBackup` 与 prefab 改名的 `UnityUndo`）。
 - 报告导出。
 
 ---
@@ -266,31 +298,15 @@ public sealed class RedGoldImportService
 
 随着操作变多，需要统一任务结果与报告格式。
 
-### 7.1 统一 ToolResult
+### 7.1 统一 ToolResult（引用 `ToolContract.md`）
 
-```csharp
-public sealed class UIProbeToolResult
-{
-    public bool Success;
-    public string Message;
-    public List<UIProbeIssue> Issues;
-    public List<UIProbeChange> PlannedChanges;
-    public List<UIProbeChange> AppliedChanges;
-    public string ReportPath;
-    public string Error;
-}
-```
+**不在本文档定义结果模型**。`ToolResult`（含 `ToolStatus` 状态机、`Error` 错误码、`OperationId`、`Issues`、`PlannedChanges`/`AppliedChanges`、`Risks`）以 `ToolContract.md` §4 为唯一权威定义。本阶段的工作是：让已抽离的各 Service 不再各自返回裸 `bool` / 字符串，而是统一经 Tool 层产出 `ToolResult`。
 
-### 7.2 统一 Change 模型
+> 注意：原计划在此处定义的 `UIProbeToolResult`（裸 `bool Success`）已废弃。任何 Service 结果都应映射到 `ToolContract.md` 的 `ToolResult`，避免双重定义与返工。
 
-```text
-changeType: create / update / delete / rename / move / import / export
-assetPath
-oldValue
-newValue
-canUndo
-backupPath
-```
+### 7.2 统一 Change 模型（引用 `ToolContract.md`）
+
+`Change` 与撤销能力分级（`UndoCapability`：None / UnityUndo / FileBackup / MultiLevelStack）同样以 `ToolContract.md` §10 为准，本文档不另行定义。报告导出消费的就是这套 `Change` / `Issue` 模型。
 
 ### 7.3 ReportService
 
@@ -354,21 +370,55 @@ RedGoldImportFlow
 
 ---
 
-## 10. 建议实施顺序
+## 10. 建议实施顺序（已据 §0.1 纠正）
+
+> 关键纠正：`ToolContract`（统一 `ToolResult` / `Change`）与 Adapter 接缝必须在第一个 Service 之前冻结，否则每个 Service 各写一套结果模型再返工。原顺序把统一结果模型排在第 8 步，已废弃。关键路径与 MVP 验收以 `RefactorRoadmap.md` 为准。
 
 1. 新增文档与分支，确认工作台化方向。
-2. 建立 `Core/Services` 与 `Core/Tools` 基础目录。
-3. 抽离 `PrefabIndexService`。
-4. 抽离 `AssetReferenceService`。
-5. 抽离 `UICheckService` / `DuplicateCheckService`。
-6. 抽离 `ImageProcessingService`。
-7. 抽离 `RedGoldImportService`。
-8. 建立统一 `ToolResult` / `ReportService`。
-9. 建立内部 Flow 编排边界。
-10. 再评估 UI Toolkit 工作台壳层与 MCP 独立文档。
+2. **冻结 `ToolContract.md`**（`ToolResult` / `Change` / `Issue` / 错误码 / Preview-Execute），作为所有 Service 的产出契约。
+3. **建立 asmdef**（`UIProbe.Editor` / `UIProbe.Runtime` / `UIProbe.Tests.Editor`，见 §3.2）与 Adapter 接缝（`IAssetGateway` / `IFileSystem` / `IEditorPrefs`，见 §3.3）。
+4. 建立 `Core/Services` 与 `Core/Tools` 基础目录，搭最小 `ToolRegistry`。
+5. 为即将抽离的模块录制黄金样本回归基线（见 §3.4）。
+6. 抽离 `PrefabIndexService`（首个 Service，验证契约 + 接缝 + 基线闭环）。
+7. 抽离 `AssetReferenceService`。
+8. 抽离 `UICheckService` / `DuplicateCheckService`。
+9. 抽离 `ImageProcessingService`。
+10. 抽离 `RedGoldImportService`。
+11. 补全 `ReportService`（消费 §7 的 `ToolResult` / `Change`）。
+12. 建立内部 Flow 编排边界。
+13. 再评估 UI Toolkit 工作台壳层（见 `UIToolkitWorkbenchPlan.md`）与 MCP 链路（见 `MCPReplacementPlan.md`）。
 
 ---
 
 ## 11. 备注
 
 工作台化重构不是一次性重写，而是渐进式迁移：旧 `UIProbeWindow` 保持可用，新 Service / Tool 层逐步接管业务逻辑。每抽离一个模块，都应保持原 UI 行为不变，并补充最小验证步骤。
+
+---
+
+## 12. 全功能对照清单（15 Tab → Service 归属）
+
+原蓝图（§2）的 Service 只覆盖约 8 个能力，而主窗口实际有约 15 个 Tab。未归属的能力若不在迁移前明确落点，渐进迁移极易烂尾。下表把每个 Tab 映射到目标 Service 与**单一数据源 owner**（该数据的权威持有者，其他模块只读引用，避免多份副本不一致）。
+
+| Tab / 能力 | 目标 Service | 单一数据源 owner | 备注 |
+|---|---|---|---|
+| Indexer（预制体索引） | `PrefabIndexService` | `PrefabIndex`（含缓存） | 工作台底座，最先抽离 |
+| 资源引用追踪 | `AssetReferenceService` | 查询时基于 `PrefabIndex` 派生 | 不另存副本，依赖 Index |
+| 综合检测 | `UICheckService` | `UICheckReport` | Issue 模型见 ToolContract §10 |
+| 重名/重复检测 | `DuplicateCheckService` | 复用 `PrefabIndex` | 可并入 UICheckService 的规则集 |
+| 图片规范化 | `ImageProcessingService` | `ImageScanResult` | 撤销 = `FileBackup` |
+| 批量命名 | `ImageProcessingService` | 复用扫描结果 | Preview/Execute 两阶段 |
+| 大红大金导入 | `RedGoldImportService` | `RedGoldData` + 多级撤销栈 | 撤销 = `MultiLevelStack` |
+| 截图 | `ScreenshotService` | 输出文件路径 | 写控目录 |
+| 富文本生成（RichTextGenerator） | `RichTextService`（新增归属） | 生成结果无持久态 | 原蓝图遗漏，补归属 |
+| 运行时拾取（Picker） | `RuntimePickService`（新增归属） | 运行时选中态，非持久 | PlayMode 边界，需主线程约束 |
+| 界面记录差异（UIRecordDiffer） | `UIRecordService`（新增归属） | 录制快照 | 原蓝图遗漏，diff 基线可复用 |
+| Adaptor（适配） | `AdaptorService`（新增归属） | 适配规则配置 | 原蓝图遗漏 |
+| 过滤节点扫描（FilterNodeScanner） | 并入 `UICheckService` | 复用 `PrefabIndex` | 作为一类检测规则 |
+| 嵌套总览（NestingOverview） | 并入 `PrefabIndexService` 查询 | 基于 `PrefabIndex` 派生 | 视图层能力，无独立数据源 |
+| 配置 | `ConfigService` | `UIProbeConfig`（已有 version + `MigrateFromEditorPrefs`） | 复用现有迁移雏形，见 §0 |
+
+原则：
+- **单一数据源**：`PrefabIndex` 是多个能力的共同底座，只由 `PrefabIndexService` 持有；引用追踪、重复检测、嵌套总览、过滤扫描都基于它派生，不各自缓存。
+- **新增归属的四项**（RichText / Picker / UIRecord / Adaptor）原蓝图未覆盖，此处先确立 Service 落点，具体抽离顺序排在核心五个 Service 之后。
+- **PlayMode / 主线程敏感能力**（Picker、截图）须显式标注主线程执行边界（见 §2 核心原则）。

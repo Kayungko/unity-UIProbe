@@ -2,7 +2,10 @@
 
 > 分支：`plan/workbench-refactor`  
 > 范围：记录 UIProbe 从 IMGUI EditorWindow 逐步迁移到 UI Toolkit 工作台界面的计划。  
-> 本文只讨论 Editor UI / 视觉层 / 交互体验，不涉及 MCP Server、外部进程、Domain Reload Bridge 等内容。
+> 本文只讨论 Editor UI / 视觉层 / 交互体验，不涉及 MCP Server、外部进程、Domain Reload Bridge 等内容。  
+> 上位文档：`RefactorRoadmap.md`（关键路径、MVP、决策总账）。结果/契约模型一律引用 `ToolContract.md`，不在本文档另行定义。  
+> 平台基线：**Unity 2022.3 LTS+**（UI Toolkit `TreeView` / `ListView` / `TwoPaneSplitView` 均以 2022.3 稳定版 API 为准，不依赖更高版本特性）。  
+> **时序定位**：本计划**整体排在 MCP MVP（AI-facing 路线）之后**。首发 MVP 是服务化 + AI 链路（见 `RefactorRoadmap.md`），UI Toolkit 工作台壳层属于其后的视觉层升级，不与 MCP MVP 抢占关键路径。本文档先行成稿，供届时落地参考。
 
 ---
 
@@ -161,6 +164,12 @@ var legacyContainer = new IMGUIContainer(() =>
 
 这样可以先得到新的工作台外壳、导航、主题和任务面板，同时保留现有功能稳定。
 
+> **前置 spike（必做，搭 Shell 前验证）**：`IMGUIContainer` 嵌入复杂 IMGUI 面板存在已知风险，须先用现有最复杂的一个 Tab（建议大红大金导入或图片规范化）做一次性验证，确认：
+> - **布局**：`IMGUIContainer` 在 `TwoPaneSplitView` / 滚动容器内的尺寸计算正确，IMGUI 内部的 `GUILayout` 自适应高度不被裁剪。
+> - **输入焦点**：IMGUI 控件（输入框、拖拽、右键菜单）与外层 UI Toolkit 元素的焦点/事件不冲突。
+> - **重绘**：IMGUI 面板状态变化能触发 `IMGUIContainer.MarkDirtyRepaint()`，不出现“值变了但不重绘”。
+> spike 不通过的面板，迁移期不嵌入，保留在旧 `UIProbeWindow` 中，直到其完成纯 UI Toolkit 重写。
+
 ### 5.2 每迁移一个模块，必须先服务化
 
 迁移顺序建议：
@@ -272,10 +281,12 @@ public sealed class UIProbeWorkbenchState
     public bool IsIndexReady;
     public string LastIndexUpdateTime;
     public List<UIProbeTaskState> RecentTasks;
-    public List<UIProbeIssue> CurrentIssues;
-    public UIProbeToolResult LastResult;
+    public List<Issue> CurrentIssues;     // Issue 见 ToolContract.md §10
+    public ToolResult LastResult;         // ToolResult 见 ToolContract.md §4，不在本文档另定义
 }
 ```
+
+> 注意：`Issue` / `ToolResult` 以 `ToolContract.md` 为唯一来源。早期草稿里的 `UIProbeIssue` / `UIProbeToolResult` 已废弃，不在视觉层重新定义结果模型。
 
 每个模块维护自己的 ViewState：
 
@@ -289,6 +300,26 @@ public sealed class PrefabIndexViewState
     public string ErrorMessage;
 }
 ```
+
+### 7.1 状态 → UI 刷新机制（明确单向数据流）
+
+UI Toolkit 局部刷新的前提是“状态变更如何通知 View”有明确约定，否则会退化成每帧全量重建或手动散落的 `Refresh()` 调用。约定如下：
+
+```text
+用户交互 / Tool 回调
+        ↓ 修改
+WorkbenchState / ViewState（唯一可变源）
+        ↓ 触发
+状态变更事件（OnChanged，按字段或按区块粒度）
+        ↓ 订阅
+Presenter 计算 diff → 只更新受影响的 VisualElement
+```
+
+- **单向数据流**：View 不直接改业务数据，只通过 Presenter 提交意图；状态的唯一可变源是 `WorkbenchState` / 各 `ViewState`。
+- **变更通知**：状态对象暴露细粒度变更事件（如 `Results` 变了只刷新列表、`SelectedItem` 变了只刷新详情面板），避免“任何变更都全量重建”。
+- **长任务进度**：Tool 的 `ToolProgress`（见 `ToolContract.md` §9）经 Presenter 节流（~200ms）写入 `UIProbeTaskState`，再驱动进度条/任务面板局部刷新，不阻塞主线程。
+- **列表/树虚拟化**：`ListView` / `TreeView` 通过 `itemsSource` + `Rebuild()` / `RefreshItems()` 增量刷新，绝不为每条数据常驻手写 VisualElement（见 §10.2）。
+- **PlayMode / Domain Reload**：进入 PlayMode 或域重载后，View 须能从 `WorkbenchState` 重新拉取并重建，不持有跨重载的脆引用。
 
 ---
 
@@ -347,6 +378,15 @@ UI Probe/打开工作台 Experimental -> 新 UIProbeWorkbenchWindow
 
 等核心模块迁移稳定后，再把默认入口切到新工作台。
 
+### 9.1 双栈退场标准（避免长期并存）
+
+双栈（旧 IMGUI + 新 UI Toolkit）是过渡手段，不是终态。明确退场标准，防止两套界面无限期共存、维护成本翻倍：
+
+- **单模块退场**：某模块完成纯 UI Toolkit 重写并通过黄金样本回归（行为与旧 IMGUI 一致）后，**立即移除该模块的 `IMGUIContainer` 嵌入**，不保留两份实现。
+- **默认入口切换条件**：当核心五个 Service 对应模块（PrefabIndex / AssetReferences / UIChecks / ImageTools / RedGold）全部完成纯 UI Toolkit 重写并回归通过后，默认入口从旧 `UIProbeWindow` 切到新工作台。
+- **旧窗口下线条件**：所有 15 个 Tab（见 `WorkbenchRefactorPlan.md` §12）均完成迁移后，移除 `UI Probe/打开面板` 菜单与旧 `UIProbeWindow`；此前旧窗口保持可用作为兜底。
+- **禁止反向回流**：模块一旦切到纯 UI Toolkit，不允许因临时问题回退到 IMGUI 版本；遇阻应修复新实现或暂缓该模块退场，不维持双份逻辑。
+
 ---
 
 ## 10. 风险与注意事项
@@ -382,6 +422,8 @@ Report / Undo
 ---
 
 ## 11. 建议实施顺序
+
+> 前置：本顺序整体在 MCP MVP（AI-facing 路线）之后启动，且每步都依赖对应 Service 已抽离完成（见 `WorkbenchRefactorPlan.md` §10）。搭 Shell 前先完成 §5.1 的 `IMGUIContainer` spike。
 
 1. 保留现有 `UIProbeWindow`。
 2. 新增 `UIProbeWorkbenchWindow`，作为 Experimental 入口。
