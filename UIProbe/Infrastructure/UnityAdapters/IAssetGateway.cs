@@ -1,0 +1,27 @@
+using UnityEngine;
+
+namespace UIProbe.Infrastructure.UnityAdapters
+{
+    /// <summary>
+    /// AssetDatabase / PrefabStage 等静态资源 API 的接缝。
+    /// 约定:所有方法必须在 Unity 主线程调用(经 Dispatcher 调度);
+    /// 后台线程直接调用 AssetDatabase 在 Editor 下是未定义行为。
+    /// </summary>
+    public interface IAssetGateway
+    {
+        /// <summary>按 filter 查找资源,返回 GUID 列表(对应 AssetDatabase.FindAssets)。</summary>
+        string[] FindAssets(string filter);
+
+        /// <summary>按路径加载资源(对应 AssetDatabase.LoadAssetAtPath)。未命中返回 null。</summary>
+        T LoadAssetAtPath<T>(string assetPath) where T : Object;
+
+        /// <summary>移动 / 重命名资源。成功返回空字符串,失败返回错误信息(对应 AssetDatabase.MoveAsset)。</summary>
+        string MoveAsset(string sourcePath, string destinationPath);
+
+        /// <summary>GUID 转资源路径,未命中返回空字符串。</summary>
+        string GUIDToAssetPath(string guid);
+
+        /// <summary>资源路径转 GUID,未命中返回空字符串。</summary>
+        string AssetPathToGUID(string assetPath);
+    }
+}

@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "UIProbe.Contract",
+        "UIProbe.Infrastructure",
         "UnityEngine.UI",
         "UnityEditor.UI",
         "Unity.TextMeshPro",
