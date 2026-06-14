@@ -1,0 +1,24 @@
+{
+  "id": "M5",
+  "name": "v0.2 写操作与授权治理(占位:image/redgold 写工具 + Report + 授权落地)",
+  "tasks": [
+    {
+      "id": "T5-1",
+      "title": "规划 v0.2 写操作与授权落地范围",
+      "agent": "lead",
+      "stage": "prep",
+      "write_paths": ["Docs"],
+      "dependencies": [],
+      "description": "v0.1(M1-M4)只读链路打通后,规划 v0.2 的写操作与授权治理落地。本任务为占位/前置规划,不写实现代码,产出 v0.2 任务拆分供后续 amend 细化。\n\n规划范围(基于 RefactorRoadmap.md 与既有模块定义):\n1. 写操作两阶段(Preview->Execute + OperationTicket)真正启用:image-processing(图集/图片处理写)、redgold-import(RedGold 导入写)等。\n2. UndoCapability 分级真正接线:UnityUndo / FileBackup(IFileSystem.Backup)/ MultiLevelStack(RedGold 多级撤销)。\n3. authorization 模块落地:Capability Profile(SafeDefault/TeamAutomation/TrustedProject/AdminDebug)与 Authorization Mode(请求批准/替我批准/完全访问/自定义)正交判定;mcp.config.toml + mcp.local.toml 叠加;审计 JSONL(不入库、工具不可写其目录);写路径 write_allow/write_deny。\n4. Report 模块:综合报告导出(md/csv/json)统一化。\n5. WebSocket 进度推送(替代/补充 jobId 轮询)评估。\n\n产出:更新 Docs 下的 v0.2 任务清单或新增规划小节,经用户确认后用 /amend 展开为详细任务。",
+      "acceptance": [
+        "产出 v0.2 写操作 + 授权 + Report 的任务拆分草案",
+        "明确 UndoCapability 三档各自的接线对象",
+        "明确 authorization 配置叠加与审计落地要点",
+        "标注哪些项需用户决策(open_questions)"
+      ],
+      "exit_criteria": "v0.2 范围与任务拆分草案就绪,可经 /amend 细化为可执行任务。",
+      "test_cases": [],
+      "notes": "占位里程碑:v0.1 收口后再细化;避免在 v0.1 未验证时过早展开写操作风险。"
+    }
+  ]
+}

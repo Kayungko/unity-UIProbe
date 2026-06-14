@@ -1,0 +1,37 @@
+{
+  "name": "tool-registry",
+  "paths": ["UIProbe/Core/Tools"],
+  "summary": "工具注册 / 发现 / 执行的统一入口。注册内置工具与项目扩展工具,维护 descriptor / 参数 schema / 安全等级 / 来源 / 启用状态,统一执行入口与 Preview/Execute 协议,并根据当前 Capability Profile 过滤、禁用或要求确认特定工具。MCP 与 UI 都不得绕过 ToolRegistry 直接调 Service。",
+  "entities": [
+    { "name": "ToolRegistration", "kind": "model", "description": "一个已注册工具的运行时记录。", "fields": [
+      { "name": "Descriptor", "type": "ToolDescriptor", "constraints": "见 tool-contract 模块" },
+      { "name": "Enabled", "type": "bool", "constraints": "运行时启用状态,受 Profile/policy 影响" },
+      { "name": "Factory", "type": "Func<UIProbeTool>", "constraints": "工具实例工厂" }
+    ], "invariants": ["Id 全局唯一,重复注册报错"] },
+    { "name": "OperationTicket", "kind": "model", "description": "Preview 产出的操作票据,Execute 时校验。", "fields": [
+      { "name": "OperationId", "type": "string", "constraints": "" },
+      { "name": "ToolId", "type": "string", "constraints": "" },
+      { "name": "ExpiresAt", "type": "DateTime", "constraints": "有有效期,过期返回 OPERATION_EXPIRED" },
+      { "name": "PlannedChanges", "type": "List<Change>", "constraints": "" }
+    ], "invariants": ["过期票据不可用于 Execute"] }
+  ],
+  "interfaces": [
+    { "name": "Register", "direction": "inbound", "description": "注册一个工具(内置或项目扩展)。", "params": "ToolDescriptor + factory", "returns": "void", "errors": ["TOOL_NOT_FOUND(重复 Id 报错)"] },
+    { "name": "ListTools", "direction": "inbound", "description": "列出当前 Profile 可见的工具(NOT_IN_PROFILE 的不出现)。", "params": "{ profile, sessionId }", "returns": "List<ToolDescriptor>", "errors": [] },
+    { "name": "DescribeTool", "direction": "inbound", "description": "返回单个工具的完整 descriptor + 参数 schema。", "params": "{ toolId }", "returns": "ToolDescriptor", "errors": ["TOOL_NOT_FOUND"] },
+    { "name": "Invoke", "direction": "inbound", "description": "统一执行入口:校验 schema -> 按 Phase 调 Preview/Execute -> 返回 ToolResult。", "params": "ToolRequest", "returns": "ToolResult", "errors": ["TOOL_NOT_FOUND", "INVALID_PARAMS", "NOT_IN_PROFILE", "PERMISSION_DENIED", "CONFIRMATION_REQUIRED", "OPERATION_EXPIRED"] }
+  ],
+  "scenarios": [
+    { "name": "发现并描述工具", "steps": ["AI 调 ListTools 获取当前档位可见工具", "对候选工具调 DescribeTool 读参数 schema", "据 Description 选对工具"], "edge_cases": ["工具不在 Profile -> 不出现在 ListTools", "工具不存在 -> TOOL_NOT_FOUND"] },
+    { "name": "统一执行判定", "steps": ["Invoke 收 ToolRequest", "校验 MinProfile <= activeProfile", "校验 policy allow/deny", "校验 enabled", "按授权模式 + Safety 判放行方式", "执行并写审计"], "edge_cases": ["MinProfile 不满足 -> NOT_IN_PROFILE", "被 deny -> PERMISSION_DENIED", "需确认无 token -> CONFIRMATION_REQUIRED"] },
+    { "name": "项目扩展接入", "steps": ["项目用 [UIProbeTool] Attribute 标注工具类", "ToolRegistry 扫描注册为 project.* 来源", "无需重复实现 MCP 协议层"], "edge_cases": ["项目工具 MinProfile=TrustedProject,SafeDefault 下不可见"] }
+  ],
+  "constraints": {
+    "correctness": ["参数反序列化与 schema 校验在 Invoke 统一做,不下放到各工具", "Execute 必须校验 OperationTicket 有效期与 ConfirmationToken"],
+    "security": ["工具最终可用由 Profile + allow/deny policy + 用户授权 + enabled + client 权限共同决定", "高风险工具默认不出现在普通 list_tools,除非 Profile 允许"]
+  },
+  "design_decisions": [
+    { "decision": "MCP/UI 统一经 ToolRegistry,不绕过", "rationale": "保证安全等级、Profile 过滤、审计、Preview/Execute 一致,避免双实现", "alternatives": ["MCP 直接调 Service(绕过治理,被否决)"] },
+    { "decision": "Attribute 驱动的项目扩展 API", "rationale": "项目只写业务工具,不重复实现协议/连接/权限层", "alternatives": ["项目各自新建 MCP server(正是要消除的现状)"] }
+  ]
+}

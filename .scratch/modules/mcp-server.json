@@ -1,0 +1,42 @@
+{
+  "name": "mcp-server",
+  "paths": ["mcp-server/src"],
+  "summary": "Node/TypeScript 实现的 MCP Server(Orchestrator),对外讲标准 MCP 协议给 AI 客户端,对内通过 HTTP loopback 连 Unity Bridge。负责:连接/会话管理、版本与契约握手、工具发现缓存、把 MCP tool 调用翻译成 Bridge /rpc、Domain Reload 期间退避重试与恢复、把 Unity 端结构化错误透传成 MCP 错误。v0.1 只暴露只读工具,自身不直接碰 Unity API。多 Unity 实例时按 projectPath 路由。",
+  "entities": [
+    { "name": "BridgeConnection", "kind": "entity", "description": "到单个 Unity 实例的连接状态。", "fields": [
+      { "name": "projectPath", "type": "string", "constraints": "路由键,多实例区分" },
+      { "name": "baseUrl", "type": "string", "constraints": "127.0.0.1:port" },
+      { "name": "sessionToken", "type": "string", "constraints": "从受控文件读,/rpc 携带" },
+      { "name": "lastServerId", "type": "guid", "constraints": "与 /health 比对检测 Domain Reload" },
+      { "name": "state", "type": "ConnectionState", "constraints": "Connecting/Ready/Reloading/Offline" }
+    ], "invariants": ["serverId 变化即判定 Domain Reload,标记 Reloading 并退避重试", "端口短暂不可用时退避而非立即判 Offline"] },
+    { "name": "ToolCacheEntry", "kind": "model", "description": "从 Bridge /tools/list 拉取后缓存的工具描述。", "fields": [
+      { "name": "descriptor", "type": "ToolDescriptor", "constraints": "见 tool-contract" },
+      { "name": "fetchedAtServerId", "type": "guid", "constraints": "serverId 变化即失效重拉" }
+    ], "invariants": ["Domain Reload 后缓存失效,重新 /tools/list"] },
+    { "name": "HandshakeResult", "kind": "model", "description": "启动握手结果。", "fields": [
+      { "name": "contractVersionOk", "type": "bool", "constraints": "major 不符直接拒绝连接" },
+      { "name": "uiProbeVersion", "type": "string", "constraints": "记录用于诊断" }
+    ], "invariants": ["contractVersion major 不一致 -> 拒绝,提示升级"] }
+  ],
+  "interfaces": [
+    { "name": "ListTools (MCP)", "direction": "inbound", "description": "MCP 客户端发现工具,代理 Bridge /tools/list 并走缓存。", "params": "()", "returns": "List<McpTool>", "errors": ["UNITY_OFFLINE"] },
+    { "name": "CallTool (MCP)", "direction": "inbound", "description": "MCP 客户端调用工具,翻译为 Bridge POST /rpc。", "params": "{ name, arguments }", "returns": "ToolResult", "errors": ["UNITY_OFFLINE", "UNITY_BUSY", "DOMAIN_RELOAD_INTERRUPTED", "MAIN_THREAD_TIMEOUT", "TOOL_NOT_FOUND"] },
+    { "name": "Handshake", "direction": "outbound", "description": "连接 Bridge 时校验 contractVersion/uiProbeVersion。", "params": "()", "returns": "HandshakeResult", "errors": ["VERSION_MISMATCH", "UNITY_OFFLINE"] },
+    { "name": "WaitForReload", "direction": "internal", "description": "Domain Reload 期间轮询 /health 等待新 serverId 稳定后恢复。", "params": "()", "returns": "void", "errors": ["RELOAD_TIMEOUT"] }
+  ],
+  "scenarios": [
+    { "name": "AI 端到端只读调用", "steps": ["MCP 客户端 ListTools", "Server 走缓存或 /tools/list", "CallTool 翻译为 /rpc 携带 sessionToken", "Bridge 主线程执行返回 ToolResult", "Server 透传给 MCP 客户端"], "edge_cases": ["Unity 未启动 -> UNITY_OFFLINE 友好提示", "工具不存在 -> TOOL_NOT_FOUND"] },
+    { "name": "Domain Reload 期间调用", "steps": ["调用中 /health serverId 变化", "标记 Reloading,失效工具缓存", "退避重试轮询 /health 直到新 serverId 稳定", "ReloadSafe 只读自动重发,否则回 DOMAIN_RELOAD_INTERRUPTED"], "edge_cases": ["reload 超时 -> RELOAD_TIMEOUT 提示稍后重试", "端口短暂不可用 -> 退避不判 Offline"] },
+    { "name": "多 Unity 实例路由", "steps": ["发现多个 Bridge 实例(不同 projectPath)", "按调用上下文 projectPath 选 BridgeConnection", "各自维护 serverId/token/缓存"], "edge_cases": ["projectPath 缺失 -> 默认单实例或要求显式指定"] }
+  ],
+  "constraints": {
+    "correctness": ["Server 不直接碰 Unity API,一切经 Bridge /rpc", "工具缓存以 serverId 为失效边界,Domain Reload 后必重拉", "错误码透传不吞,保留 Retriable 语义"],
+    "security": ["sessionToken 从仅当前用户可读文件读取,不写日志不外泄", "仅连 127.0.0.1 loopback"]
+  },
+  "design_decisions": [
+    { "decision": "Node/TypeScript 实现 MCP Server", "rationale": "MCP 生态成熟,AI 客户端对接成本低,与 Unity 端职责清晰分离", "alternatives": ["C# 内嵌 MCP(与 Editor 生命周期耦合,Domain Reload 风险高)"] },
+    { "decision": "工具缓存以 serverId 为失效边界", "rationale": "Domain Reload 后工具集可能变化,serverId 变化是天然失效信号", "alternatives": ["TTL 过期(可能用到过期工具集)"] },
+    { "decision": "v0.1 只暴露只读工具", "rationale": "先验证端到端链路稳定性,写操作与授权治理留 v0.2", "alternatives": ["v0.1 直接上写操作(链路未验证即引入风险)"] }
+  ]
+}

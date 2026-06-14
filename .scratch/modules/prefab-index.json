@@ -1,0 +1,42 @@
+{
+  "name": "prefab-index",
+  "paths": ["UIProbe/Core/Services", "UIProbe/Core/ResourceScanner.cs", "UIProbe/Core/ResourceCacheManager.cs", "UIProbe/Data/PrefabIndexData.cs", "UIProbe/UIProbeWindow_Indexer.cs"],
+  "summary": "Prefab Index 是后续工作台的核心底座,优先抽离为 PrefabIndexService(只读)。从 UIProbeWindow_Indexer.cs 抽出查找 prefab、构建 folder tree、收集 Image/RawImage/Prefab/Material 等资源引用、保存加载 IndexCache、搜索展开的非 UI 部分。PrefabIndex 是多个能力的单一数据源 -- 引用追踪、重复检测、嵌套总览、过滤扫描都基于它派生,不各自缓存。先抽离它以验证 ToolContract + Adapter 接缝 + 黄金样本基线闭环。",
+  "entities": [
+    { "name": "PrefabIndex", "kind": "entity", "description": "全量 prefab 索引,含缓存。多个 Service 的共同底座。", "fields": [
+      { "name": "Items", "type": "List<PrefabIndexItem>", "constraints": "" },
+      { "name": "FolderTree", "type": "FolderNode", "constraints": "目录树" },
+      { "name": "SchemaVersion", "type": "int", "constraints": "版本不符时自动重建而非读坏数据" },
+      { "name": "BuiltAt", "type": "DateTime", "constraints": "" }
+    ], "invariants": ["IndexCache 版本不符直接重建,不尝试迁移", "仅由 PrefabIndexService 持有,其他模块只读派生"] },
+    { "name": "PrefabIndexItem", "kind": "entity", "description": "单个 prefab 的索引条目。", "fields": [
+      { "name": "Guid", "type": "string", "constraints": "" },
+      { "name": "AssetPath", "type": "string", "constraints": "" },
+      { "name": "ReferencedAssets", "type": "List<AssetRef>", "constraints": "Image/RawImage/Prefab/Material 等引用" },
+      { "name": "ComponentSummary", "type": "string", "constraints": "" }
+    ], "invariants": [] },
+    { "name": "PrefabIndexBuildOptions", "kind": "model", "description": "构建参数。", "fields": [
+      { "name": "RootFolders", "type": "List<string>", "constraints": "" },
+      { "name": "Incremental", "type": "bool", "constraints": "增量更新策略" }
+    ], "invariants": [] }
+  ],
+  "interfaces": [
+    { "name": "BuildIndex", "direction": "inbound", "description": "构建 prefab 索引(可增量)。", "params": "PrefabIndexBuildOptions", "returns": "PrefabIndex", "errors": ["UNITY_OFFLINE", "MAIN_THREAD_TIMEOUT"] },
+    { "name": "LoadCache", "direction": "inbound", "description": "加载缓存索引。", "params": "()", "returns": "PrefabIndex", "errors": ["IO_ERROR"] },
+    { "name": "SaveCache", "direction": "inbound", "description": "保存索引缓存。", "params": "PrefabIndex", "returns": "void", "errors": ["IO_ERROR"] },
+    { "name": "Search", "direction": "inbound", "description": "按 query 搜索 prefab。", "params": "PrefabIndex, string query", "returns": "List<PrefabIndexItem>", "errors": [] },
+    { "name": "GetPrefabDetail", "direction": "inbound", "description": "查看单个 prefab 详情(组件/引用)。", "params": "{ guid | path }", "returns": "PrefabIndexItem", "errors": ["TOOL_NOT_FOUND"] }
+  ],
+  "scenarios": [
+    { "name": "AI 构建并搜索索引", "steps": ["AI 调 build_prefab_index", "get_prefab_index_status 确认就绪", "search_prefabs 按关键词搜", "get_prefab_detail 看详情"], "edge_cases": ["几千 prefab 全量索引 -> 走 LongRunning + jobId + 进度", "缓存版本不符 -> 自动重建"] },
+    { "name": "迁移保持 UI 行为不变", "steps": ["UIProbeWindow_Indexer.cs 保留搜索框/收藏夹/树视图/批量选择按钮", "业务数据改由 PrefabIndexService 提供", "黄金样本 diff 验证行为零变化"], "edge_cases": [] }
+  ],
+  "constraints": {
+    "correctness": ["只读,不触发 Domain Reload", "Search/展开匹配的非 UI 逻辑下沉到 Service"],
+    "performance": ["几千 prefab 全量索引内存峰值可控,支持增量更新", "大型结果走虚拟化,不为每条数据常驻 VisualElement"]
+  },
+  "design_decisions": [
+    { "decision": "PrefabIndex 作为单一数据源", "rationale": "引用追踪/重复检测/嵌套总览/过滤扫描都基于它派生,避免多份副本不一致", "alternatives": ["各模块各自扫描缓存(数据不一致风险)"] },
+    { "decision": "首个抽离的 Service", "rationale": "是工作台底座,且用它验证 ToolContract + Adapter + 黄金样本闭环", "alternatives": [] }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "asset-reference",
+  "paths": ["UIProbe/Core/Services", "UIProbe/UIProbeWindow_AssetReferences.cs"],
+  "summary": "AssetReferenceService(只读),统一处理某资源被哪些 prefab / 节点 / 组件使用。不另存副本,查询时基于 prefab-index 模块的 PrefabIndex 派生。支持按资源路径、资源名、GUID、Sprite 名称、引用类型过滤查询,并可导出 CSV。",
+  "entities": [
+    { "name": "AssetReferenceQuery", "kind": "model", "description": "引用查询条件。", "fields": [
+      { "name": "AssetPath", "type": "string", "constraints": "可选" },
+      { "name": "AssetName", "type": "string", "constraints": "可选" },
+      { "name": "Guid", "type": "string", "constraints": "可选" },
+      { "name": "SpriteName", "type": "string", "constraints": "可选" },
+      { "name": "ReferenceTypeFilter", "type": "List<string>", "constraints": "按引用类型过滤" }
+    ], "invariants": ["至少提供一个查询维度"] },
+    { "name": "AssetReferenceResult", "kind": "model", "description": "一条引用结果。", "fields": [
+      { "name": "AssetPath", "type": "string", "constraints": "" },
+      { "name": "PrefabPath", "type": "string", "constraints": "" },
+      { "name": "NodePath", "type": "string", "constraints": "" },
+      { "name": "ComponentType", "type": "string", "constraints": "" },
+      { "name": "ReferenceType", "type": "string", "constraints": "Image/RawImage/Material 等" }
+    ], "invariants": [] }
+  ],
+  "interfaces": [
+    { "name": "FindReferences", "direction": "inbound", "description": "查询某资源被哪些 prefab/节点/组件引用。", "params": "AssetReferenceQuery", "returns": "List<AssetReferenceResult>", "errors": ["INVALID_PARAMS"] },
+    { "name": "ExportCsv", "direction": "inbound", "description": "导出引用结果为 CSV。", "params": "List<AssetReferenceResult>, ExportOptions", "returns": "string(reportPath)", "errors": ["IO_ERROR"] }
+  ],
+  "scenarios": [
+    { "name": "AI 查资源影响面", "steps": ["AI 调 find_asset_references 传资源路径/GUID/Sprite 名", "Service 基于 PrefabIndex 派生引用列表", "返回结构化结果"], "edge_cases": ["资源未被引用 -> 空列表(非错误)", "PrefabIndex 未构建 -> 提示先 build_prefab_index"] },
+    { "name": "导出引用报告", "steps": ["查询结果", "ExportCsv 写受控目录", "返回 reportPath"], "edge_cases": [] }
+  ],
+  "constraints": {
+    "correctness": ["只读,基于 PrefabIndex 派生不另存副本"],
+    "performance": ["大结果集走流式/分页,避免一次性物化"]
+  },
+  "design_decisions": [
+    { "decision": "依赖 prefab-index 而非自建索引", "rationale": "单一数据源,保证引用结果与索引一致", "alternatives": ["独立扫描(数据不一致 + 重复成本)"] }
+  ]
+}

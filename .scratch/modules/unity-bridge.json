@@ -1,0 +1,43 @@
+{
+  "name": "unity-bridge",
+  "paths": ["UIProbe/Infrastructure/Bridge"],
+  "summary": "Unity Editor 内的本地 HTTP JSON-RPC bridge(v0.1 仅 HTTP + loopback,WebSocket 留 v0.2)。暴露 /health、/rpc、/tools/list、/tools/describe;经 MainThread Dispatcher 把请求投递到 Unity 主线程执行;调用 ToolRegistry 返回结构化结果;Domain Reload 后自动重建并重新上报 capabilities。把 Domain Reload 当成常态而非异常。",
+  "entities": [
+    { "name": "HealthStatus", "kind": "model", "description": "/health 返回,用于握手校验与 Domain Reload 检测。", "fields": [
+      { "name": "status", "type": "string", "constraints": "ok" },
+      { "name": "serverId", "type": "guid", "constraints": "进程内新建绝不持久化复用;变化即判定发生 Domain Reload" },
+      { "name": "pid", "type": "int", "constraints": "僵尸监听靠 pid 存活校验剔除" },
+      { "name": "projectPath", "type": "string", "constraints": "Orchestrator 按此路由多实例" },
+      { "name": "uiProbeVersion", "type": "string", "constraints": "版本握手" },
+      { "name": "contractVersion", "type": "string", "constraints": "握手校验 major" },
+      { "name": "isCompiling", "type": "bool", "constraints": "编译中暂缓写操作" },
+      { "name": "isUpdating", "type": "bool", "constraints": "" },
+      { "name": "isPlaying", "type": "bool", "constraints": "" }
+    ], "invariants": ["serverId 每次 afterAssemblyReload 重新生成,绝不持久化"] },
+    { "name": "DispatchJob", "kind": "model", "description": "投递到主线程的执行单元。", "fields": [
+      { "name": "JobId", "type": "string", "constraints": "LongRunning 立即返回供轮询" },
+      { "name": "Action", "type": "Action/TaskCompletionSource", "constraints": "入并发队列" },
+      { "name": "Status", "type": "JobStatus", "constraints": "Running/Done/Interrupted" }
+    ], "invariants": ["beforeAssemblyReload 把进行中 job 标 Interrupted"] }
+  ],
+  "interfaces": [
+    { "name": "GET /health", "direction": "inbound", "description": "返回 HealthStatus,供握手与 Domain Reload 检测。", "params": "()", "returns": "HealthStatus", "errors": [] },
+    { "name": "POST /rpc", "direction": "inbound", "description": "JSON-RPC 调用工具,经 Dispatcher 主线程执行。请求头携带 session token。", "params": "ToolRequest", "returns": "ToolResult", "errors": ["UNITY_BUSY", "MAIN_THREAD_TIMEOUT", "DOMAIN_RELOAD_INTERRUPTED"] },
+    { "name": "GET /tools/list, /tools/describe", "direction": "inbound", "description": "代理 ToolRegistry 的发现接口。", "params": "{ profile }", "returns": "List<ToolDescriptor>", "errors": [] },
+    { "name": "MainThreadDispatcher", "direction": "internal", "description": "EditorApplication.update 回调逐帧 drain 并发队列、主线程执行、结果写回 TCS。", "params": "Action 队列", "returns": "", "errors": ["MAIN_THREAD_TIMEOUT"] }
+  ],
+  "scenarios": [
+    { "name": "短任务主线程执行", "steps": ["HTTP 后台线程收 /rpc", "Action 入并发队列", "EditorApplication.update 主线程 drain 执行", "HTTP 线程 await TCS(默认 30s 超时)"], "edge_cases": ["超时 -> MAIN_THREAD_TIMEOUT 并尽量取消", "isCompiling/isUpdating -> 暂缓 drain 写操作"] },
+    { "name": "长任务 jobId 轮询", "steps": ["LongRunning 工具立即返回 jobId", "主线程后台分帧执行,结果存 job 表", "进度经 ToolContext.Progress 节流上报", "Orchestrator 轮询拉取"], "edge_cases": [] },
+    { "name": "Domain Reload 恢复", "steps": ["beforeAssemblyReload 标 job Interrupted/关 HttpListener/持久化必要状态", "afterAssemblyReload 生成新 serverId/重建 Bridge/重报 capabilities", "Orchestrator 发现 serverId 变化知道重载发生"], "edge_cases": ["ReloadSafe=true 幂等只读自动重发", "写操作 -> DOMAIN_RELOAD_INTERRUPTED 交人确认", "reload 期间端口短暂不可用 -> Orchestrator 退避重试,勿当离线"] }
+  ],
+  "constraints": {
+    "correctness": ["所有 Editor API 调用必须经 Dispatcher,Service 层不在监听线程直接碰 Unity API", "执行单元短小、可在 Stage 边界检查取消", "放行写操作前等待 isCompiling=false 稳定窗口"],
+    "security": ["仅监听 127.0.0.1(loopback)", "Bridge 启动生成一次性 session token 写仅当前用户可读文件,/rpc 校验,防同机恶意进程直连"]
+  },
+  "design_decisions": [
+    { "decision": "v0.1 仅 HTTP loopback + jobId 轮询", "rationale": "最成熟稳妥,WebSocket 进度推送留 v0.2", "alternatives": ["一开始上 WebSocket(增加 v0.1 不确定性)"] },
+    { "decision": "serverId 变化作为 Domain Reload 信号", "rationale": "无需额外心跳协议,Orchestrator 轮询 /health 即可检测", "alternatives": ["持久化 serverId(无法区分重载,被否决)"] },
+    { "decision": "MainThread Dispatcher 经 EditorApplication.update", "rationale": "HTTP 监听在后台线程,Unity API 必须主线程,需统一投递边界", "alternatives": ["在监听线程直接调 Unity API(崩溃,被否决)"] }
+  ]
+}

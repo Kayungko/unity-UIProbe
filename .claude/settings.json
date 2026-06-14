@@ -1,0 +1,58 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "rules": [
+    ".claude/rules/architecture.md",
+    ".claude/rules/completion-status.md",
+    ".claude/rules/csharp-safety.md",
+    ".claude/rules/decision-protocol.md",
+    ".claude/rules/platform-isolation.md",
+    ".claude/rules/scope-discipline.md",
+    ".claude/rules/testing-gates.md",
+    ".claude/rules/thread-safety.md"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/scripts/hooks/graphify_warn.py"
+            ]
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/scripts/hooks/graph_update_on_write.py"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/scripts/hooks/on_bash_post.py"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "id": "M1",
+  "name": "Service 化底座:契约冻结 + 测试工程 + Adapter 接缝 + Registry 骨架 + 黄金样本基线",
+  "tasks": [
+    {
+      "id": "T1-1",
+      "title": "冻结 ToolContract 核心类型(代码落地)",
+      "agent": "core-tool-contract",
+      "stage": "prep",
+      "write_paths": ["UIProbe/Core/Contract"],
+      "dependencies": [],
+      "description": "把 ToolContract.md 文档中冻结的契约类型落地为 C# 代码,作为后续所有 Service / Registry / Bridge / MCP 的单一来源。这是整个重构的接缝起点,必须先于任何 Service 抽离完成。\n\n1. UIProbe/Core/Contract/ToolDescriptor.cs\n   - 工具自描述模型:Name、Title、Summary、ParamsSchema(JSON Schema 字符串)、Profile(能力面标签)、ReloadSafe(bool)、LongRunning(bool)、UndoCapability(枚举 None/UnityUndo/FileBackup/MultiLevelStack)。\n\n2. UIProbe/Core/Contract/ToolRequest.cs\n   - 调用请求:ToolName、Params(原始 JSON)、RequestId、Mode(Preview/Execute 枚举)。\n\n3. UIProbe/Core/Contract/ToolResult.cs\n   - 统一结果:Status(枚举 Success/Cancelled/Interrupted/Failed)、Data(payload)、Changes(List<Change>)、Issues(List<Issue>)、Error(ToolError 可空)、JobId(可空,LongRunning 轮询用)。\n\n4. UIProbe/Core/Contract/Change.cs\n   - 单条变更描述:Kind、TargetPath、Before、After、UndoToken(可空)。\n\n5. UIProbe/Core/Contract/Issue.cs\n   - 结构化问题:Severity(枚举)、RuleId、PrefabPath、NodePath、ComponentType、Message、SuggestedFixId(可空)、CanAutoFix(bool)。\n\n6. UIProbe/Core/Contract/ToolError.cs\n   - Code(统一错误码字符串常量:UNITY_OFFLINE/UNITY_BUSY/MAIN_THREAD_TIMEOUT/DOMAIN_RELOAD_INTERRUPTED/TOOL_NOT_FOUND/INVALID_PARAMS/PERMISSION_DENIED/IO_ERROR 等)、Message、Retriable(bool)、Details(可空)。\n\n7. UIProbe/Core/Contract/IUIProbeTool.cs 与 IUIProbeTool<TParams>\n   - 工具接口:DescribeParams() 返回 schema、Validate(TParams) 返回 Issues、Preview(ctx, TParams) 返回 ToolResult、Execute(ctx, TParams) 返回 ToolResult。只读工具 Preview 可等价 Execute。\n\n8. UIProbe/Core/Contract/ToolContext.cs\n   - 执行上下文:CancellationToken、Progress 上报回调(节流)、注入的 Adapter 引用占位(IAssetGateway/IFileSystem/IEditorPrefs,接口在 T1-3 定义,这里先以 interface 引用)。\n\n所有枚举与错误码常量必须与 ToolContract.md 文档逐字对齐,文档是单一来源,代码是其落地。本任务不实现任何具体工具,只产出契约骨架与编译通过。",
+      "acceptance": [
+        "ToolDescriptor/ToolRequest/ToolResult/Change/Issue/ToolError/ToolContext 全部以 C# 类型落地且字段与 ToolContract.md 一致",
+        "ToolStatus 枚举含 Success/Cancelled/Interrupted/Failed",
+        "UndoCapability 枚举含 None/UnityUndo/FileBackup/MultiLevelStack",
+        "统一错误码以常量形式集中定义,含 Retriable 语义",
+        "IUIProbeTool<TParams> 含 DescribeParams/Validate/Preview/Execute 四阶段方法",
+        "ToolContext 暴露 CancellationToken 与节流 Progress 回调",
+        "Unity Editor 内编译通过,无具体工具实现"
+      ],
+      "exit_criteria": "ToolContract 核心类型在 Unity Editor 内编译通过,字段与文档单一来源逐字对齐,可被后续模块引用。",
+      "test_cases": [
+        "ToolResult 序列化/反序列化保字段(为 Bridge JSON 传输预留)",
+        "ToolError.Retriable 默认值与各错误码语义一致",
+        "枚举值数量与 ToolContract.md 文档一致"
+      ],
+      "notes": "T1-3 定义的 Adapter 接口被 ToolContext 引用,二者在同一 asmdef 内,注意编译顺序由 asmdef 引用关系保证。"
+    },
+    {
+      "id": "T1-2",
+      "title": "建立 asmdef 三件套(运行时/编辑器/测试工程)",
+      "agent": "lead",
+      "stage": "prep",
+      "write_paths": ["UIProbe/UIProbe.asmdef", "UIProbe/Editor/UIProbe.Editor.asmdef", "UIProbe/Tests/Editor/UIProbe.Tests.Editor.asmdef"],
+      "dependencies": [],
+      "description": "当前项目无任何 asmdef,所有脚本进默认程序集,导致无法单元测试、无法清晰隔离 Editor 与运行时代码。本任务建立程序集边界,为黄金样本回归与 Adapter 单测奠基。这是 readiness 从 governance_ready 走向 execution_ready 的关键一步。\n\n1. UIProbe/UIProbe.asmdef(核心运行时/可被编辑器引用的纯逻辑层)\n   - 放 Core/Contract、Core/Services、Data 等不直接依赖 UnityEditor 的代码(凡能不依赖 UnityEditor 的尽量下沉到此)。\n   - includePlatforms 不限定,allowUnsafeCode 按需。\n\n2. UIProbe/Editor/UIProbe.Editor.asmdef\n   - includePlatforms 仅 Editor。\n   - 引用 UIProbe.asmdef。放 EditorWindow、UnityAdapters 的 Unity 实现、Bridge 等依赖 UnityEditor 的代码。\n\n3. UIProbe/Tests/Editor/UIProbe.Tests.Editor.asmdef\n   - includePlatforms 仅 Editor。\n   - references 含 UIProbe.asmdef、UIProbe.Editor.asmdef、nunit.framework、UnityEngine.TestRunner、UnityEditor.TestRunner。\n   - 引入 Unity Test Framework 包(确认 manifest.json 含 com.unity.test-framework)。\n\n4. 现有脚本归位\n   - 把现有 .cs 按依赖关系移动到对应 asmdef 目录下,确保编译通过。这是机械迁移,不改业务逻辑。先让现有 UIProbeWindow_*.cs 等留在 Editor 程序集,后续里程碑再逐步把纯逻辑下沉到运行时程序集。\n\n5. 不能动的边界\n   - 本任务只建程序集边界并让其编译通过,不重构业务逻辑,不抽 Service。",
+      "acceptance": [
+        "三个 asmdef 文件创建且引用关系正确(Editor->Runtime,Tests->两者)",
+        "Tests.Editor.asmdef 正确引用 nunit + TestRunner,可在 Test Runner 窗口被识别",
+        "manifest.json 含 com.unity.test-framework",
+        "现有脚本归位后 Unity Editor 内整体编译通过",
+        "Editor 专属代码不泄漏进运行时程序集",
+        "Test Runner 窗口能列出测试工程(即使暂无用例)"
+      ],
+      "exit_criteria": "三件套 asmdef 就位,项目整体编译通过,Test Runner 能识别测试工程,具备写单测的前置条件。",
+      "test_cases": [
+        "新建一个最小占位 NUnit 测试([Test] public void Smoke()),在 Test Runner 中可运行并通过"
+      ],
+      "notes": "本任务是 verification_commands 留空的解封点:M1 完成后 Unity Test Framework 即为后续验证手段。Unity batchmode 命令行跑测试的路径作为 open_question 暂不强求,先以 Editor 内 Test Runner 为准。"
+    },
+    {
+      "id": "T1-3",
+      "title": "定义 Adapter 接缝接口 + Unity 实现 + 内存假体",
+      "agent": "core-unity-adapters",
+      "stage": "prep",
+      "write_paths": ["UIProbe/Infrastructure/UnityAdapters", "UIProbe/Tests/Editor/Fakes"],
+      "dependencies": ["T1-1", "T1-2"],
+      "description": "现有业务大量直接调用 AssetDatabase / PrefabStageUtility / EditorPrefs / File 静态 API,Service 抽离后仍无法单测。本任务建立三个核心 Adapter 接口与其生产实现及测试假体,这是可测性的前提,没有它测试工程形同虚设。\n\n1. UIProbe/Infrastructure/UnityAdapters/IAssetGateway.cs(放运行时程序集的接口部分,实现放 Editor)\n   - FindAssets(filter) 返回 GUID 列表、LoadAssetAtPath、MoveAsset、GUIDToAssetPath、AssetPathToGUID。\n   - 约定所有调用须在主线程(经 Dispatcher),接口文档注释标明。\n\n2. UIProbe/Infrastructure/UnityAdapters/IFileSystem.cs\n   - ReadAllText、WriteAllText、Exists、Backup(覆盖前备份,支持 FileBackup 撤销并返回 backup token)。\n   - 写路径将来受 authorization 模块 write_allow/write_deny 约束(本任务只留接口,不接授权)。\n\n3. UIProbe/Infrastructure/UnityAdapters/IEditorPrefs.cs\n   - GetString/SetString/HasKey/DeleteKey。\n\n4. UIProbe/Editor/Infrastructure/UnityAssetGateway.cs / UnityFileSystem.cs / UnityEditorPrefs.cs\n   - 三个接口的生产实现,真实调用 AssetDatabase / File / EditorPrefs。\n\n5. UIProbe/Tests/Editor/Fakes/InMemoryAssetGateway.cs / InMemoryFileSystem.cs / InMemoryEditorPrefs.cs\n   - 内存假体:用 Dictionary 模拟资源表/文件表/prefs。假体需可控数据规模(为大图 GetPixels 类场景预留小规模可控数据)。\n\n6. 不能动的边界\n   - 本任务不改任何现有业务调用点,只新增接缝与实现/假体。把现有代码迁移到经接缝注入留到对应 Service 抽离的里程碑。",
+      "acceptance": [
+        "IAssetGateway/IFileSystem/IEditorPrefs 三接口定义完整,方法覆盖现有主要静态依赖",
+        "三个 Unity 生产实现真实调用对应静态 API 且编译通过",
+        "三个内存假体可独立工作,不依赖 Unity 运行环境",
+        "IFileSystem.Backup 返回可用于撤销的 backup token(对应 UndoCapability.FileBackup)",
+        "接口注释标明 IAssetGateway 调用须在主线程",
+        "假体支持可控数据规模设置"
+      ],
+      "exit_criteria": "三组 Adapter 接口/实现/假体就位,可被 Service 构造注入,内存假体可在无 Unity 运行环境下单测。",
+      "test_cases": [
+        "InMemoryFileSystem 写后读回一致;Backup 后可还原到覆盖前内容",
+        "InMemoryAssetGateway FindAssets 按 filter 命中预置 GUID",
+        "InMemoryEditorPrefs SetString/GetString/HasKey 行为与契约一致"
+      ],
+      "notes": "接口放运行时程序集以便 Service 引用,Unity 实现放 Editor 程序集,假体放测试程序集,三者由 asmdef 引用关系隔离。"
+    },
+    {
+      "id": "T1-4",
+      "title": "ToolRegistry 骨架:注册/发现/调用(经 Adapter,只读路径)",
+      "agent": "core-tool-registry",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Core/Services/ToolRegistry.cs", "UIProbe/Core/Services/ToolRegistration.cs", "UIProbe/Tests/Editor/ToolRegistryTests.cs"],
+      "dependencies": ["T1-1", "T1-3"],
+      "description": "ToolRegistry 是工具体系的中枢:所有工具集中注册,MCP 与 UI 必须经它发现与调用,不得绕过。本任务建立 Registry 骨架并打通只读调用路径,为 M2 的只读 Service 接入做准备。\n\n1. UIProbe/Core/Services/ToolRegistration.cs\n   - 注册条目:ToolDescriptor + 工具实例工厂/单例引用。\n   - 支持 Attribute 驱动发现(定义 [UIProbeTool] 特性),便于项目方扩展自有工具。\n\n2. UIProbe/Core/Services/ToolRegistry.cs\n   - Register(IUIProbeTool):登记并去重(同名冲突报错)。\n   - ListTools(profile 可选过滤):返回 List<ToolDescriptor>。\n   - DescribeTool(name):返回单个 ToolDescriptor,缺失回 TOOL_NOT_FOUND。\n   - Invoke(ToolRequest):按 name 查找 -> Validate -> 按 Mode 走 Preview 或 Execute -> 返回 ToolResult。只读工具直接 Execute。\n   - 通过构造注入 Adapter,转交给 ToolContext。\n\n3. OperationTicket(为写操作两阶段预留)\n   - Preview 阶段产出 ticket(含预期 Changes),Execute 凭 ticket 落地。v0.1 只读不强制,但骨架预留字段。\n\n4. UIProbe/Tests/Editor/ToolRegistryTests.cs\n   - 用内存假体 + 一个 fake 只读工具验证注册/发现/调用闭环。\n   - 覆盖:注册后可 List/Describe;Invoke 不存在的工具回 TOOL_NOT_FOUND;Validate 失败回 Issues;只读 Invoke 返回 Success。\n\n5. 不能动的边界\n   - 本任务不接入真实业务 Service(留 M2),只用 fake 工具打通闭环。",
+      "acceptance": [
+        "ToolRegistry 提供 Register/ListTools/DescribeTool/Invoke 四能力",
+        "支持 [UIProbeTool] Attribute 驱动注册,便于项目扩展",
+        "同名工具重复注册报错",
+        "Invoke 未知工具返回 TOOL_NOT_FOUND",
+        "Validate 失败时 ToolResult 携带 Issues 且不进入 Execute",
+        "OperationTicket 字段为写操作两阶段预留",
+        "ToolRegistryTests 用内存假体跑通注册/发现/只读调用闭环且全绿"
+      ],
+      "exit_criteria": "ToolRegistry 骨架可注册、发现、调用只读工具,单测以内存假体全绿,MCP/UI 调用入口收敛到此。",
+      "test_cases": [
+        "注册一个 fake 只读工具后 ListTools 含之、DescribeTool 返回其 descriptor",
+        "Invoke 不存在工具 -> ToolResult.Error.Code==TOOL_NOT_FOUND",
+        "Validate 返回 Issue 时 Invoke 不执行 Execute 且 Status!=Success",
+        "只读 fake 工具 Invoke 返回 Status==Success 且 Changes 为空"
+      ],
+      "notes": "Registry 在运行时程序集,Adapter 经构造注入,保证可在测试程序集内以假体实例化。"
+    },
+    {
+      "id": "T1-5",
+      "title": "黄金样本回归基线机制",
+      "agent": "core-unity-adapters",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Tests/Editor/Golden", "UIProbe/Tests/Editor/GoldenSampleFixtures"],
+      "dependencies": ["T1-2", "T1-3"],
+      "description": "迁移大量现有 UIProbeWindow 逻辑到 Service 时,必须保证用户可见行为零变化。本任务建立黄金样本回归机制:对模块录制输入->输出快照,迁移前后 diff 对比。这是后续所有 Service 抽离任务的安全网。\n\n1. UIProbe/Tests/Editor/Golden/GoldenSampleRunner.cs\n   - 提供 AssertGolden(name, actualOutput) 工具:首次运行写基线快照文件,后续运行与基线 diff,不一致则测试失败并输出差异。\n   - 支持 string / CSV / 结构化 JSON 快照(对应未来 export_report 的 md/csv/json)。\n   - 支持 --update-golden 等价开关(通过环境变量或常量)显式刷新基线,避免误覆盖。\n\n2. UIProbe/Tests/Editor/GoldenSampleFixtures/\n   - 放最小可控的输入夹具(若干 prefab 资源描述或内存假体预置数据),规模可控(避免大图 GetPixels 内存峰值)。\n   - 录制至少一个示例基线(例如对一组预置 prefab 跑一个 fake 检测产出固定 Issue 列表快照)。\n\n3. 与 Adapter 协作\n   - Runner 通过内存假体喂入夹具数据,保证可重复、不依赖真实工程资源。\n\n4. 不能动的边界\n   - 本任务建立机制与示例基线,不为每个现有模块录制基线(那是各 Service 抽离任务的职责)。",
+      "acceptance": [
+        "GoldenSampleRunner 提供首次写基线、后续 diff 的能力",
+        "支持 string/CSV/JSON 三类快照",
+        "提供显式刷新基线的安全开关,避免误覆盖",
+        "至少录制一个示例黄金样本并能在 Test Runner 中通过",
+        "夹具数据规模可控,经内存假体喂入不依赖真实工程",
+        "故意改动输出会让黄金样本测试失败并打印差异"
+      ],
+      "exit_criteria": "黄金样本机制可用,示例基线全绿,具备为后续 Service 迁移做行为零变化回归的能力。",
+      "test_cases": [
+        "对固定输入跑 fake 检测,首次写基线,二次运行 diff 通过",
+        "篡改 fake 输出后黄金样本测试失败并输出 before/after 差异",
+        "CSV 与 JSON 快照各有一个通过用例"
+      ],
+      "notes": "这是后续 prefab-index / ui-check / asset-reference 迁移任务的回归依赖,务必在 M2 前就绪。"
+    }
+  ]
+}

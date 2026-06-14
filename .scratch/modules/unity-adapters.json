@@ -1,0 +1,40 @@
+{
+  "name": "unity-adapters",
+  "paths": ["UIProbe/Infrastructure/UnityAdapters"],
+  "summary": "Unity API 抽象接缝,可测性的前提。现有业务大量直接调用 AssetDatabase / PrefabStageUtility / EditorPrefs / File 静态 API,导致 Service 抽离后仍无法单元测试。约定 Service 不直接调用静态 Unity API,而经 Adapter 接口注入 -- 生产用 Unity 实现,测试用内存假体。没有这层接缝,UIProbe.Tests.Editor.asmdef 形同虚设。",
+  "entities": [
+    { "name": "IAssetGateway", "kind": "interface", "description": "封装 AssetDatabase / PrefabStage 相关静态调用。", "fields": [
+      { "name": "FindAssets", "type": "method", "constraints": "按 filter 查 GUID 列表" },
+      { "name": "LoadAssetAtPath", "type": "method", "constraints": "" },
+      { "name": "MoveAsset", "type": "method", "constraints": "" },
+      { "name": "GUIDToAssetPath", "type": "method", "constraints": "" }
+    ], "invariants": ["所有调用须在主线程(经 Dispatcher)"] },
+    { "name": "IFileSystem", "kind": "interface", "description": "封装文件读写 / 备份 / 存在性检查。", "fields": [
+      { "name": "ReadAllText", "type": "method", "constraints": "" },
+      { "name": "WriteAllText", "type": "method", "constraints": "" },
+      { "name": "Backup", "type": "method", "constraints": "覆盖前备份,支持 FileBackup 撤销" },
+      { "name": "Exists", "type": "method", "constraints": "" }
+    ], "invariants": ["写路径受 authorization 模块的 write_allow/write_deny 约束"] },
+    { "name": "IEditorPrefs", "kind": "interface", "description": "封装配置读写,替代直接 EditorPrefs 静态调用。", "fields": [
+      { "name": "GetString", "type": "method", "constraints": "" },
+      { "name": "SetString", "type": "method", "constraints": "" },
+      { "name": "HasKey", "type": "method", "constraints": "" }
+    ], "invariants": [] }
+  ],
+  "interfaces": [
+    { "name": "UnityAssetGateway", "direction": "internal", "description": "IAssetGateway 的生产实现,真实调用 AssetDatabase。", "params": "", "returns": "", "errors": ["IO_ERROR"] },
+    { "name": "InMemoryAssetGateway", "direction": "internal", "description": "IAssetGateway 的测试假体,内存模拟资源表。", "params": "", "returns": "", "errors": [] },
+    { "name": "UnityFileSystem / InMemoryFileSystem", "direction": "internal", "description": "IFileSystem 的生产 / 测试实现对。", "params": "", "returns": "", "errors": ["IO_ERROR"] }
+  ],
+  "scenarios": [
+    { "name": "Service 经接缝注入", "steps": ["Service 构造函数注入 IAssetGateway/IFileSystem/IEditorPrefs", "生产环境注入 Unity 实现", "测试环境注入内存假体"], "edge_cases": ["遗漏注入直接静态调用 -> 该 Service 不可单测(应在 code review 拦截)"] },
+    { "name": "黄金样本回归", "steps": ["对模块录制黄金样本(输入 prefab/图集 -> 输出快照/CSV)", "经假体或真实实现跑 Service", "迁移前后 diff 对比保证用户可见行为零变化"], "edge_cases": ["大图 GetPixels 内存峰值 -- 假体需可控数据规模"] }
+  ],
+  "constraints": {
+    "correctness": ["Service 依赖接口而非静态 API", "项目内资源尽量走 AssetDatabase 而非裸 File,降低 meta/GUID 风险"],
+    "performance": ["几千 prefab 全量索引、大图 GetPixels 的内存峰值需可控,留增量更新空间"]
+  },
+  "design_decisions": [
+    { "decision": "三个核心 Adapter 接口(Asset/File/EditorPrefs)", "rationale": "覆盖现有业务最主要的静态 Unity 依赖,接缝最小且够用", "alternatives": ["完整 mock 整个 UnityEditor(过度工程)", "不抽接缝(则无法单测,被否决)"] }
+  ]
+}

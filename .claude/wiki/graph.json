@@ -1,0 +1,5944 @@
+{
+  "schema_version": 1,
+  "graph": {
+    "directed": false,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+      {
+        "label": "overview.md",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "id": "doc_overview"
+      },
+      {
+        "label": "架构概览",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item"
+      },
+      {
+        "label": "声明架构",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 5",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item_L5"
+      },
+      {
+        "label": "模块映射",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 10",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item_L10"
+      },
+      {
+        "label": "边界规则",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 24",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item_L24"
+      },
+      {
+        "label": "架构决策",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 29",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item_L29"
+      },
+      {
+        "label": "单一数据源,保证引用结果与索引一致",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 32",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_item"
+      },
+      {
+        "label": "防止 AI 通过工具篡改/清除自己的审计痕迹",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 41",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_ai"
+      },
+      {
+        "label": "MCP 生态成熟,AI 客户端对接成本低,与 Unity 端职责清晰分离",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 44",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_mcp-ai-unity"
+      },
+      {
+        "label": "Domain Reload 后工具集可能变化,serverId 变化是天然失效信号",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 47",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_domain-reload-serverid"
+      },
+      {
+        "label": "先验证端到端链路稳定性,写操作与授权治理留 v0.2",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 50",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_v0-2"
+      },
+      {
+        "label": "是工作台底座,且用它验证 ToolContract + Adapter + 黄金样本闭环",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 56",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_toolcontract-adapter"
+      },
+      {
+        "label": "Preview 产计划让用户/AI 可审,Execute 凭令牌落地",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 61",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_preview-ai-execute"
+      },
+      {
+        "label": "三类既有写流程映射不同撤销机制,不假设单一 backupPath 通吃",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 64",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_backuppath"
+      },
+      {
+        "label": "保证安全等级、Profile 过滤、审计、Preview/Execute 一致,避免双实现",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 70",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_profile-preview-execute"
+      },
+      {
+        "label": "都是基于 PrefabIndex 的检测规则,统一 Issue 模型避免多套结果结构",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 76",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_prefabindex-issue"
+      },
+      {
+        "label": "其他 Unity MCP 难以提供,差异化早期采用动机",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 79",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_unity-mcp"
+      },
+      {
+        "label": "覆盖现有业务最主要的静态 Unity 依赖,接缝最小且够用",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 81",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_unity"
+      },
+      {
+        "label": "最成熟稳妥,WebSocket 进度推送留 v0.2",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 84",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_websocket-v0-2"
+      },
+      {
+        "label": "无需额外心跳协议,Orchestrator 轮询 /health 即可检测",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 87",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_orchestrator-health"
+      },
+      {
+        "label": "HTTP 监听在后台线程,Unity API 必须主线程,需统一投递边界",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 90",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "id": "doc_overview_decision_http-unity-api"
+      },
+      {
+        "label": "错误策略",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 93",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item_L93"
+      },
+      {
+        "label": "模块依赖图",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 99",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item_L99"
+      },
+      {
+        "label": "跨模块依赖",
+        "source_file": ".claude/wiki/architecture/overview.md",
+        "source_location": "line 131",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_overview_item_L131"
+      },
+      {
+        "label": "asset-reference.md",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference"
+      },
+      {
+        "label": "asset-reference 模块文档",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_asset-reference"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 18",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L18"
+      },
+      {
+        "label": "AssetReferenceQuery (model)",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 20",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_assetreferencequery-model"
+      },
+      {
+        "label": "AssetReferenceResult (model)",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 40",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_assetreferenceresult-model"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 57",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L57"
+      },
+      {
+        "label": "FindReferences `[入站]`",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 59",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_findreferences"
+      },
+      {
+        "label": "ExportCsv `[入站]`",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 78",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_exportcsv"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 98",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L98"
+      },
+      {
+        "label": "AI 查资源影响面",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 100",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_ai"
+      },
+      {
+        "label": "导出引用报告",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 110",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L110"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 117",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L117"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 119",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_correctness"
+      },
+      {
+        "label": "Performance",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 123",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_performance"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 128",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L128"
+      },
+      {
+        "label": "单一数据源,保证引用结果与索引一致",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 131",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_decision_item"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 134",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L134"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 138",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L138"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 146",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L146"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/asset-reference.md",
+        "source_location": "line 150",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "asset-reference",
+        "id": "doc_asset-reference_item_L150"
+      },
+      {
+        "label": "authorization.md",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization"
+      },
+      {
+        "label": "authorization 模块文档",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_authorization"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 18",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L18"
+      },
+      {
+        "label": "CapabilityProfile (model)",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 20",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_capabilityprofile-model"
+      },
+      {
+        "label": "AuthorizationMode (model)",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 40",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_authorizationmode-model"
+      },
+      {
+        "label": "AuthDecision (model)",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 58",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_authdecision-model"
+      },
+      {
+        "label": "AuditEntry (model)",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 76",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_auditentry-model"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 99",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L99"
+      },
+      {
+        "label": "LoadConfig `[出站]`",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 101",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_loadconfig"
+      },
+      {
+        "label": "Authorize `[出站]`",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 120",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_authorize"
+      },
+      {
+        "label": "Audit `[出站]`",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 139",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_audit"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 159",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L159"
+      },
+      {
+        "label": "统一判定流程",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 161",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L161"
+      },
+      {
+        "label": "团队共享+本地覆盖",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 173",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L173"
+      },
+      {
+        "label": "v0.1 只读预留",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 183",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_v0-1"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 189",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L189"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 191",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_correctness"
+      },
+      {
+        "label": "Security",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 197",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_security"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 204",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L204"
+      },
+      {
+        "label": "能力面(能做什么)与批准策略(是否需确认)是独立维度,正交组合覆盖团队/个人多场景",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 207",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_decision_item"
+      },
+      {
+        "label": "防止 AI 通过工具篡改/清除自己的审计痕迹",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 213",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_decision_ai"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 216",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L216"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 220",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L220"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 228",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L228"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/authorization.md",
+        "source_location": "line 232",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "authorization",
+        "id": "doc_authorization_item_L232"
+      },
+      {
+        "label": "mcp-server.md",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server"
+      },
+      {
+        "label": "mcp-server 模块文档",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_mcp-server"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 17",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L17"
+      },
+      {
+        "label": "BridgeConnection (entity)",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 19",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_bridgeconnection-entity"
+      },
+      {
+        "label": "ToolCacheEntry (model)",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 40",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_toolcacheentry-model"
+      },
+      {
+        "label": "HandshakeResult (model)",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 57",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_handshakeresult-model"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 75",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L75"
+      },
+      {
+        "label": "ListTools (MCP) `[入站]`",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 77",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_listtools-mcp"
+      },
+      {
+        "label": "CallTool (MCP) `[入站]`",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 96",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_calltool-mcp"
+      },
+      {
+        "label": "Handshake `[出站]`",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 115",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_handshake"
+      },
+      {
+        "label": "WaitForReload `[出站]`",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 134",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_waitforreload"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 154",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L154"
+      },
+      {
+        "label": "AI 端到端只读调用",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 156",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_ai"
+      },
+      {
+        "label": "Domain Reload 期间调用",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 168",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_domain-reload"
+      },
+      {
+        "label": "多 Unity 实例路由",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 179",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_unity"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 189",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L189"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 191",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_correctness"
+      },
+      {
+        "label": "Security",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 197",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_security"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 203",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L203"
+      },
+      {
+        "label": "MCP 生态成熟,AI 客户端对接成本低,与 Unity 端职责清晰分离",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 206",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_decision_mcp-ai-unity"
+      },
+      {
+        "label": "Domain Reload 后工具集可能变化,serverId 变化是天然失效信号",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 209",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_decision_domain-reload-serverid"
+      },
+      {
+        "label": "先验证端到端链路稳定性,写操作与授权治理留 v0.2",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 212",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_decision_v0-2"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 215",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L215"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 219",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L219"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 227",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L227"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/mcp-server.md",
+        "source_location": "line 238",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "mcp-server",
+        "id": "doc_mcp-server_item_L238"
+      },
+      {
+        "label": "prefab-index.md",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index"
+      },
+      {
+        "label": "prefab-index 模块文档",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_prefab-index"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 21",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L21"
+      },
+      {
+        "label": "PrefabIndex (entity)",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 23",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_prefabindex-entity"
+      },
+      {
+        "label": "PrefabIndexItem (entity)",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 43",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_prefabindexitem-entity"
+      },
+      {
+        "label": "PrefabIndexBuildOptions (model)",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 58",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_prefabindexbuildoptions-model"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 72",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L72"
+      },
+      {
+        "label": "BuildIndex `[入站]`",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 74",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_buildindex"
+      },
+      {
+        "label": "LoadCache `[入站]`",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 93",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_loadcache"
+      },
+      {
+        "label": "SaveCache `[入站]`",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 112",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_savecache"
+      },
+      {
+        "label": "Search `[入站]`",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 131",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_search"
+      },
+      {
+        "label": "GetPrefabDetail `[入站]`",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 148",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_getprefabdetail"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 168",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L168"
+      },
+      {
+        "label": "AI 构建并搜索索引",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 170",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_ai"
+      },
+      {
+        "label": "迁移保持 UI 行为不变",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 181",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_ui"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 188",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L188"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 190",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_correctness"
+      },
+      {
+        "label": "Performance",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 195",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_performance"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 201",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L201"
+      },
+      {
+        "label": "引用追踪/重复检测/嵌套总览/过滤扫描都基于它派生,避免多份副本不一致",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 204",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_decision_item"
+      },
+      {
+        "label": "是工作台底座,且用它验证 ToolContract + Adapter + 黄金样本闭环",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 207",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_decision_toolcontract-adapter"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 209",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L209"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 213",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L213"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 221",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L221"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/prefab-index.md",
+        "source_location": "line 225",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "prefab-index",
+        "id": "doc_prefab-index_item_L225"
+      },
+      {
+        "label": "tool-contract.md",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract"
+      },
+      {
+        "label": "tool-contract 模块文档",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_tool-contract"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 17",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L17"
+      },
+      {
+        "label": "ToolDescriptor (model)",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 19",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_tooldescriptor-model"
+      },
+      {
+        "label": "ToolRequest (model)",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 51",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_toolrequest-model"
+      },
+      {
+        "label": "ToolResult (model)",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 73",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_toolresult-model"
+      },
+      {
+        "label": "ToolError (model)",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 102",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_toolerror-model"
+      },
+      {
+        "label": "Change (model)",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 117",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_change-model"
+      },
+      {
+        "label": "Issue (model)",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 139",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_issue-model"
+      },
+      {
+        "label": "ToolContext (model)",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 158",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_toolcontext-model"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 174",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L174"
+      },
+      {
+        "label": "UIProbeTool<TParams> `[出站]`",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 176",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_uiprobetool-tparams"
+      },
+      {
+        "label": "DescribeParams `[出站]`",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 195",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_describeparams"
+      },
+      {
+        "label": "Validate `[出站]`",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 212",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_validate"
+      },
+      {
+        "label": "Preview `[出站]`",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 231",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_preview"
+      },
+      {
+        "label": "Execute `[出站]`",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 250",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_execute"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 270",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L270"
+      },
+      {
+        "label": "只读工具直接执行",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 272",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L272"
+      },
+      {
+        "label": "写操作两阶段协议",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 282",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L282"
+      },
+      {
+        "label": "长任务取消与进度",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 292",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L292"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 303",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L303"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 305",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_correctness"
+      },
+      {
+        "label": "Quality",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 311",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_quality"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 316",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L316"
+      },
+      {
+        "label": "消除双重结果模型定义,差异仅在传输层",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 319",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_decision_item"
+      },
+      {
+        "label": "Preview 产计划让用户/AI 可审,Execute 凭令牌落地",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 322",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_decision_preview-ai-execute"
+      },
+      {
+        "label": "三类既有写流程映射不同撤销机制,不假设单一 backupPath 通吃",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 325",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_decision_backuppath"
+      },
+      {
+        "label": "AI 可据码决策选工具/判重试",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 328",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_decision_ai"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 331",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L331"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 335",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L335"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 343",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L343"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/tool-contract.md",
+        "source_location": "line 347",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-contract",
+        "id": "doc_tool-contract_item_L347"
+      },
+      {
+        "label": "tool-registry.md",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry"
+      },
+      {
+        "label": "tool-registry 模块文档",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_tool-registry"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 17",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L17"
+      },
+      {
+        "label": "ToolRegistration (model)",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 19",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_toolregistration-model"
+      },
+      {
+        "label": "OperationTicket (model)",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 37",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_operationticket-model"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 57",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L57"
+      },
+      {
+        "label": "Register `[入站]`",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 59",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_register"
+      },
+      {
+        "label": "ListTools `[入站]`",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 78",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_listtools"
+      },
+      {
+        "label": "DescribeTool `[入站]`",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 95",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_describetool"
+      },
+      {
+        "label": "Invoke `[入站]`",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 114",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_invoke"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 134",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L134"
+      },
+      {
+        "label": "发现并描述工具",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 136",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L136"
+      },
+      {
+        "label": "统一执行判定",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 146",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L146"
+      },
+      {
+        "label": "项目扩展接入",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 160",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L160"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 170",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L170"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 172",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_correctness"
+      },
+      {
+        "label": "Security",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 177",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_security"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 183",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L183"
+      },
+      {
+        "label": "保证安全等级、Profile 过滤、审计、Preview/Execute 一致,避免双实现",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 186",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_decision_profile-preview-execute"
+      },
+      {
+        "label": "项目只写业务工具,不重复实现协议/连接/权限层",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 189",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_decision_item"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 192",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L192"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 196",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L196"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 204",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L204"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/tool-registry.md",
+        "source_location": "line 208",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "tool-registry",
+        "id": "doc_tool-registry_item_L208"
+      },
+      {
+        "label": "ui-check.md",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check"
+      },
+      {
+        "label": "ui-check 模块文档",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_ui-check"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 21",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L21"
+      },
+      {
+        "label": "UICheckRequest (model)",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 23",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_uicheckrequest-model"
+      },
+      {
+        "label": "UICheckReport (entity)",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 36",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_uicheckreport-entity"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 55",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L55"
+      },
+      {
+        "label": "RunChecks `[入站]`",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 57",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_runchecks"
+      },
+      {
+        "label": "GetCheckResults `[入站]`",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 76",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_getcheckresults"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 94",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L94"
+      },
+      {
+        "label": "AI 触发检测拿结构化报告",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 96",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_ai"
+      },
+      {
+        "label": "DuplicateChecker / FilterNodeScanner 并入",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 107",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_duplicatechecker-filternodescanner"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 114",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L114"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 116",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_correctness"
+      },
+      {
+        "label": "Quality",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 121",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_quality"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 126",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L126"
+      },
+      {
+        "label": "都是基于 PrefabIndex 的检测规则,统一 Issue 模型避免多套结果结构",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 129",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_decision_prefabindex-issue"
+      },
+      {
+        "label": "其他 Unity MCP 难以提供,差异化早期采用动机",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 132",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_decision_unity-mcp"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 134",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L134"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 138",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L138"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 146",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L146"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/ui-check.md",
+        "source_location": "line 150",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "ui-check",
+        "id": "doc_ui-check_item_L150"
+      },
+      {
+        "label": "unity-adapters.md",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters"
+      },
+      {
+        "label": "unity-adapters 模块文档",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_unity-adapters"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 17",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L17"
+      },
+      {
+        "label": "IAssetGateway (interface)",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 19",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_iassetgateway-interface"
+      },
+      {
+        "label": "IFileSystem (interface)",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 38",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_ifilesystem-interface"
+      },
+      {
+        "label": "IEditorPrefs (interface)",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 57",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_ieditorprefs-interface"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 72",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L72"
+      },
+      {
+        "label": "UnityAssetGateway `[出站]`",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 74",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_unityassetgateway"
+      },
+      {
+        "label": "InMemoryAssetGateway `[出站]`",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 85",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_inmemoryassetgateway"
+      },
+      {
+        "label": "UnityFileSystem / InMemoryFileSystem `[出站]`",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 94",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_unityfilesystem-inmemoryfilesystem"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 106",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L106"
+      },
+      {
+        "label": "Service 经接缝注入",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 108",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_service"
+      },
+      {
+        "label": "黄金样本回归",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 117",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L117"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 127",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L127"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 129",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_correctness"
+      },
+      {
+        "label": "Performance",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 134",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_performance"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 139",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L139"
+      },
+      {
+        "label": "覆盖现有业务最主要的静态 Unity 依赖,接缝最小且够用",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 142",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_decision_unity"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 145",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L145"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 149",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L149"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 157",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L157"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/unity-adapters.md",
+        "source_location": "line 161",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-adapters",
+        "id": "doc_unity-adapters_item_L161"
+      },
+      {
+        "label": "unity-bridge.md",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge"
+      },
+      {
+        "label": "unity-bridge 模块文档",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_unity-bridge"
+      },
+      {
+        "label": "职责",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item"
+      },
+      {
+        "label": "所属路径",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L13"
+      },
+      {
+        "label": "实体",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 17",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L17"
+      },
+      {
+        "label": "HealthStatus (model)",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 19",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_healthstatus-model"
+      },
+      {
+        "label": "DispatchJob (model)",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 43",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_dispatchjob-model"
+      },
+      {
+        "label": "接口",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 62",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L62"
+      },
+      {
+        "label": "GET /health `[入站]`",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 64",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_get-health"
+      },
+      {
+        "label": "POST /rpc `[入站]`",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 81",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_post-rpc"
+      },
+      {
+        "label": "GET /tools/list, /tools/describe `[入站]`",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 100",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_get-tools-list-tools-describe"
+      },
+      {
+        "label": "MainThreadDispatcher `[出站]`",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 117",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_mainthreaddispatcher"
+      },
+      {
+        "label": "场景",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 133",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L133"
+      },
+      {
+        "label": "短任务主线程执行",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 135",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L135"
+      },
+      {
+        "label": "长任务 jobId 轮询",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 146",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_jobid"
+      },
+      {
+        "label": "Domain Reload 恢复",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 153",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_domain-reload"
+      },
+      {
+        "label": "约束",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 165",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L165"
+      },
+      {
+        "label": "Correctness",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 167",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_correctness"
+      },
+      {
+        "label": "Security",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 173",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_security"
+      },
+      {
+        "label": "设计决策",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 179",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L179"
+      },
+      {
+        "label": "最成熟稳妥,WebSocket 进度推送留 v0.2",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 182",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_decision_websocket-v0-2"
+      },
+      {
+        "label": "无需额外心跳协议,Orchestrator 轮询 /health 即可检测",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 185",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_decision_orchestrator-health"
+      },
+      {
+        "label": "HTTP 监听在后台线程,Unity API 必须主线程,需统一投递边界",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 188",
+        "confidence": "EXTRACTED",
+        "kind": "decision",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_decision_http-unity-api"
+      },
+      {
+        "label": "相关任务",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 191",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L191"
+      },
+      {
+        "label": "错误处理",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 195",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L195"
+      },
+      {
+        "label": "相关依赖模块",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 203",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L203"
+      },
+      {
+        "label": "相关社区",
+        "source_file": ".claude/wiki/modules/unity-bridge.md",
+        "source_location": "line 207",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "module_slug": "unity-bridge",
+        "id": "doc_unity-bridge_item_L207"
+      },
+      {
+        "label": "build.md",
+        "source_file": ".claude/wiki/runbooks/build.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "id": "doc_build"
+      },
+      {
+        "label": "Build 手册",
+        "source_file": ".claude/wiki/runbooks/build.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_build_build"
+      },
+      {
+        "label": "命令",
+        "source_file": ".claude/wiki/runbooks/build.md",
+        "source_location": "line 5",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_build_item"
+      },
+      {
+        "label": "前置条件",
+        "source_file": ".claude/wiki/runbooks/build.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_build_item_L9"
+      },
+      {
+        "label": "故障排查",
+        "source_file": ".claude/wiki/runbooks/build.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_build_item_L13"
+      },
+      {
+        "label": "test.md",
+        "source_file": ".claude/wiki/runbooks/test.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "id": "doc_test"
+      },
+      {
+        "label": "Test 手册",
+        "source_file": ".claude/wiki/runbooks/test.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_test_test"
+      },
+      {
+        "label": "命令",
+        "source_file": ".claude/wiki/runbooks/test.md",
+        "source_location": "line 5",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_test_item"
+      },
+      {
+        "label": "前置条件",
+        "source_file": ".claude/wiki/runbooks/test.md",
+        "source_location": "line 9",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_test_item_L9"
+      },
+      {
+        "label": "故障排查",
+        "source_file": ".claude/wiki/runbooks/test.md",
+        "source_location": "line 13",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_test_item_L13"
+      },
+      {
+        "label": "api-contracts.md",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "document",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts"
+      },
+      {
+        "label": "API 契约",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 1",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_api"
+      },
+      {
+        "label": "API 契约",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 5",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_api_L5"
+      },
+      {
+        "label": "asset-reference",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 7",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_asset-reference"
+      },
+      {
+        "label": "authorization",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 14",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_authorization"
+      },
+      {
+        "label": "mcp-server",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 23",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_mcp-server"
+      },
+      {
+        "label": "prefab-index",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 34",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_prefab-index"
+      },
+      {
+        "label": "tool-contract",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 47",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_tool-contract"
+      },
+      {
+        "label": "tool-registry",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 60",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_tool-registry"
+      },
+      {
+        "label": "ui-check",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 71",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_ui-check"
+      },
+      {
+        "label": "unity-adapters",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 78",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_unity-adapters"
+      },
+      {
+        "label": "unity-bridge",
+        "source_file": ".claude/wiki/specs/api-contracts.md",
+        "source_location": "line 87",
+        "confidence": "EXTRACTED",
+        "kind": "concept",
+        "source_kind": "wiki",
+        "id": "doc_api-contracts_unity-bridge"
+      }
+    ],
+    "edges": [
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item_L5"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item_L10"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item_L24"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item_L29"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item_L93"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item_L99"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_overview",
+        "target": "doc_overview_item_L131"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_item_L5"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_item_L10"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_item_L24"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_item_L29"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_item"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_ai"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_mcp-ai-unity"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_domain-reload-serverid"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_v0-2"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_toolcontract-adapter"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_preview-ai-execute"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_backuppath"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_profile-preview-execute"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_prefabindex-issue"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_unity-mcp"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_unity"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_websocket-v0-2"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_orchestrator-health"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_decision_http-unity-api"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_item_L93"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_item_L99"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_overview_item",
+        "target": "doc_overview_item_L131"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_asset-reference"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L18"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_assetreferencequery-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_assetreferenceresult-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L57"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_findreferences"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_exportcsv"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L98"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_ai"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L110"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L117"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_performance"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L128"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L134"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L138"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L146"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_mcp-server"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_asset-reference",
+        "target": "doc_asset-reference_item_L150"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L18"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L57"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L98"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L117"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L128"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_decision_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L134"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L138"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L146"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_asset-reference_asset-reference",
+        "target": "doc_asset-reference_item_L150"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_authorization"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L18"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_capabilityprofile-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_authorizationmode-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_authdecision-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_auditentry-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L99"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_loadconfig"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_authorize"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_audit"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L159"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L161"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L173"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_v0-1"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L189"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_security"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L204"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L216"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L220"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L228"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_mcp-server"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_authorization",
+        "target": "doc_authorization_item_L232"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L18"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L99"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L159"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L189"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L204"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_decision_item"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_decision_ai"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L216"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L220"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L228"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_authorization_authorization",
+        "target": "doc_authorization_item_L232"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_mcp-server"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_bridgeconnection-entity"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_toolcacheentry-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_handshakeresult-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L75"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_listtools-mcp"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_calltool-mcp"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_handshake"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_waitforreload"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L154"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_ai"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_domain-reload"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_unity"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L189"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_security"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L203"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L215"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L219"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L227"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_prefab-index"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_tool-contract"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_tool-registry"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_ui-check"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_unity-adapters"
+      },
+      {
+        "relation": "references",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_unity-bridge"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_mcp-server",
+        "target": "doc_mcp-server_item_L238"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L75"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L154"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L189"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L203"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_decision_mcp-ai-unity"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_decision_domain-reload-serverid"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_decision_v0-2"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L215"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L219"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L227"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_mcp-server_mcp-server",
+        "target": "doc_mcp-server_item_L238"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_prefab-index"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L21"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_prefabindex-entity"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_prefabindexitem-entity"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_prefabindexbuildoptions-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L72"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_buildindex"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_loadcache"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_savecache"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_search"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_getprefabdetail"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L168"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_ai"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_ui"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L188"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_performance"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L201"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L209"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L213"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L221"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_prefab-index",
+        "target": "doc_prefab-index_item_L225"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L21"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L72"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L168"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L188"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L201"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_decision_item"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_decision_toolcontract-adapter"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L209"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L213"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L221"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_prefab-index_prefab-index",
+        "target": "doc_prefab-index_item_L225"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_tool-contract"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_tooldescriptor-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_toolrequest-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_toolresult-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_toolerror-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_change-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_issue-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_toolcontext-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L174"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_uiprobetool-tparams"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_describeparams"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_validate"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_preview"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_execute"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L270"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L272"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L282"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L292"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L303"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_quality"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L316"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L331"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L335"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L343"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-contract",
+        "target": "doc_tool-contract_item_L347"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L174"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L270"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L303"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L316"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_decision_item"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_decision_preview-ai-execute"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_decision_backuppath"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_decision_ai"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L331"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L335"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L343"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-contract_tool-contract",
+        "target": "doc_tool-contract_item_L347"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_tool-registry"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_toolregistration-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_operationticket-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L57"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_register"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_listtools"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_describetool"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_invoke"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L134"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L136"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L146"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L160"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L170"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_security"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L183"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L192"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L196"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L204"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_tool-registry",
+        "target": "doc_tool-registry_item_L208"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L57"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L134"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L170"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L183"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_decision_profile-preview-execute"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_decision_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L192"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L196"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L204"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_tool-registry_tool-registry",
+        "target": "doc_tool-registry_item_L208"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_ui-check"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L21"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_uicheckrequest-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_uicheckreport-entity"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L55"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_runchecks"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_getcheckresults"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L94"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_ai"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_duplicatechecker-filternodescanner"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L114"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_quality"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L126"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L134"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L138"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L146"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_ui-check",
+        "target": "doc_ui-check_item_L150"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L21"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L55"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L94"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L114"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L126"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_decision_prefabindex-issue"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_decision_unity-mcp"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L134"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L138"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L146"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_ui-check_ui-check",
+        "target": "doc_ui-check_item_L150"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_unity-adapters"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_iassetgateway-interface"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_ifilesystem-interface"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_ieditorprefs-interface"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L72"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_unityassetgateway"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_inmemoryassetgateway"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_unityfilesystem-inmemoryfilesystem"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L106"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_service"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L117"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L127"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_performance"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L139"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L145"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L149"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L157"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-adapters",
+        "target": "doc_unity-adapters_item_L161"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L72"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L106"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L127"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L139"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_decision_unity"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L145"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L149"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L157"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-adapters_unity-adapters",
+        "target": "doc_unity-adapters_item_L161"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_unity-bridge"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_healthstatus-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_dispatchjob-model"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L62"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_get-health"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_post-rpc"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_get-tools-list-tools-describe"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_mainthreaddispatcher"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L133"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L135"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_jobid"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_domain-reload"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L165"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_correctness"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_security"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L179"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L191"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L195"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L203"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_unity-bridge",
+        "target": "doc_unity-bridge_item_L207"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L17"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L62"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L133"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L165"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L179"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_decision_websocket-v0-2"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_decision_orchestrator-health"
+      },
+      {
+        "relation": "decides",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_decision_http-unity-api"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L191"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L195"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L203"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_unity-bridge_unity-bridge",
+        "target": "doc_unity-bridge_item_L207"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_build",
+        "target": "doc_build_build"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_build",
+        "target": "doc_build_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_build",
+        "target": "doc_build_item_L9"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_build",
+        "target": "doc_build_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_build_build",
+        "target": "doc_build_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_build_build",
+        "target": "doc_build_item_L9"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_build_build",
+        "target": "doc_build_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_test",
+        "target": "doc_test_test"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_test",
+        "target": "doc_test_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_test",
+        "target": "doc_test_item_L9"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_test",
+        "target": "doc_test_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_test_test",
+        "target": "doc_test_item"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_test_test",
+        "target": "doc_test_item_L9"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_test_test",
+        "target": "doc_test_item_L13"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_api"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_api_L5"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_asset-reference"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_authorization"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_mcp-server"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_prefab-index"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_tool-contract"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_tool-registry"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_ui-check"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_unity-adapters"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.3,
+        "source": "doc_api-contracts",
+        "target": "doc_api-contracts_unity-bridge"
+      },
+      {
+        "relation": "contains",
+        "confidence": "EXTRACTED",
+        "weight": 0.5,
+        "source": "doc_api-contracts_api",
+        "target": "doc_api-contracts_api_L5"
+      }
+    ]
+  },
+  "communities": {
+    "0": [
+      "doc_tool-contract",
+      "doc_tool-contract_change-model",
+      "doc_tool-contract_correctness",
+      "doc_tool-contract_decision_ai",
+      "doc_tool-contract_decision_backuppath",
+      "doc_tool-contract_decision_item",
+      "doc_tool-contract_decision_preview-ai-execute",
+      "doc_tool-contract_describeparams",
+      "doc_tool-contract_execute",
+      "doc_tool-contract_issue-model",
+      "doc_tool-contract_item",
+      "doc_tool-contract_item_L13",
+      "doc_tool-contract_item_L17",
+      "doc_tool-contract_item_L174",
+      "doc_tool-contract_item_L270",
+      "doc_tool-contract_item_L272",
+      "doc_tool-contract_item_L282",
+      "doc_tool-contract_item_L292",
+      "doc_tool-contract_item_L303",
+      "doc_tool-contract_item_L316",
+      "doc_tool-contract_item_L331",
+      "doc_tool-contract_item_L335",
+      "doc_tool-contract_item_L343",
+      "doc_tool-contract_item_L347",
+      "doc_tool-contract_preview",
+      "doc_tool-contract_quality",
+      "doc_tool-contract_tool-contract",
+      "doc_tool-contract_toolcontext-model",
+      "doc_tool-contract_tooldescriptor-model",
+      "doc_tool-contract_toolerror-model",
+      "doc_tool-contract_toolrequest-model",
+      "doc_tool-contract_toolresult-model",
+      "doc_tool-contract_uiprobetool-tparams",
+      "doc_tool-contract_validate"
+    ],
+    "1": [
+      "doc_mcp-server",
+      "doc_mcp-server_ai",
+      "doc_mcp-server_bridgeconnection-entity",
+      "doc_mcp-server_calltool-mcp",
+      "doc_mcp-server_correctness",
+      "doc_mcp-server_decision_domain-reload-serverid",
+      "doc_mcp-server_decision_mcp-ai-unity",
+      "doc_mcp-server_decision_v0-2",
+      "doc_mcp-server_domain-reload",
+      "doc_mcp-server_handshake",
+      "doc_mcp-server_handshakeresult-model",
+      "doc_mcp-server_item",
+      "doc_mcp-server_item_L13",
+      "doc_mcp-server_item_L154",
+      "doc_mcp-server_item_L17",
+      "doc_mcp-server_item_L189",
+      "doc_mcp-server_item_L203",
+      "doc_mcp-server_item_L215",
+      "doc_mcp-server_item_L219",
+      "doc_mcp-server_item_L227",
+      "doc_mcp-server_item_L238",
+      "doc_mcp-server_item_L75",
+      "doc_mcp-server_listtools-mcp",
+      "doc_mcp-server_mcp-server",
+      "doc_mcp-server_security",
+      "doc_mcp-server_toolcacheentry-model",
+      "doc_mcp-server_unity",
+      "doc_mcp-server_waitforreload"
+    ],
+    "2": [
+      "doc_authorization",
+      "doc_authorization_audit",
+      "doc_authorization_auditentry-model",
+      "doc_authorization_authdecision-model",
+      "doc_authorization_authorization",
+      "doc_authorization_authorizationmode-model",
+      "doc_authorization_authorize",
+      "doc_authorization_capabilityprofile-model",
+      "doc_authorization_correctness",
+      "doc_authorization_decision_ai",
+      "doc_authorization_decision_item",
+      "doc_authorization_item",
+      "doc_authorization_item_L13",
+      "doc_authorization_item_L159",
+      "doc_authorization_item_L161",
+      "doc_authorization_item_L173",
+      "doc_authorization_item_L18",
+      "doc_authorization_item_L189",
+      "doc_authorization_item_L204",
+      "doc_authorization_item_L216",
+      "doc_authorization_item_L220",
+      "doc_authorization_item_L228",
+      "doc_authorization_item_L232",
+      "doc_authorization_item_L99",
+      "doc_authorization_loadconfig",
+      "doc_authorization_security",
+      "doc_authorization_v0-1"
+    ],
+    "3": [
+      "doc_prefab-index",
+      "doc_prefab-index_ai",
+      "doc_prefab-index_buildindex",
+      "doc_prefab-index_correctness",
+      "doc_prefab-index_decision_item",
+      "doc_prefab-index_decision_toolcontract-adapter",
+      "doc_prefab-index_getprefabdetail",
+      "doc_prefab-index_item",
+      "doc_prefab-index_item_L13",
+      "doc_prefab-index_item_L168",
+      "doc_prefab-index_item_L188",
+      "doc_prefab-index_item_L201",
+      "doc_prefab-index_item_L209",
+      "doc_prefab-index_item_L21",
+      "doc_prefab-index_item_L213",
+      "doc_prefab-index_item_L221",
+      "doc_prefab-index_item_L225",
+      "doc_prefab-index_item_L72",
+      "doc_prefab-index_loadcache",
+      "doc_prefab-index_performance",
+      "doc_prefab-index_prefab-index",
+      "doc_prefab-index_prefabindex-entity",
+      "doc_prefab-index_prefabindexbuildoptions-model",
+      "doc_prefab-index_prefabindexitem-entity",
+      "doc_prefab-index_savecache",
+      "doc_prefab-index_search",
+      "doc_prefab-index_ui"
+    ],
+    "4": [
+      "doc_unity-bridge",
+      "doc_unity-bridge_correctness",
+      "doc_unity-bridge_decision_http-unity-api",
+      "doc_unity-bridge_decision_orchestrator-health",
+      "doc_unity-bridge_decision_websocket-v0-2",
+      "doc_unity-bridge_dispatchjob-model",
+      "doc_unity-bridge_domain-reload",
+      "doc_unity-bridge_get-health",
+      "doc_unity-bridge_get-tools-list-tools-describe",
+      "doc_unity-bridge_healthstatus-model",
+      "doc_unity-bridge_item",
+      "doc_unity-bridge_item_L13",
+      "doc_unity-bridge_item_L133",
+      "doc_unity-bridge_item_L135",
+      "doc_unity-bridge_item_L165",
+      "doc_unity-bridge_item_L17",
+      "doc_unity-bridge_item_L179",
+      "doc_unity-bridge_item_L191",
+      "doc_unity-bridge_item_L195",
+      "doc_unity-bridge_item_L203",
+      "doc_unity-bridge_item_L207",
+      "doc_unity-bridge_item_L62",
+      "doc_unity-bridge_jobid",
+      "doc_unity-bridge_mainthreaddispatcher",
+      "doc_unity-bridge_post-rpc",
+      "doc_unity-bridge_security",
+      "doc_unity-bridge_unity-bridge"
+    ],
+    "5": [
+      "doc_tool-registry",
+      "doc_tool-registry_correctness",
+      "doc_tool-registry_decision_item",
+      "doc_tool-registry_decision_profile-preview-execute",
+      "doc_tool-registry_describetool",
+      "doc_tool-registry_invoke",
+      "doc_tool-registry_item",
+      "doc_tool-registry_item_L13",
+      "doc_tool-registry_item_L134",
+      "doc_tool-registry_item_L136",
+      "doc_tool-registry_item_L146",
+      "doc_tool-registry_item_L160",
+      "doc_tool-registry_item_L17",
+      "doc_tool-registry_item_L170",
+      "doc_tool-registry_item_L183",
+      "doc_tool-registry_item_L192",
+      "doc_tool-registry_item_L196",
+      "doc_tool-registry_item_L204",
+      "doc_tool-registry_item_L208",
+      "doc_tool-registry_item_L57",
+      "doc_tool-registry_listtools",
+      "doc_tool-registry_operationticket-model",
+      "doc_tool-registry_register",
+      "doc_tool-registry_security",
+      "doc_tool-registry_tool-registry",
+      "doc_tool-registry_toolregistration-model"
+    ],
+    "6": [
+      "doc_overview",
+      "doc_overview_decision_ai",
+      "doc_overview_decision_backuppath",
+      "doc_overview_decision_domain-reload-serverid",
+      "doc_overview_decision_http-unity-api",
+      "doc_overview_decision_item",
+      "doc_overview_decision_mcp-ai-unity",
+      "doc_overview_decision_orchestrator-health",
+      "doc_overview_decision_prefabindex-issue",
+      "doc_overview_decision_preview-ai-execute",
+      "doc_overview_decision_profile-preview-execute",
+      "doc_overview_decision_toolcontract-adapter",
+      "doc_overview_decision_unity",
+      "doc_overview_decision_unity-mcp",
+      "doc_overview_decision_v0-2",
+      "doc_overview_decision_websocket-v0-2",
+      "doc_overview_item",
+      "doc_overview_item_L10",
+      "doc_overview_item_L131",
+      "doc_overview_item_L24",
+      "doc_overview_item_L29",
+      "doc_overview_item_L5",
+      "doc_overview_item_L93",
+      "doc_overview_item_L99"
+    ],
+    "7": [
+      "doc_unity-adapters",
+      "doc_unity-adapters_correctness",
+      "doc_unity-adapters_decision_unity",
+      "doc_unity-adapters_iassetgateway-interface",
+      "doc_unity-adapters_ieditorprefs-interface",
+      "doc_unity-adapters_ifilesystem-interface",
+      "doc_unity-adapters_inmemoryassetgateway",
+      "doc_unity-adapters_item",
+      "doc_unity-adapters_item_L106",
+      "doc_unity-adapters_item_L117",
+      "doc_unity-adapters_item_L127",
+      "doc_unity-adapters_item_L13",
+      "doc_unity-adapters_item_L139",
+      "doc_unity-adapters_item_L145",
+      "doc_unity-adapters_item_L149",
+      "doc_unity-adapters_item_L157",
+      "doc_unity-adapters_item_L161",
+      "doc_unity-adapters_item_L17",
+      "doc_unity-adapters_item_L72",
+      "doc_unity-adapters_performance",
+      "doc_unity-adapters_service",
+      "doc_unity-adapters_unity-adapters",
+      "doc_unity-adapters_unityassetgateway",
+      "doc_unity-adapters_unityfilesystem-inmemoryfilesystem"
+    ],
+    "8": [
+      "doc_ui-check",
+      "doc_ui-check_ai",
+      "doc_ui-check_correctness",
+      "doc_ui-check_decision_prefabindex-issue",
+      "doc_ui-check_decision_unity-mcp",
+      "doc_ui-check_duplicatechecker-filternodescanner",
+      "doc_ui-check_getcheckresults",
+      "doc_ui-check_item",
+      "doc_ui-check_item_L114",
+      "doc_ui-check_item_L126",
+      "doc_ui-check_item_L13",
+      "doc_ui-check_item_L134",
+      "doc_ui-check_item_L138",
+      "doc_ui-check_item_L146",
+      "doc_ui-check_item_L150",
+      "doc_ui-check_item_L21",
+      "doc_ui-check_item_L55",
+      "doc_ui-check_item_L94",
+      "doc_ui-check_quality",
+      "doc_ui-check_runchecks",
+      "doc_ui-check_ui-check",
+      "doc_ui-check_uicheckreport-entity",
+      "doc_ui-check_uicheckrequest-model"
+    ],
+    "9": [
+      "doc_asset-reference",
+      "doc_asset-reference_ai",
+      "doc_asset-reference_asset-reference",
+      "doc_asset-reference_assetreferencequery-model",
+      "doc_asset-reference_assetreferenceresult-model",
+      "doc_asset-reference_correctness",
+      "doc_asset-reference_decision_item",
+      "doc_asset-reference_exportcsv",
+      "doc_asset-reference_findreferences",
+      "doc_asset-reference_item",
+      "doc_asset-reference_item_L110",
+      "doc_asset-reference_item_L117",
+      "doc_asset-reference_item_L128",
+      "doc_asset-reference_item_L13",
+      "doc_asset-reference_item_L134",
+      "doc_asset-reference_item_L138",
+      "doc_asset-reference_item_L146",
+      "doc_asset-reference_item_L150",
+      "doc_asset-reference_item_L18",
+      "doc_asset-reference_item_L57",
+      "doc_asset-reference_item_L98",
+      "doc_asset-reference_performance"
+    ],
+    "10": [
+      "doc_api-contracts",
+      "doc_api-contracts_api",
+      "doc_api-contracts_api_L5",
+      "doc_api-contracts_asset-reference",
+      "doc_api-contracts_authorization",
+      "doc_api-contracts_mcp-server",
+      "doc_api-contracts_prefab-index",
+      "doc_api-contracts_tool-contract",
+      "doc_api-contracts_tool-registry",
+      "doc_api-contracts_ui-check",
+      "doc_api-contracts_unity-adapters",
+      "doc_api-contracts_unity-bridge"
+    ],
+    "11": [
+      "doc_build",
+      "doc_build_build",
+      "doc_build_item",
+      "doc_build_item_L13",
+      "doc_build_item_L9"
+    ],
+    "12": [
+      "doc_test",
+      "doc_test_item",
+      "doc_test_item_L13",
+      "doc_test_item_L9",
+      "doc_test_test"
+    ]
+  },
+  "god_nodes": [
+    {
+      "id": "doc_mcp-server",
+      "label": "mcp-server.md",
+      "degree": 32,
+      "source_file": ".claude/wiki/modules/mcp-server.md",
+      "source_location": "line 1",
+      "community": 1
+    },
+    {
+      "id": "doc_tool-contract",
+      "label": "tool-contract.md",
+      "degree": 30,
+      "source_file": ".claude/wiki/modules/tool-contract.md",
+      "source_location": "line 1",
+      "community": 0
+    },
+    {
+      "id": "doc_authorization",
+      "label": "authorization.md",
+      "degree": 25,
+      "source_file": ".claude/wiki/modules/authorization.md",
+      "source_location": "line 1",
+      "community": 2
+    },
+    {
+      "id": "doc_prefab-index",
+      "label": "prefab-index.md",
+      "degree": 25,
+      "source_file": ".claude/wiki/modules/prefab-index.md",
+      "source_location": "line 1",
+      "community": 3
+    },
+    {
+      "id": "doc_tool-registry",
+      "label": "tool-registry.md",
+      "degree": 24,
+      "source_file": ".claude/wiki/modules/tool-registry.md",
+      "source_location": "line 1",
+      "community": 5
+    },
+    {
+      "id": "doc_unity-bridge",
+      "label": "unity-bridge.md",
+      "degree": 24,
+      "source_file": ".claude/wiki/modules/unity-bridge.md",
+      "source_location": "line 1",
+      "community": 4
+    },
+    {
+      "id": "doc_overview_item",
+      "label": "架构概览",
+      "degree": 23,
+      "source_file": ".claude/wiki/architecture/overview.md",
+      "source_location": "line 1",
+      "community": 6
+    },
+    {
+      "id": "doc_unity-adapters",
+      "label": "unity-adapters.md",
+      "degree": 23,
+      "source_file": ".claude/wiki/modules/unity-adapters.md",
+      "source_location": "line 1",
+      "community": 7
+    },
+    {
+      "id": "doc_asset-reference",
+      "label": "asset-reference.md",
+      "degree": 21,
+      "source_file": ".claude/wiki/modules/asset-reference.md",
+      "source_location": "line 1",
+      "community": 9
+    },
+    {
+      "id": "doc_ui-check",
+      "label": "ui-check.md",
+      "degree": 21,
+      "source_file": ".claude/wiki/modules/ui-check.md",
+      "source_location": "line 1",
+      "community": 8
+    }
+  ]
+}

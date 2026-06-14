@@ -1,0 +1,84 @@
+{
+  "id": "M3",
+  "name": "Unity Bridge:HTTP loopback + 主线程 Dispatcher + Domain Reload 恢复",
+  "tasks": [
+    {
+      "id": "T3-1",
+      "title": "MainThreadDispatcher:后台线程到主线程的执行边界",
+      "agent": "core-unity-bridge",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Editor/Infrastructure/Bridge/MainThreadDispatcher.cs", "UIProbe/Tests/Editor/MainThreadDispatcherTests.cs"],
+      "dependencies": [],
+      "description": "HTTP 监听在后台线程,Unity API 必须在主线程执行,需要统一投递边界。本任务实现 MainThreadDispatcher,经 EditorApplication.update 逐帧 drain 并发队列、主线程执行、结果写回 TaskCompletionSource。这是 Bridge 正确性的核心。\n\n1. UIProbe/Editor/Infrastructure/Bridge/MainThreadDispatcher.cs\n   - DispatchJob(JobId、Action/TCS、Status:Running/Done/Interrupted)。\n   - Enqueue(Func) 返回 Task:后台线程入并发队列(ConcurrentQueue),await TCS,默认 30s 超时 -> MAIN_THREAD_TIMEOUT 并尽量取消。\n   - EditorApplication.update 回调中 drain 队列、主线程执行、写回 TCS。\n   - isCompiling/isUpdating 时暂缓 drain 写操作(只读可放行),放行写操作前等 isCompiling=false 稳定窗口。\n   - 执行单元短小、可在 Stage 边界检查取消。\n\n2. 长任务支持\n   - LongRunning 工具立即返回 jobId,主线程后台分帧执行,结果存 job 表;进度经 ToolContext.Progress 节流上报。\n\n3. UIProbe/Tests/Editor/MainThreadDispatcherTests.cs\n   - 验证:入队任务最终在主线程执行并返回;超时回 MAIN_THREAD_TIMEOUT;isCompiling 时写操作暂缓。\n\n4. 不能动的边界\n   - 任何 Editor API 调用必须经此 Dispatcher;Service 层不在监听线程直接碰 Unity API。",
+      "acceptance": [
+        "Dispatcher 经 EditorApplication.update 逐帧 drain 并发队列并在主线程执行",
+        "Enqueue 返回可 await 的 Task,默认 30s 超时回 MAIN_THREAD_TIMEOUT 并尝试取消",
+        "isCompiling/isUpdating 时暂缓写操作 drain,放行前等稳定窗口",
+        "LongRunning 立即返回 jobId,进度经 ToolContext.Progress 节流上报",
+        "执行单元可在 Stage 边界检查取消",
+        "单测覆盖主线程执行/超时/编译中暂缓"
+      ],
+      "exit_criteria": "MainThreadDispatcher 可把后台请求安全投递到主线程执行,超时与编译中暂缓行为正确,长任务 jobId 机制可用。",
+      "test_cases": [
+        "Enqueue 的 Action 在 EditorApplication.update 中执行并返回结果",
+        "超长 Action -> MAIN_THREAD_TIMEOUT",
+        "isCompiling 模拟为真时写操作暂缓、只读放行",
+        "LongRunning 任务立即得到 jobId 并可轮询状态"
+      ],
+      "notes": "Dispatcher 单测在 Editor 环境运行,可能需要驱动若干帧;用 EditorApplication.update 模拟或 yield。"
+    },
+    {
+      "id": "T3-2",
+      "title": "HTTP Bridge:/health + /rpc + /tools 端点(loopback + token)",
+      "agent": "core-unity-bridge",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Editor/Infrastructure/Bridge/UIProbeBridge.cs", "UIProbe/Editor/Infrastructure/Bridge/HealthStatus.cs", "UIProbe/Editor/Infrastructure/Bridge/SessionToken.cs", "UIProbe/Tests/Editor/BridgeEndpointTests.cs"],
+      "dependencies": ["T3-1"],
+      "description": "在 Unity Editor 内启 HttpListener(仅 127.0.0.1),暴露 /health、/rpc、/tools/list、/tools/describe,经 Dispatcher 把 /rpc 请求投递主线程调用 ToolRegistry。v0.1 仅 HTTP + loopback,WebSocket 留 v0.2。\n\n1. UIProbe/Editor/Infrastructure/Bridge/HealthStatus.cs\n   - status(ok)、serverId(guid,进程内新建绝不持久化)、pid、projectPath、uiProbeVersion、contractVersion、isCompiling、isUpdating、isPlaying。\n\n2. UIProbe/Editor/Infrastructure/Bridge/SessionToken.cs\n   - Bridge 启动生成一次性 token 写仅当前用户可读文件;/rpc 校验 header 防同机恶意进程直连。\n\n3. UIProbe/Editor/Infrastructure/Bridge/UIProbeBridge.cs\n   - HttpListener 绑 127.0.0.1 随机端口;后台线程收请求。\n   - GET /health -> HealthStatus。\n   - POST /rpc(校验 token)-> 解析 ToolRequest -> Dispatcher.Enqueue 调 ToolRegistry.Invoke -> ToolResult;错误码 UNITY_BUSY/MAIN_THREAD_TIMEOUT/DOMAIN_RELOAD_INTERRUPTED。\n   - GET /tools/list、/tools/describe -> 代理 ToolRegistry。\n   - 把端口/projectPath 写入发现文件供 Orchestrator 按 projectPath 路由。\n\n4. UIProbe/Tests/Editor/BridgeEndpointTests.cs\n   - 本地起 Bridge,curl 风格请求验证 /health 字段、/rpc token 校验、/tools 列表。\n\n5. 不能动的边界\n   - 仅监听 loopback;无 token 的 /rpc 拒绝;只读工具经此打通端到端。",
+      "acceptance": [
+        "HttpListener 仅绑 127.0.0.1,端口与 projectPath 写入发现文件",
+        "GET /health 返回完整 HealthStatus(serverId 进程内新建不持久化)",
+        "POST /rpc 校验 session token,无/错 token 拒绝",
+        "/rpc 经 Dispatcher 主线程调 ToolRegistry.Invoke 返回 ToolResult",
+        "GET /tools/list 与 /tools/describe 代理 ToolRegistry",
+        "错误码 UNITY_BUSY/MAIN_THREAD_TIMEOUT 正确返回",
+        "token 写仅当前用户可读文件",
+        "BridgeEndpointTests 覆盖 health/rpc 鉴权/tools 列表"
+      ],
+      "exit_criteria": "Unity Bridge 在 loopback 上提供 health/rpc/tools 端点,token 鉴权生效,只读工具可经 /rpc 端到端调用。",
+      "test_cases": [
+        "GET /health 返回 status==ok 且含 serverId/pid/projectPath",
+        "无 token POST /rpc -> 拒绝(401 风格)",
+        "带 token 调只读工具 -> ToolResult.Status==Success",
+        "GET /tools/list 含已注册只读工具"
+      ],
+      "notes": "v0.1 仅 HTTP;WebSocket 进度推送留 v0.2。端口冲突时换端口并更新发现文件。"
+    },
+    {
+      "id": "T3-3",
+      "title": "Domain Reload 恢复:serverId 信号 + job 中断 + capabilities 重报",
+      "agent": "core-unity-bridge",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Editor/Infrastructure/Bridge/BridgeReloadHandler.cs", "UIProbe/Tests/Editor/BridgeReloadTests.cs"],
+      "dependencies": ["T3-2"],
+      "description": "Domain Reload 是常态而非异常。本任务实现重载前后的优雅处理:beforeAssemblyReload 标记进行中 job 为 Interrupted、关 HttpListener、持久化必要状态;afterAssemblyReload 生成新 serverId、重建 Bridge、重报 capabilities。Orchestrator 通过 serverId 变化感知重载。\n\n1. UIProbe/Editor/Infrastructure/Bridge/BridgeReloadHandler.cs\n   - 订阅 AssemblyReloadEvents.beforeAssemblyReload:把进行中 job 标 Interrupted、关闭 HttpListener、持久化必要状态(不持久化 serverId)。\n   - 订阅 afterAssemblyReload:生成新 serverId、重建 Bridge、重新注册工具并重报 capabilities。\n   - 写操作遇 reload -> DOMAIN_RELOAD_INTERRUPTED 交人确认;ReloadSafe=true 的幂等只读可标记供 Orchestrator 自动重发。\n\n2. 与 [InitializeOnLoad]\n   - afterAssemblyReload 后自动重建 Bridge,保证重载后无需人工重启。\n\n3. UIProbe/Tests/Editor/BridgeReloadTests.cs\n   - 模拟 reload 生命周期:验证 serverId 变化、进行中 job 被标 Interrupted、重建后工具可再次发现。\n\n4. 不能动的边界\n   - serverId 每次 afterAssemblyReload 重新生成,绝不持久化;reload 期间端口短暂不可用属正常,由 Orchestrator 退避重试。",
+      "acceptance": [
+        "beforeAssemblyReload 标记进行中 job 为 Interrupted 并关闭 HttpListener",
+        "afterAssemblyReload 生成新 serverId 并重建 Bridge、重报 capabilities",
+        "serverId 绝不持久化,每次重载重新生成",
+        "写操作遇 reload 返回 DOMAIN_RELOAD_INTERRUPTED",
+        "ReloadSafe 只读工具标记为可自动重发",
+        "[InitializeOnLoad] 保证重载后 Bridge 自动重建无需人工重启",
+        "BridgeReloadTests 覆盖 serverId 变化与 job 中断"
+      ],
+      "exit_criteria": "Domain Reload 前后 Bridge 优雅中断与自动重建,serverId 变化可被外部感知,重载后工具可再次发现调用。",
+      "test_cases": [
+        "模拟 before/after reload -> serverId 前后不同",
+        "重载时进行中 job 状态变 Interrupted",
+        "重载后 /tools/list 仍可列出工具",
+        "写操作在 reload 标记下 -> DOMAIN_RELOAD_INTERRUPTED"
+      ],
+      "notes": "Editor 内模拟 Domain Reload 较难完整复现,可对 ReloadHandler 的回调逻辑做单元级验证 + 手动 Editor 内实测记录。"
+    }
+  ]
+}

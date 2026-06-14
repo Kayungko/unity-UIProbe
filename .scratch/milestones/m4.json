@@ -1,0 +1,110 @@
+{
+  "id": "M4",
+  "name": "Node MCP Server:连接/握手/工具代理 + v0.1 只读工具端到端 AI 向验收",
+  "tasks": [
+    {
+      "id": "T4-1",
+      "title": "MCP Server 骨架:连接管理 + 版本握手(Node/TypeScript)",
+      "agent": "core-mcp-server",
+      "stage": "prep",
+      "write_paths": ["mcp-server/package.json", "mcp-server/tsconfig.json", "mcp-server/src/bridge/BridgeConnection.ts", "mcp-server/src/bridge/handshake.ts", "mcp-server/test/handshake.test.ts"],
+      "dependencies": [],
+      "description": "用 Node/TypeScript 建立 MCP Server 工程骨架与到 Unity Bridge 的连接管理。Server 对外讲 MCP 协议,对内连 Bridge HTTP loopback,自身不碰 Unity API。\n\n1. mcp-server/package.json + tsconfig.json\n   - 依赖 MCP SDK(@modelcontextprotocol/sdk)、ws 暂不需(v0.1 HTTP)、测试框架(vitest 或 node:test)。\n   - scripts:build/test/start。\n\n2. mcp-server/src/bridge/BridgeConnection.ts\n   - BridgeConnection(projectPath、baseUrl、sessionToken、lastServerId、state:Connecting/Ready/Reloading/Offline)。\n   - 从发现文件读端口与 projectPath,从受控文件读 sessionToken(不写日志)。\n   - 多实例按 projectPath 路由。\n\n3. mcp-server/src/bridge/handshake.ts\n   - Handshake():GET /health,校验 contractVersion major(不符直接拒绝并提示升级),记录 uiProbeVersion。\n\n4. mcp-server/test/handshake.test.ts\n   - 用 mock Bridge(本地 stub HTTP)验证:major 一致 -> ok;major 不符 -> 拒绝;Unity 未启动 -> UNITY_OFFLINE。\n\n5. 不能动的边界\n   - Server 不直接碰 Unity API;sessionToken 不外泄不写日志。",
+      "acceptance": [
+        "mcp-server Node/TS 工程可 build/test/start",
+        "BridgeConnection 含 projectPath/baseUrl/sessionToken/lastServerId/state",
+        "从发现文件读端口、从受控文件读 token 且不写日志",
+        "Handshake 校验 contractVersion major,不符则拒绝并提示升级",
+        "Unity 未启动时连接得到 UNITY_OFFLINE",
+        "多实例按 projectPath 路由",
+        "handshake 测试以 mock Bridge 全绿"
+      ],
+      "exit_criteria": "MCP Server 工程骨架就位,可连接 Bridge 并完成版本握手,握手相关测试全绿。",
+      "test_cases": [
+        "contractVersion major 一致 -> HandshakeResult.contractVersionOk==true",
+        "major 不符 -> 拒绝并提示升级",
+        "Bridge 不可达 -> UNITY_OFFLINE",
+        "token 从受控文件读取成功且不出现在日志"
+      ],
+      "notes": "技术选型 Node/TS 因 MCP 生态成熟、AI 客户端对接成本低(与团队 AI coding 取向一致)。"
+    },
+    {
+      "id": "T4-2",
+      "title": "工具代理:ListTools/CallTool 翻译 + 工具缓存(serverId 失效)",
+      "agent": "core-mcp-server",
+      "stage": "exec",
+      "write_paths": ["mcp-server/src/tools/toolProxy.ts", "mcp-server/src/tools/toolCache.ts", "mcp-server/src/server.ts", "mcp-server/test/toolProxy.test.ts"],
+      "dependencies": ["T4-1"],
+      "description": "把 MCP 的 ListTools/CallTool 翻译为 Bridge 的 /tools/list 与 /rpc,并以 serverId 为边界缓存工具描述。错误码透传不吞,保留 Retriable 语义。\n\n1. mcp-server/src/tools/toolCache.ts\n   - ToolCacheEntry(descriptor、fetchedAtServerId)。\n   - serverId 变化即失效重拉(Domain Reload 后工具集可能变化)。\n\n2. mcp-server/src/tools/toolProxy.ts\n   - listTools():走缓存或 GET /tools/list 返回 McpTool[]。\n   - callTool({name, arguments}):翻译为 POST /rpc 携带 token,返回 ToolResult;透传错误码(UNITY_OFFLINE/UNITY_BUSY/DOMAIN_RELOAD_INTERRUPTED/MAIN_THREAD_TIMEOUT/TOOL_NOT_FOUND)与 Retriable。\n\n3. mcp-server/src/server.ts\n   - 用 MCP SDK 注册 ListTools/CallTool handler,接 toolProxy。\n\n4. mcp-server/test/toolProxy.test.ts\n   - mock Bridge 验证:listTools 命中缓存;serverId 变化后重拉;callTool 翻译正确;错误码透传。\n\n5. 不能动的边界\n   - 一切经 Bridge /rpc,Server 不碰 Unity;错误不吞。",
+      "acceptance": [
+        "ListTools/CallTool 正确翻译为 /tools/list 与 /rpc",
+        "工具缓存以 serverId 为失效边界,变化后重拉",
+        "callTool 携带 session token",
+        "Bridge 错误码与 Retriable 语义透传不吞",
+        "MCP SDK handler 接通 toolProxy",
+        "toolProxy 测试以 mock Bridge 全绿"
+      ],
+      "exit_criteria": "MCP 工具发现与调用经 Server 代理到 Bridge,缓存按 serverId 失效,错误透传正确,具备接 AI 客户端的条件。",
+      "test_cases": [
+        "listTools 首次拉取后第二次命中缓存",
+        "serverId 变化后 listTools 重新拉取",
+        "callTool 未知工具 -> TOOL_NOT_FOUND 透传",
+        "Bridge 返回 UNITY_BUSY(Retriable) -> 原样透传"
+      ],
+      "notes": "依赖 T4-1 连接与握手;为 T4-4 Domain Reload 处理打基础。"
+    },
+    {
+      "id": "T4-3",
+      "title": "v0.1 只读工具接入 Registry 并端到端打通(AI 向验收)",
+      "agent": "core-tool-registry",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Core/Tools", "UIProbe/Tests/Editor/ReadOnlyToolsTests.cs"],
+      "dependencies": ["T4-2"],
+      "description": "把 M2 的三个只读 Service 包装成符合 ToolContract 的 UIProbeTool 并注册进 ToolRegistry,使其经 Bridge 与 MCP Server 端到端可被 AI 调用。这是 v0.1 的验收闭环:AI -> MCP -> Bridge -> Registry -> Service。\n\n1. UIProbe/Core/Tools/(每个工具一个文件,[UIProbeTool] 标注)\n   - build_prefab_index / get_prefab_index_status / search_prefabs / get_prefab_detail(包装 PrefabIndexService;build 为 LongRunning)。\n   - find_asset_references(包装 AssetReferenceService)。\n   - run_ui_checks / get_check_results / export_report(包装 UICheckService;export 写受控目录)。\n   - 每个工具实现 DescribeParams(JSON Schema)/Validate/Preview(只读等于 Execute)/Execute,Descriptor 标 ReloadSafe=true、UndoCapability=None。\n\n2. UIProbe/Tests/Editor/ReadOnlyToolsTests.cs\n   - 经 ToolRegistry.Invoke 验证每个工具的 schema、validate、execute 行为(用内存假体 + 黄金样本)。\n\n3. 端到端手动验收\n   - 启 Unity + Bridge,启 MCP Server,用 MCP 客户端 ListTools 看到上述工具,CallTool 跑通 search_prefabs/find_asset_references/run_ui_checks 拿到结构化结果。\n   - 记录 AI 向验收清单(每个工具一条 happy path + 一条错误路径)。\n\n4. 不能动的边界\n   - 全部只读;不引入写操作(留 v0.2)。",
+      "acceptance": [
+        "三个只读 Service 包装为 8 个左右 [UIProbeTool] 并注册进 Registry",
+        "每个工具实现 DescribeParams/Validate/Preview/Execute,Descriptor 标 ReloadSafe=true、UndoCapability=None",
+        "build_prefab_index 为 LongRunning 走 jobId",
+        "经 MCP 客户端 ListTools 可见全部只读工具",
+        "CallTool 跑通 search_prefabs/find_asset_references/run_ui_checks 返回结构化结果",
+        "export_report 写受控目录返回 reportPath",
+        "ReadOnlyToolsTests 全绿,黄金样本回归通过",
+        "AI 向验收清单记录每工具 happy + error 路径"
+      ],
+      "exit_criteria": "v0.1 只读工具经 AI->MCP->Bridge->Registry->Service 端到端打通并通过 AI 向验收,结构化报告可被 AI 消费,达成 v0.1 核心拉力。",
+      "test_cases": [
+        "search_prefabs 经 Registry.Invoke 返回预置命中",
+        "find_asset_references 返回结构化引用列表",
+        "run_ui_checks 返回完整 Issue 报告(字段齐全)",
+        "build_prefab_index 返回 jobId 且可轮询完成",
+        "export_report 写出 md/csv/json 之一且路径在受控目录"
+      ],
+      "notes": "这是整个 v0.1 的收口任务;通过即证明 ToolContract + Adapter + Registry + Bridge + MCP 全链路成立。"
+    },
+    {
+      "id": "T4-4",
+      "title": "MCP Server Domain Reload 退避重试与恢复",
+      "agent": "core-mcp-server",
+      "stage": "exec",
+      "write_paths": ["mcp-server/src/bridge/reload.ts", "mcp-server/test/reload.test.ts"],
+      "dependencies": ["T4-2"],
+      "description": "Domain Reload 期间 Bridge 端口短暂不可用、serverId 变化。Server 须退避重试而非立即判 Offline,并在新 serverId 稳定后恢复、失效工具缓存。\n\n1. mcp-server/src/bridge/reload.ts\n   - 调用中检测 serverId 变化或连接中断 -> 标 Reloading、失效工具缓存。\n   - WaitForReload():退避轮询 /health 直到新 serverId 稳定(超时 -> RELOAD_TIMEOUT 提示稍后重试)。\n   - ReloadSafe 只读自动重发;非 ReloadSafe 回 DOMAIN_RELOAD_INTERRUPTED 交人确认。\n\n2. mcp-server/test/reload.test.ts\n   - mock Bridge 模拟端口短暂不可用 + serverId 变化:验证退避重试、缓存失效、只读自动重发、超时回 RELOAD_TIMEOUT。\n\n3. 不能动的边界\n   - 端口短暂不可用属正常,不立即判 Offline;退避有上限。",
+      "acceptance": [
+        "检测 serverId 变化或中断时标 Reloading 并失效工具缓存",
+        "WaitForReload 退避轮询直到新 serverId 稳定",
+        "ReloadSafe 只读工具自动重发",
+        "非 ReloadSafe 返回 DOMAIN_RELOAD_INTERRUPTED",
+        "超时返回 RELOAD_TIMEOUT 而非误判 Offline",
+        "reload 测试以 mock Bridge 全绿"
+      ],
+      "exit_criteria": "MCP Server 能平稳穿越 Domain Reload:退避重试、缓存失效重拉、只读自动重发,不误判离线。",
+      "test_cases": [
+        "端口短暂不可用 -> 退避重试不判 Offline",
+        "serverId 变化 -> 工具缓存失效并重拉",
+        "ReloadSafe 只读调用穿越 reload 后自动成功",
+        "reload 超时 -> RELOAD_TIMEOUT"
+      ],
+      "notes": "与 T3-3 的 Bridge 端恢复配套;两端共同保证 Domain Reload 常态化下的稳定体验。"
+    }
+  ]
+}

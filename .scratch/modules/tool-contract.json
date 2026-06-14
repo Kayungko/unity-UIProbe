@@ -1,0 +1,102 @@
+{
+  "name": "tool-contract",
+  "paths": ["UIProbe/Core/Tools/Models"],
+  "summary": "UIProbe 工具层的唯一权威契约。UI Toolkit 工作台、MCP Server、内部 Flow 全部构造 ToolRequest、消费 ToolResult,差异仅在传输层(进程内调用 vs JSON-RPC)。凡涉及 ToolDescriptor/ToolRequest/ToolResult/Change/Issue/Preview-Execute/错误码的描述,以本契约为准,其他模块只能引用不得另定义。",
+  "entities": [
+    { "name": "ToolDescriptor", "kind": "model", "description": "描述一个工具是什么、多危险、需要什么档位。describe_tool / list_tools 直接序列化它。", "fields": [
+      { "name": "Id", "type": "string", "constraints": "命名空间前缀决定 Source,如 ui_probe.search_prefabs" },
+      { "name": "Name", "type": "string", "constraints": "人类可读名" },
+      { "name": "Description", "type": "string", "constraints": "面向 AI 的说明,须达到 AI 据此能选对工具的质量标准" },
+      { "name": "Category", "type": "string", "constraints": "如 UIProbe/Index" },
+      { "name": "Source", "type": "ToolSource", "constraints": "builtin | project | experimental,无 legacy" },
+      { "name": "Safety", "type": "ToolSafety", "constraints": "见安全等级枚举" },
+      { "name": "MinProfile", "type": "CapabilityProfile", "constraints": "该工具要求的最低能力档位" },
+      { "name": "EnabledByDefault", "type": "bool", "constraints": "" },
+      { "name": "SupportsPreview", "type": "bool", "constraints": "" },
+      { "name": "SupportsUndo", "type": "bool", "constraints": "" },
+      { "name": "RequiresConfirmation", "type": "bool", "constraints": "即使自动放行模式也强制确认一次" },
+      { "name": "AuditRequired", "type": "bool", "constraints": "" },
+      { "name": "LongRunning", "type": "bool", "constraints": "true 走 jobId + 进度/取消通道" },
+      { "name": "ReloadSafe", "type": "bool", "constraints": "Domain Reload 中断后是否可自动重试,幂等只读为 true" },
+      { "name": "ParamsSchema", "type": "ToolSchema", "constraints": "参数 JSON-Schema,供 MCP tools/list 直出" },
+      { "name": "ContractVersion", "type": "string", "constraints": "该工具契约 schema 版本 SemVer" }
+    ], "invariants": ["Source 只能取 builtin/project/experimental", "ContractVersion 与契约文档版本同步"] },
+    { "name": "ToolRequest", "kind": "model", "description": "工具调用请求,按阶段携带不同字段。", "fields": [
+      { "name": "ToolId", "type": "string", "constraints": "" },
+      { "name": "Phase", "type": "ToolPhase", "constraints": "Describe | Preview | Execute" },
+      { "name": "Params", "type": "JsonObject", "constraints": "按 ParamsSchema 校验" },
+      { "name": "OperationId", "type": "string", "constraints": "Execute 阶段回传 Preview 产出的 id" },
+      { "name": "ConfirmationToken", "type": "string", "constraints": "Execute 阶段的批准令牌" },
+      { "name": "SessionId", "type": "string", "constraints": "权限判定 + 审计串联" },
+      { "name": "CorrelationId", "type": "string", "constraints": "全链路 trace id(Node -> Bridge -> Service)" }
+    ], "invariants": ["Execute 阶段必须带有效 OperationId 与 ConfirmationToken(非只读工具)"] },
+    { "name": "ToolResult", "kind": "model", "description": "统一工具结果。UI 与 MCP 不各写一套,消除双重定义。", "fields": [
+      { "name": "Status", "type": "ToolStatus", "constraints": "Success | Cancelled | Interrupted | Failed,替代裸 bool" },
+      { "name": "Message", "type": "string", "constraints": "" },
+      { "name": "Error", "type": "ToolError", "constraints": "含错误码" },
+      { "name": "OperationId", "type": "string", "constraints": "Preview 产出,Execute 回传" },
+      { "name": "UndoId", "type": "string", "constraints": "可撤销操作的回退句柄" },
+      { "name": "ReportPath", "type": "string", "constraints": "" },
+      { "name": "RequiresConfirmation", "type": "bool", "constraints": "Preview 时提示是否需确认" },
+      { "name": "CanUndo", "type": "bool", "constraints": "" },
+      { "name": "Issues", "type": "List<Issue>", "constraints": "" },
+      { "name": "PlannedChanges", "type": "List<Change>", "constraints": "Preview 阶段填充" },
+      { "name": "AppliedChanges", "type": "List<Change>", "constraints": "Execute 阶段填充" },
+      { "name": "Risks", "type": "List<Risk>", "constraints": "" },
+      { "name": "ProgressLog", "type": "List<LogEntry>", "constraints": "" }
+    ], "invariants": ["Interrupted 表示 Domain Reload 等外部中断,可否重试由 ReloadSafe 决定", "Cancelled 返回已完成的 AppliedChanges + UndoId"] },
+    { "name": "ToolError", "kind": "model", "description": "统一错误对象,C# 异常 / Node 协议错误 / 审计错误共用。", "fields": [
+      { "name": "Code", "type": "string", "constraints": "见统一错误码表" },
+      { "name": "Message", "type": "string", "constraints": "人类可读" },
+      { "name": "Detail", "type": "string", "constraints": "可选,调试用" },
+      { "name": "Retriable", "type": "bool", "constraints": "AI 是否值得重试" }
+    ], "invariants": [] },
+    { "name": "Change", "kind": "model", "description": "一次变更描述,带撤销能力分级。", "fields": [
+      { "name": "Type", "type": "ChangeType", "constraints": "create | update | delete | rename | move | import | export" },
+      { "name": "AssetPath", "type": "string", "constraints": "" },
+      { "name": "NodePath", "type": "string", "constraints": "" },
+      { "name": "OldValue", "type": "string", "constraints": "" },
+      { "name": "NewValue", "type": "string", "constraints": "" },
+      { "name": "Undo", "type": "UndoCapability", "constraints": "None | UnityUndo | FileBackup | MultiLevelStack" },
+      { "name": "BackupPath", "type": "string", "constraints": "" }
+    ], "invariants": ["不假设单一 backupPath 通吃 -- prefab 改名=UnityUndo,图片覆盖=FileBackup,RedGold 导入=MultiLevelStack"] },
+    { "name": "Issue", "kind": "model", "description": "检测问题项,驱动 preview/apply fix。", "fields": [
+      { "name": "Severity", "type": "Severity", "constraints": "Error | Warning | Info" },
+      { "name": "RuleId", "type": "string", "constraints": "" },
+      { "name": "PrefabPath", "type": "string", "constraints": "" },
+      { "name": "NodePath", "type": "string", "constraints": "" },
+      { "name": "ComponentType", "type": "string", "constraints": "" },
+      { "name": "Message", "type": "string", "constraints": "" },
+      { "name": "SuggestedFixId", "type": "string", "constraints": "" },
+      { "name": "CanAutoFix", "type": "bool", "constraints": "" }
+    ], "invariants": [] },
+    { "name": "ToolContext", "kind": "model", "description": "长任务的取消 / 进度 / 日志上下文。", "fields": [
+      { "name": "Cancellation", "type": "CancellationToken", "constraints": "协作式取消,Stage 边界检查" },
+      { "name": "Progress", "type": "IProgress<ToolProgress>", "constraints": "节流到约 200ms/次" },
+      { "name": "Log", "type": "IToolLogger", "constraints": "结构化日志,带 CorrelationId" },
+      { "name": "CorrelationId", "type": "string", "constraints": "" }
+    ], "invariants": [] }
+  ],
+  "interfaces": [
+    { "name": "UIProbeTool<TParams>", "direction": "internal", "description": "工具基类。ToolRegistry 按 Phase 调 Preview 或 Execute。", "params": "TParams(按 ParamsSchema 反序列化)", "returns": "ToolResult", "errors": ["INVALID_PARAMS"] },
+    { "name": "DescribeParams", "direction": "internal", "description": "返回工具参数 JSON-Schema。", "params": "()", "returns": "ToolSchema", "errors": [] },
+    { "name": "Validate", "direction": "internal", "description": "语义校验,失败转 ToolResult.Issues / INVALID_PARAMS,不抛异常穿透。", "params": "TParams", "returns": "ValidationResult", "errors": ["INVALID_PARAMS"] },
+    { "name": "Preview", "direction": "internal", "description": "SupportsPreview=true 时必须重写,产出 OperationId + PlannedChanges + Risks。", "params": "TParams, ToolContext", "returns": "ToolResult", "errors": ["INVALID_PARAMS"] },
+    { "name": "Execute", "direction": "internal", "description": "凭 OperationId + ConfirmationToken 落地变更,产出 AppliedChanges + UndoId。", "params": "TParams, ToolContext", "returns": "ToolResult", "errors": ["OPERATION_EXPIRED", "CONFIRMATION_REQUIRED", "EXECUTION_FAILED"] }
+  ],
+  "scenarios": [
+    { "name": "只读工具直接执行", "steps": ["构造 ToolRequest{Phase=Execute}", "ReadOnly/PreviewOnly 工具跳过两阶段", "直接查询返回 ToolResult{Status=Success, Issues/数据}"], "edge_cases": ["参数不合 schema -> INVALID_PARAMS", "Unity 离线 -> UNITY_OFFLINE(Retriable)"] },
+    { "name": "写操作两阶段协议", "steps": ["Preview 返回 OperationId + PlannedChanges + RequiresConfirmation", "授权层签发 ConfirmationToken", "Execute 携 OperationId + token 落地,返回 AppliedChanges + UndoId"], "edge_cases": ["OperationId 过期 -> OPERATION_EXPIRED(需重新 Preview)", "token 缺失/失配 -> CONFIRMATION_REQUIRED / PERMISSION_DENIED"] },
+    { "name": "长任务取消与进度", "steps": ["LongRunning 工具立即返回 jobId", "主线程分帧执行,ToolContext.Progress 节流上报", "Stage 边界检查 Cancellation"], "edge_cases": ["用户取消 -> Cancelled + 已做 AppliedChanges + UndoId", "Domain Reload -> Interrupted,按 ReloadSafe 决定重试"] }
+  ],
+  "constraints": {
+    "correctness": ["参数反序列化与 schema 校验由 ToolRegistry 统一做", "Status 用 ToolStatus 枚举替代裸 bool", "契约 break change(删字段/改语义)-> ContractVersion major +1,AI client 缓存须失效重拉"],
+    "quality": ["Description 与 ParamsSchema 字段描述是 v0.1 验收项 -- 一句话说清何时该用、参数无歧义、与相邻工具区别明确"]
+  },
+  "design_decisions": [
+    { "decision": "一套契约两处消费(UI + MCP)", "rationale": "消除双重结果模型定义,差异仅在传输层", "alternatives": ["UI 与 MCP 各自定义结果模型(被否决,会返工)"] },
+    { "decision": "写操作强制 Preview/Execute 两阶段", "rationale": "Preview 产计划让用户/AI 可审,Execute 凭令牌落地", "alternatives": ["单阶段直接执行(危险操作不可接受)"] },
+    { "decision": "撤销能力分级 UndoCapability", "rationale": "三类既有写流程映射不同撤销机制,不假设单一 backupPath 通吃", "alternatives": ["统一 backupPath(无法表达 Unity Undo 栈与多级表格回滚)"] },
+    { "decision": "统一错误码 + Retriable", "rationale": "AI 可据码决策选工具/判重试", "alternatives": ["自由文本错误(AI 无法机器决策)"] }
+  ]
+}

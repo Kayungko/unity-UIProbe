@@ -1,0 +1,186 @@
+{
+  "workspace_readiness": "governance_ready",
+  "current_milestone": "M1",
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "Service 化底座:契约冻结 + 测试工程 + Adapter 接缝 + Registry 骨架 + 黄金样本基线",
+      "tasks": [
+        {
+          "id": "T1-1",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T1-2",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T1-3",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T1-4",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T1-5",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        }
+      ],
+      "coverage_gate": {
+        "status": "pending",
+        "target": 80,
+        "actual": null,
+        "report": "",
+        "checked_at": null
+      }
+    },
+    {
+      "id": "M2",
+      "name": "只读 Service 抽离:PrefabIndex + AssetReference + UICheck(经接缝 + 黄金样本回归)",
+      "tasks": [
+        {
+          "id": "T2-1",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T2-2",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T2-3",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        }
+      ],
+      "coverage_gate": {
+        "status": "pending",
+        "target": 80,
+        "actual": null,
+        "report": "",
+        "checked_at": null
+      }
+    },
+    {
+      "id": "M3",
+      "name": "Unity Bridge:HTTP loopback + 主线程 Dispatcher + Domain Reload 恢复",
+      "tasks": [
+        {
+          "id": "T3-1",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T3-2",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T3-3",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        }
+      ],
+      "coverage_gate": {
+        "status": "pending",
+        "target": 80,
+        "actual": null,
+        "report": "",
+        "checked_at": null
+      }
+    },
+    {
+      "id": "M4",
+      "name": "Node MCP Server:连接/握手/工具代理 + v0.1 只读工具端到端 AI 向验收",
+      "tasks": [
+        {
+          "id": "T4-1",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T4-2",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T4-3",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        },
+        {
+          "id": "T4-4",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        }
+      ],
+      "coverage_gate": {
+        "status": "pending",
+        "target": 80,
+        "actual": null,
+        "report": "",
+        "checked_at": null
+      }
+    },
+    {
+      "id": "M5",
+      "name": "v0.2 写操作与授权治理(占位:image/redgold 写工具 + Report + 授权落地)",
+      "tasks": [
+        {
+          "id": "T5-1",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        }
+      ],
+      "coverage_gate": {
+        "status": "pending",
+        "target": 80,
+        "actual": null,
+        "report": "",
+        "checked_at": null
+      }
+    },
+    {
+      "id": "M6",
+      "name": "v0.3 UI Toolkit 视觉层迁移(占位:Shell + Indexer Tab 试点)",
+      "tasks": [
+        {
+          "id": "T6-1",
+          "status": "NOT_STARTED",
+          "pbvf_phase": null,
+          "pbvf_retry_count": 0
+        }
+      ],
+      "coverage_gate": {
+        "status": "pending",
+        "target": 80,
+        "actual": null,
+        "report": "",
+        "checked_at": null
+      }
+    }
+  ]
+}

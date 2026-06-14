@@ -1,0 +1,32 @@
+{
+  "name": "ui-check",
+  "paths": ["UIProbe/Core/Services", "UIProbe/UIProbeWindow_DuplicateChecker.cs", "UIProbe/UIProbeWindow_DuplicateCheckerBatch.cs", "UIProbe/UIProbeWindow_FilterNodeScanner.cs", "UIProbe/Data/UIProbeChecker.cs"],
+  "summary": "UICheckService(只读,含结构化报告)-- 这是其他 Unity MCP 难以提供的差异化能力,作为早期采用的核心拉力。把综合检测、重名/重复检测、过滤节点扫描统一成结构化 Issue 模型。初始检测项:重名节点、缺失 Sprite、缺失 Font、不必要 Raycast Target、空 Text、命名规范问题。过滤节点扫描并入本模块作为一类检测规则;复用 prefab-index 的 PrefabIndex。",
+  "entities": [
+    { "name": "UICheckRequest", "kind": "model", "description": "检测请求。", "fields": [
+      { "name": "Targets", "type": "List<string>", "constraints": "prefab 路径列表或全量" },
+      { "name": "EnabledRules", "type": "List<string>", "constraints": "启用的规则集" }
+    ], "invariants": [] },
+    { "name": "UICheckReport", "kind": "entity", "description": "结构化检测报告,UICheck 的单一数据源。", "fields": [
+      { "name": "Issues", "type": "List<Issue>", "constraints": "见 tool-contract 的 Issue 模型" },
+      { "name": "Summary", "type": "CheckSummary", "constraints": "按 severity/rule 聚合" },
+      { "name": "RanAt", "type": "DateTime", "constraints": "" }
+    ], "invariants": ["Issue 字段含 severity/ruleId/prefabPath/nodePath/componentType/message/suggestedFixId/canAutoFix,为后续 preview/apply fix 做准备"] }
+  ],
+  "interfaces": [
+    { "name": "RunChecks", "direction": "inbound", "description": "运行检测,产出结构化报告。", "params": "UICheckRequest", "returns": "UICheckReport", "errors": ["UNITY_OFFLINE", "MAIN_THREAD_TIMEOUT"] },
+    { "name": "GetCheckResults", "direction": "inbound", "description": "读取上次检测结果。", "params": "()", "returns": "UICheckReport", "errors": [] }
+  ],
+  "scenarios": [
+    { "name": "AI 触发检测拿结构化报告", "steps": ["AI 调 run_ui_checks 指定 targets/rules", "Service 基于 PrefabIndex 逐 prefab 跑规则", "get_check_results 读结构化 Issue 列表", "export_report 导出 md/csv/json"], "edge_cases": ["全量检测大项目 -> LongRunning + 进度", "无问题 -> 空 Issue 列表 + Summary"] },
+    { "name": "DuplicateChecker / FilterNodeScanner 并入", "steps": ["重名/重复检测作为一组规则", "过滤节点扫描作为一类规则", "统一输出 Issue 模型"], "edge_cases": [] }
+  ],
+  "constraints": {
+    "correctness": ["只读,不修改 prefab", "Issue 模型统一,为 v0.2 的 preview/apply fix 预留 suggestedFixId/canAutoFix"],
+    "quality": ["结构化报告是 v0.1 差异化能力,字段须完整可被 AI 消费"]
+  },
+  "design_decisions": [
+    { "decision": "Duplicate/FilterScanner 并入 UICheckService", "rationale": "都是基于 PrefabIndex 的检测规则,统一 Issue 模型避免多套结果结构", "alternatives": ["各自独立 Service(结果模型分裂)"] },
+    { "decision": "结构化报告作为 v0.1 核心拉力", "rationale": "其他 Unity MCP 难以提供,差异化早期采用动机", "alternatives": [] }
+  ]
+}

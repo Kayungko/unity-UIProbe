@@ -1,0 +1,43 @@
+{
+  "project_name": "UIProbe 工作台化与自有 MCP 重构",
+  "project_slug": "uiprobe",
+  "primary_language": "csharp",
+  "output_language": "zh",
+  "architecture_style": "layered",
+  "project_type": "Unity Editor 工具服务化重构 + 自有 MCP Server",
+  "platforms": ["desktop"],
+  "verification_commands": [],
+  "build_commands": null,
+  "test_commands": null,
+  "error_strategy": {
+    "approach": "统一 ToolError 错误码体系(见 ToolContract.md §6)。C# 异常 / Node 协议错误 / 审计错误共用一套码,每个错误带 Retriable 标志。",
+    "retry_policy": "AI 据 ToolError.Retriable 决定是否重试或换工具。Domain Reload 中断按工具 ReloadSafe 决定 -- 幂等只读(ReloadSafe=true)可自动重发,写操作返回 DOMAIN_RELOAD_INTERRUPTED 默认交人确认不自动重试。",
+    "fallback_behavior": "写操作两阶段(Preview 产计划 / Execute 凭令牌落地)。失败返回结构化 ToolResult{Status,Error},绝不静默崩溃;配置迁移失败回退默认 + 显著告警 + 写审计。"
+  },
+  "workflow_policy": {
+    "completeness_mode": "balanced",
+    "ownership_mode": "solo",
+    "question_protocol": "structured",
+    "review_depth": "standard",
+    "require_ascii_diagrams": "auto",
+    "design_review_mode": "none"
+  },
+  "needs_threading_model": true,
+  "needs_platform_bridge": false,
+  "readiness_target": "governance_ready",
+  "notes": [
+    "渐进式迁移 -- 旧 UIProbeWindow 全程保持可用,每抽离一个模块保持原 UI 行为不变并补最小验证。",
+    "实施顺序硬性纠正 -- ToolContract(统一 ToolResult/Change)必须在第一个 Service 之前冻结。",
+    "可测性接缝 -- Service 不直接调静态 Unity API,经 IAssetGateway/IFileSystem/IEditorPrefs 注入;生产用 Unity 实现,测试用内存假体。",
+    "现状对齐 -- Core/ 已被 ResourceCacheManager/ResourceScanner 占用;主窗口实际约 15 个 Tab;UIProbeConfig 已有 version + MigrateFromEditorPrefs 迁移雏形,复用扩展不另起炉灶。",
+    "全仓库无 asmdef,在 Assets 下全局编译;asmdef 化是测试与 package 化的前置工作。",
+    "首发 MVP 为 AI 向(v0.1):只读工具,不触发 Domain Reload;v0.2 写操作 / 测试 / 编译 / Play Mode 推后。",
+    "MCP Server 用 Node/TypeScript(独立 npm 包);UI Toolkit 工作台整体推后到 MCP MVP 之后。",
+    "platforms=desktop 指 Unity Editor 内运行;MCP Server 是配套的 Node 进程,经 HTTP loopback + jobId 轮询与 Unity Bridge 通信。"
+  ],
+  "open_questions": [
+    "Unity batchmode 测试命令的本机路径与 CI 集成方式(M1 建立 UIProbe.Tests.Editor.asmdef 后填入 verification_commands)。",
+    "v0.2/v0.3 各写操作工具的 preview/execute 具体设计(非阻塞)。",
+    "Tool Center / 权限 UI 信息架构(待 UI Toolkit Shell 定型)。"
+  ]
+}

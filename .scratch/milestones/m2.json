@@ -1,0 +1,89 @@
+{
+  "id": "M2",
+  "name": "只读 Service 抽离:PrefabIndex + AssetReference + UICheck(经接缝 + 黄金样本回归)",
+  "tasks": [
+    {
+      "id": "T2-1",
+      "title": "抽离 PrefabIndexService(工作台底座,只读)",
+      "agent": "core-prefab-index",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Core/Services/PrefabIndexService.cs", "UIProbe/Data/PrefabIndexData.cs", "UIProbe/Tests/Editor/PrefabIndexServiceTests.cs"],
+      "dependencies": [],
+      "description": "PrefabIndex 是后续多个能力的单一数据源(引用追踪/重复检测/嵌套总览/过滤扫描都基于它派生)。本任务从 UIProbeWindow_Indexer.cs 抽出查找 prefab、构建 folder tree、收集 Image/RawImage/Prefab/Material 引用、保存加载 IndexCache、搜索展开的非 UI 逻辑,落为 PrefabIndexService。务必先抽它以验证 ToolContract + Adapter 接缝 + 黄金样本闭环。\n\n1. UIProbe/Data/PrefabIndexData.cs\n   - PrefabIndex(Items、FolderTree、SchemaVersion、BuiltAt);版本不符直接重建不迁移。\n   - PrefabIndexItem(Guid、AssetPath、ReferencedAssets:List<AssetRef>、ComponentSummary)。\n   - PrefabIndexBuildOptions(RootFolders、Incremental)。\n\n2. UIProbe/Core/Services/PrefabIndexService.cs(经 IAssetGateway/IFileSystem 注入)\n   - BuildIndex(options):构建索引,全量几千 prefab 走 LongRunning + jobId + 进度;支持增量。\n   - LoadCache()/SaveCache(index):缓存读写,版本不符自动重建。\n   - Search(index, query):按关键词搜索,把展开匹配的非 UI 逻辑从 Window 下沉到此。\n   - GetPrefabDetail({guid|path}):返回单条 PrefabIndexItem,缺失回 TOOL_NOT_FOUND。\n   - 仅由本 Service 持有 PrefabIndex,其他模块只读派生不另缓存。\n\n3. UIProbeWindow_Indexer.cs 改造\n   - 保留搜索框/收藏夹/树视图/批量选择按钮等 UI,业务数据改由 PrefabIndexService 提供。\n\n4. UIProbe/Tests/Editor/PrefabIndexServiceTests.cs\n   - 用 InMemoryAssetGateway 预置 prefab 资源表,验证 BuildIndex/Search/GetPrefabDetail。\n   - 用黄金样本对一组预置 prefab 的索引输出做 diff 回归(行为零变化)。\n\n5. 不能动的边界\n   - 只读,不触发 Domain Reload,不修改 prefab。UI 交互行为须与迁移前一致(黄金样本保证)。",
+      "acceptance": [
+        "PrefabIndexService 提供 BuildIndex/LoadCache/SaveCache/Search/GetPrefabDetail",
+        "PrefabIndex 含 SchemaVersion,版本不符自动重建不迁移",
+        "全量索引走 LongRunning+jobId+进度,支持增量",
+        "Search 的非 UI 匹配逻辑从 Window 下沉到 Service",
+        "GetPrefabDetail 缺失返回 TOOL_NOT_FOUND",
+        "Service 经 Adapter 注入,可用内存假体单测",
+        "UIProbeWindow_Indexer 的搜索框/收藏夹/树视图/批量选择 UI 保留且行为不变",
+        "黄金样本对索引输出 diff 全绿"
+      ],
+      "exit_criteria": "PrefabIndexService 抽离完成,经 Adapter 可单测,黄金样本回归证明 Indexer Tab 行为零变化,成为其他只读 Service 的底座。",
+      "test_cases": [
+        "预置 10 个 prefab,BuildIndex 后 Items 数与引用收集正确",
+        "Search 关键词命中预期 prefab 列表(含展开匹配)",
+        "缓存 SchemaVersion 不符时 LoadCache 触发重建",
+        "GetPrefabDetail 未知 guid 回 TOOL_NOT_FOUND",
+        "黄金样本:固定 prefab 集索引输出与基线一致"
+      ],
+      "notes": "首个真实业务 Service,验证 M1 全部接缝是否好用;若发现接缝不足,反馈调整 Adapter。"
+    },
+    {
+      "id": "T2-2",
+      "title": "抽离 AssetReferenceService(基于 PrefabIndex 派生,只读)",
+      "agent": "core-asset-reference",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Core/Services/AssetReferenceService.cs", "UIProbe/Tests/Editor/AssetReferenceServiceTests.cs"],
+      "dependencies": ["T2-1"],
+      "description": "统一处理某资源被哪些 prefab/节点/组件使用。基于 PrefabIndex 派生不另存副本,保证引用结果与索引一致。从 UIProbeWindow_AssetReferences.cs 抽出查询与导出逻辑。\n\n1. UIProbe/Core/Services/AssetReferenceService.cs(注入 PrefabIndexService + IFileSystem)\n   - AssetReferenceQuery(AssetPath/AssetName/Guid/SpriteName 可选 + ReferenceTypeFilter,至少一个维度)。\n   - AssetReferenceResult(AssetPath/PrefabPath/NodePath/ComponentType/ReferenceType)。\n   - FindReferences(query):基于 PrefabIndex 派生引用列表;大结果集走流式/分页避免一次性物化;资源未被引用返回空列表(非错误);PrefabIndex 未构建时提示先 build。\n   - ExportCsv(results, options):写受控目录返回 reportPath。\n\n2. UIProbeWindow_AssetReferences.cs 改造\n   - UI 保留,数据改由 Service 提供。\n\n3. UIProbe/Tests/Editor/AssetReferenceServiceTests.cs\n   - 用预置 PrefabIndex(经内存假体)验证按路径/GUID/Sprite 名/引用类型查询。\n   - 黄金样本对一组查询的 CSV 导出做 diff 回归。\n\n4. 不能动的边界\n   - 只读,不自建索引,严格从 PrefabIndex 派生。",
+      "acceptance": [
+        "AssetReferenceService 提供 FindReferences/ExportCsv",
+        "支持按 AssetPath/AssetName/Guid/SpriteName/ReferenceType 过滤,至少一维度否则 INVALID_PARAMS",
+        "结果严格从 PrefabIndex 派生,不另存副本",
+        "资源未被引用返回空列表而非错误",
+        "PrefabIndex 未构建时给出先 build 的提示",
+        "大结果集走流式/分页",
+        "ExportCsv 写受控目录返回 reportPath",
+        "UI 行为不变,黄金样本 CSV 导出 diff 全绿"
+      ],
+      "exit_criteria": "AssetReferenceService 抽离完成,引用查询与导出经 PrefabIndex 派生且单测+黄金样本全绿,AssetReferences Tab 行为零变化。",
+      "test_cases": [
+        "按 Sprite 名查询命中预置引用结果",
+        "未被引用资源返回空列表(Status 非 Failed)",
+        "无任何查询维度 -> INVALID_PARAMS",
+        "ExportCsv 输出与黄金样本 CSV 基线一致"
+      ],
+      "notes": "依赖 T2-1 的 PrefabIndexService 已就绪;验证单一数据源派生模式。"
+    },
+    {
+      "id": "T2-3",
+      "title": "抽离 UICheckService + 结构化报告(并入 Duplicate/FilterScanner,只读)",
+      "agent": "core-ui-check",
+      "stage": "exec",
+      "write_paths": ["UIProbe/Core/Services/UICheckService.cs", "UIProbe/Data/UIProbeChecker.cs", "UIProbe/Tests/Editor/UICheckServiceTests.cs"],
+      "dependencies": ["T2-1"],
+      "description": "UICheckService 是其他 Unity MCP 难以提供的差异化能力,作为早期采用核心拉力。把综合检测、重名/重复检测(UIProbeWindow_DuplicateChecker.cs/_DuplicateCheckerBatch.cs)、过滤节点扫描(UIProbeWindow_FilterNodeScanner.cs)统一成结构化 Issue 模型。\n\n1. UIProbe/Data/UIProbeChecker.cs\n   - UICheckRequest(Targets:prefab 路径列表或全量、EnabledRules)。\n   - UICheckReport(Issues:List<Issue>、Summary:CheckSummary 按 severity/rule 聚合、RanAt)。\n   - 初始规则:重名节点、缺失 Sprite、缺失 Font、不必要 Raycast Target、空 Text、命名规范问题;重复检测与过滤节点扫描各作为一类规则。\n\n2. UIProbe/Core/Services/UICheckService.cs(注入 PrefabIndexService)\n   - RunChecks(request):基于 PrefabIndex 逐 prefab 跑规则产出结构化报告;全量大项目走 LongRunning+进度;无问题返回空 Issue 列表 + Summary。\n   - GetCheckResults():读上次结果。\n   - Issue 字段须完整(severity/ruleId/prefabPath/nodePath/componentType/message/suggestedFixId/canAutoFix),为 v0.2 preview/apply fix 预留。\n\n3. Window 改造\n   - DuplicateChecker/FilterNodeScanner 相关 UI 改用统一 Service 与 Issue 模型。\n\n4. UIProbe/Tests/Editor/UICheckServiceTests.cs\n   - 预置含已知问题的 prefab 集,验证各规则命中正确的 Issue。\n   - 黄金样本对报告 JSON 做 diff 回归。\n\n5. 不能动的边界\n   - 只读不修改 prefab;Issue 模型统一,不为不同规则分裂多套结果结构。",
+      "acceptance": [
+        "UICheckService 提供 RunChecks/GetCheckResults",
+        "初始 6 类规则 + 重复检测 + 过滤节点扫描全部并入统一 Issue 模型",
+        "Issue 字段含 severity/ruleId/prefabPath/nodePath/componentType/message/suggestedFixId/canAutoFix",
+        "UICheckReport.Summary 按 severity/rule 聚合",
+        "全量检测走 LongRunning+进度;无问题返回空列表+Summary",
+        "基于 PrefabIndex 派生,只读不改 prefab",
+        "Duplicate/FilterScanner UI 改用统一 Service",
+        "单测各规则命中正确,黄金样本报告 JSON diff 全绿"
+      ],
+      "exit_criteria": "UICheckService 抽离完成,综合检测/重复/过滤扫描统一为结构化 Issue 报告,单测+黄金样本全绿,成为 v0.1 差异化拉力的核心能力。",
+      "test_cases": [
+        "重名节点 prefab -> 命中 duplicate-name 规则 Issue",
+        "缺失 Sprite 的 Image -> 命中 missing-sprite Issue 且字段完整",
+        "无问题 prefab 集 -> 空 Issue 列表 + 非空 Summary",
+        "过滤节点扫描作为规则产出 Issue",
+        "报告 JSON 与黄金样本基线一致"
+      ],
+      "notes": "结构化报告字段完整性是 v0.1 差异化能力关键,必须可被 AI 直接消费。export_report(md/csv/json)可在本任务或 M4 接 MCP 时补。"
+    }
+  ]
+}
