@@ -22,9 +22,17 @@
         },
         {
           "id": "T1-2",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-14T16:00:00Z",
+          "completed_at": "2026-06-14T16:48:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "Unity 2022.3.23f1 batchmode 编译 0 error CS,三程序集(Contract/Editor/Tests)生成;EditMode 测试 2/2 Passed",
+            "timestamp": "2026-06-14T16:48:00Z"
+          },
+          "evidence": "建立 asmdef 三件套:UIProbe.Contract(运行时,noEngineReferences 纯托管,仅含 Core/Contract 8 文件)/UIProbe.Editor(Editor-only,在原地包裹全部遗留代码,引用 Contract+UI+TMP)/UIProbe.Tests.Editor(Editor-only,引用 Contract+Editor+nunit+TestRunner)。宿主 manifest 加 com.unity.test-framework 1.1.33;batchmode 编译生成三 dll,0 error CS;EditMode 测试 ContractSmokeTests 2 用例全部 Passed。零文件移动、零 GUID 变动。"
         },
         {
           "id": "T1-3",
