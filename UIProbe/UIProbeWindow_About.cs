@@ -71,10 +71,13 @@ namespace UIProbe
             EditorGUILayout.LabelField($"最新更新 (v{UIProbeUpdateChecker.VERSION})", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
 
+            EditorGUILayout.LabelField("• 动画路径自动修复 — 节点删除检测 (v3.9.2)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 删除检测: 节点被移除后标记为 unresolved，区分"已删除"/"多个同名"", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 导出增强: JSON 包含 resolvedCount/unresolvedCount 统计", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 导入跳过: 自动跳过 unresolved 条目并记录日志", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("• 动画路径自动修复模块 (v3.9.1)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 自动修复: 预制体内移动层级/修改命名后自动检测并修复动画路径", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 协同导出: 未启用自动修复时也会维护快照，可导出改名/移动映射", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 侧边栏角标: 含动画的预制体自动显示 ⚠ 提醒", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 快照机制: 预制体层级快照，支持移动/改名后导出 oldPath → newPath 映射", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 事件修复: 修复从历史配置恢复自动修复开关时监听未完整恢复的问题", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("• 预制体助手创建的节点 Layer 固定为 UI (v3.9.0)", EditorStyles.miniLabel);
 
             EditorGUILayout.LabelField("• 批量命名模块全面升级 (v3.8.0)", EditorStyles.miniLabel);
