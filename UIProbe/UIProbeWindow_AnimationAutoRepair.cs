@@ -52,7 +52,7 @@ namespace UIProbe
             // ===== 区块 1: 自动修复（有权限时使用） =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("自动修复", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("开启后层级变化时自动修复动画路径。适用于你有动画文件修改权限的场景。", MessageType.Info);
+            EditorGUILayout.HelpBox("开启后移动层级或修改节点命名时自动修复动画路径。适用于你有动画文件修改权限的场景。", MessageType.Info);
             EditorGUILayout.Space(3);
 
             EditorGUILayout.BeginHorizontal();
@@ -116,7 +116,7 @@ namespace UIProbe
             GUI.backgroundColor = new Color(0.25f, 0.25f, 0.3f);
             EditorGUILayout.LabelField("协同导出 / 导入", EditorStyles.boldLabel);
             GUI.backgroundColor = Color.white;
-            EditorGUILayout.HelpBox("如果你没有动画文件修改权限：导出映射文件 → 交由 Vx 导入修复 → Vx 推送动画。", MessageType.None);
+            EditorGUILayout.HelpBox("如果你没有动画文件修改权限：进入预制体并保持 UIProbe 面板打开 → 移动层级或改名 → 导出映射文件 → 交由 Vx 导入修复。", MessageType.None);
             EditorGUILayout.Space(3);
 
             EditorGUILayout.BeginHorizontal();
@@ -192,8 +192,7 @@ namespace UIProbe
             AnimationAutoRepair.OnRepairLog -= AppendRepairLog;
             AnimationAutoRepair.OnRepairLog += AppendRepairLog;
 
-            if (animationAutoRepairEnabled)
-                AnimationAutoRepair.Initialize();
+            AnimationAutoRepair.Initialize(animationAutoRepairEnabled);
         }
 
         private void CollectAnimationAutoRepairConfig()

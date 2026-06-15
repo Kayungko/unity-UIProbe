@@ -15,19 +15,30 @@ namespace UIProbe
         private static float lastChangeTime;
         private const float DEBOUNCE_SECONDS = 0.5f;
         private static bool isPending;
+        private static TransformPathSnapshot lastSnapshot;
+
+        private class TransformPathSnapshot
+        {
+            public string PrefabAssetPath;
+            public int RootInstanceId;
+            public Dictionary<int, string> PathsByInstanceId = new Dictionary<int, string>();
+        }
 
         public static void SetEnabled(bool enabled)
         {
             if (IsEnabled == enabled) return;
             IsEnabled = enabled;
+
+            RegisterCallbacks();
+            if (lastSnapshot == null)
+                CaptureCurrentPrefabSnapshot();
+
             if (enabled)
             {
-                EditorApplication.hierarchyChanged += OnHierarchyChanged;
                 Log("动画路径自动修复已启用");
             }
             else
             {
-                EditorApplication.hierarchyChanged -= OnHierarchyChanged;
                 isPending = false;
                 Log("动画路径自动修复已停用");
             }
@@ -35,14 +46,47 @@ namespace UIProbe
 
         public static void Initialize()
         {
-            if (IsEnabled)
-                EditorApplication.hierarchyChanged += OnHierarchyChanged;
+            Initialize(IsEnabled);
+        }
+
+        public static void Initialize(bool enabled)
+        {
+            IsEnabled = enabled;
+            RegisterCallbacks();
+            CaptureCurrentPrefabSnapshot();
         }
 
         public static void Shutdown()
         {
-            EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+            UnregisterCallbacks();
             isPending = false;
+            lastSnapshot = null;
+        }
+
+        private static void RegisterCallbacks()
+        {
+            UnregisterCallbacks();
+            EditorApplication.hierarchyChanged += OnHierarchyChanged;
+            PrefabStage.prefabStageOpened += OnPrefabStageOpened;
+            PrefabStage.prefabStageClosing += OnPrefabStageClosing;
+        }
+
+        private static void UnregisterCallbacks()
+        {
+            EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+            PrefabStage.prefabStageOpened -= OnPrefabStageOpened;
+            PrefabStage.prefabStageClosing -= OnPrefabStageClosing;
+        }
+
+        private static void OnPrefabStageOpened(PrefabStage stage)
+        {
+            EditorApplication.delayCall += CaptureCurrentPrefabSnapshot;
+        }
+
+        private static void OnPrefabStageClosing(PrefabStage stage)
+        {
+            if (lastSnapshot != null && stage != null && lastSnapshot.PrefabAssetPath == stage.assetPath)
+                lastSnapshot = null;
         }
 
         private static void OnHierarchyChanged()
@@ -65,6 +109,34 @@ namespace UIProbe
             CheckAndRepair();
         }
 
+        private static void CaptureCurrentPrefabSnapshot()
+        {
+            var stage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (stage == null || stage.prefabContentsRoot == null)
+            {
+                lastSnapshot = null;
+                return;
+            }
+
+            lastSnapshot = CaptureSnapshot(stage.prefabContentsRoot, stage.assetPath);
+        }
+
+        private static TransformPathSnapshot CaptureSnapshot(GameObject root, string prefabAssetPath)
+        {
+            var snapshot = new TransformPathSnapshot
+            {
+                PrefabAssetPath = prefabAssetPath,
+                RootInstanceId = root.GetInstanceID()
+            };
+
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                snapshot.PathsByInstanceId[t.GetInstanceID()] = AnimationPathRepair.GetRelativePath(root.transform, t);
+            }
+
+            return snapshot;
+        }
+
         // ===== 检测 =====
 
         /// <summary>
@@ -73,14 +145,17 @@ namespace UIProbe
         public static List<AnimationPathMapping> DetectBrokenPaths(GameObject root = null)
         {
             var result = new List<AnimationPathMapping>();
+            string prefabAssetPath = "";
 
             if (root == null)
             {
                 var stage = PrefabStageUtility.GetCurrentPrefabStage();
                 if (stage == null) return result;
                 root = stage.prefabContentsRoot;
+                prefabAssetPath = stage.assetPath;
             }
 
+            var snapshotMappings = DetectPathChangesFromSnapshot(root, prefabAssetPath);
             var animators = root.GetComponentsInChildren<Animator>(true);
             var animations = root.GetComponentsInChildren<Animation>(true);
 
@@ -114,7 +189,7 @@ namespace UIProbe
                 // Float curves
                 foreach (var binding in AnimationUtility.GetCurveBindings(clip))
                 {
-                    var mapping = TryDetectBinding(clip, binding, rootTransform, "float", clipGuid);
+                    var mapping = TryDetectBinding(clip, binding, root.transform, rootTransform, "float", clipGuid, snapshotMappings);
                     if (mapping != null)
                     {
                         mapping.componentName = component.name;
@@ -125,7 +200,7 @@ namespace UIProbe
                 // Object reference curves
                 foreach (var binding in AnimationUtility.GetObjectReferenceCurveBindings(clip))
                 {
-                    var mapping = TryDetectBinding(clip, binding, rootTransform, "objectReference", clipGuid);
+                    var mapping = TryDetectBinding(clip, binding, root.transform, rootTransform, "objectReference", clipGuid, snapshotMappings);
                     if (mapping != null)
                     {
                         mapping.componentName = component.name;
@@ -137,12 +212,49 @@ namespace UIProbe
             return result;
         }
 
-        private static AnimationPathMapping TryDetectBinding(AnimationClip clip, EditorCurveBinding binding, Transform root, string bindingType, string clipGuid)
+        private static Dictionary<string, string> DetectPathChangesFromSnapshot(GameObject root, string prefabAssetPath)
+        {
+            var result = new Dictionary<string, string>();
+            if (root == null || lastSnapshot == null) return result;
+            if (lastSnapshot.RootInstanceId != root.GetInstanceID()) return result;
+            if (!string.IsNullOrEmpty(lastSnapshot.PrefabAssetPath)
+                && !string.IsNullOrEmpty(prefabAssetPath)
+                && lastSnapshot.PrefabAssetPath != prefabAssetPath)
+                return result;
+
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                int id = t.GetInstanceID();
+                if (!lastSnapshot.PathsByInstanceId.TryGetValue(id, out string oldPath))
+                    continue;
+
+                string newPath = AnimationPathRepair.GetRelativePath(root.transform, t);
+                if (oldPath != newPath && !result.ContainsKey(oldPath))
+                    result.Add(oldPath, newPath);
+            }
+
+            return result;
+        }
+
+        private static AnimationPathMapping TryDetectBinding(
+            AnimationClip clip,
+            EditorCurveBinding binding,
+            Transform prefabRoot,
+            Transform animationRoot,
+            string bindingType,
+            string clipGuid,
+            Dictionary<string, string> snapshotMappings)
         {
             if (string.IsNullOrEmpty(binding.path)) return null;
 
-            Transform found = root.Find(binding.path);
+            Transform found = animationRoot.Find(binding.path);
             if (found != null) return null; // 路径有效
+
+            if (TryCreateMappingFromSnapshot(binding, prefabRoot, animationRoot, bindingType, clipGuid, snapshotMappings, out var snapshotMapping))
+            {
+                snapshotMapping.clipName = clip.name;
+                return snapshotMapping;
+            }
 
             string nodeName = binding.path;
             int lastSlash = binding.path.LastIndexOf('/');
@@ -150,11 +262,11 @@ namespace UIProbe
                 nodeName = binding.path.Substring(lastSlash + 1);
 
             var matches = new List<Transform>();
-            FindTransformsByName(root, nodeName, matches);
+            FindTransformsByName(animationRoot, nodeName, matches);
 
             if (matches.Count != 1) return null;
 
-            string newPath = AnimationPathRepair.GetRelativePath(root, matches[0]);
+            string newPath = AnimationPathRepair.GetRelativePath(animationRoot, matches[0]);
             if (newPath == binding.path) return null;
 
             return new AnimationPathMapping
@@ -168,12 +280,80 @@ namespace UIProbe
             };
         }
 
+        private static bool TryCreateMappingFromSnapshot(
+            EditorCurveBinding binding,
+            Transform prefabRoot,
+            Transform animationRoot,
+            string bindingType,
+            string clipGuid,
+            Dictionary<string, string> snapshotMappings,
+            out AnimationPathMapping mapping)
+        {
+            mapping = null;
+            if (snapshotMappings == null || snapshotMappings.Count == 0) return false;
+            if (prefabRoot == null || animationRoot == null) return false;
+
+            string currentAnimationRootPath = AnimationPathRepair.GetRelativePath(prefabRoot, animationRoot);
+            string oldAnimationRootPath = currentAnimationRootPath;
+            if (lastSnapshot != null
+                && lastSnapshot.PathsByInstanceId.TryGetValue(animationRoot.GetInstanceID(), out string oldRootPath))
+            {
+                oldAnimationRootPath = oldRootPath;
+            }
+
+            string oldFullPath = CombinePrefabPath(oldAnimationRootPath, binding.path);
+            if (!snapshotMappings.TryGetValue(oldFullPath, out string newFullPath))
+                return false;
+
+            string newBindingPath = MakeRelativeBindingPath(currentAnimationRootPath, newFullPath);
+            if (newBindingPath == null || newBindingPath == binding.path)
+                return false;
+
+            mapping = new AnimationPathMapping
+            {
+                clipAssetGuid = clipGuid,
+                oldPath = binding.path,
+                newPath = newBindingPath,
+                bindingType = bindingType,
+                propertyName = binding.propertyName
+            };
+            return true;
+        }
+
+        private static string CombinePrefabPath(string rootPath, string childPath)
+        {
+            if (string.IsNullOrEmpty(rootPath)) return childPath ?? "";
+            if (string.IsNullOrEmpty(childPath)) return rootPath;
+            return rootPath + "/" + childPath;
+        }
+
+        private static string MakeRelativeBindingPath(string rootPath, string fullPath)
+        {
+            if (fullPath == null) return null;
+            if (string.IsNullOrEmpty(rootPath)) return fullPath;
+            if (fullPath == rootPath) return "";
+            string prefix = rootPath + "/";
+            if (!fullPath.StartsWith(prefix)) return null;
+            return fullPath.Substring(prefix.Length);
+        }
+
         // ===== 自动修复 =====
 
         public static int CheckAndRepair(GameObject root = null)
         {
+            GameObject repairRoot = root;
+            if (repairRoot == null)
+            {
+                var stage = PrefabStageUtility.GetCurrentPrefabStage();
+                if (stage != null) repairRoot = stage.prefabContentsRoot;
+            }
+
             var mappings = DetectBrokenPaths(root);
-            if (mappings.Count == 0) return 0;
+            if (mappings.Count == 0)
+            {
+                if (repairRoot != null) CaptureSnapshotForRoot(repairRoot);
+                return 0;
+            }
 
             var fixedClipGuids = new HashSet<string>();
             foreach (var m in mappings)
@@ -197,7 +377,16 @@ namespace UIProbe
 
             AssetDatabase.SaveAssets();
             Log($"已自动修复 {fixedClipGuids.Count} 个动画剪辑的路径引用");
+            if (repairRoot != null) CaptureSnapshotForRoot(repairRoot);
             return fixedClipGuids.Count;
+        }
+
+        private static void CaptureSnapshotForRoot(GameObject root)
+        {
+            if (root == null) return;
+            var stage = PrefabStageUtility.GetCurrentPrefabStage();
+            string prefabAssetPath = stage != null && stage.prefabContentsRoot == root ? stage.assetPath : "";
+            lastSnapshot = CaptureSnapshot(root, prefabAssetPath);
         }
 
         // ===== 导出 =====
