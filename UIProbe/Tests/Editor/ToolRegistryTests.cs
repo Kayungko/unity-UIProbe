@@ -136,6 +136,55 @@ namespace UIProbe.Tests.Editor
             Assert.Contains(AdminId, admin);
         }
 
+        [Test]
+        public void Invoke_DescribePhase_ReturnsParamsSchema()
+        {
+            ToolRegistry registry = NewRegistry();
+            registry.Register(new FakeReadOnlyTool(_assets, _fs, _prefs));
+
+            ToolResult result = registry.Invoke(new ToolRequest { ToolId = ReadOnlyId, Phase = ToolPhase.Describe });
+
+            Assert.AreEqual(ToolStatus.Success, result.Status);
+            StringAssert.Contains("\"type\":\"object\"", result.Data, "Describe 分派应回 DescribeParams 的 schema");
+        }
+
+        [Test]
+        public void Invoke_MalformedParams_ReturnsInvalidParams()
+        {
+            ToolRegistry registry = NewRegistry();
+            var tool = new FakeReadOnlyTool(_assets, _fs, _prefs);
+            registry.Register(tool);
+
+            ToolResult result = registry.Invoke(new ToolRequest
+            {
+                ToolId = ReadOnlyId,
+                Phase = ToolPhase.Execute,
+                Params = "{ not valid json :::"
+            });
+
+            Assert.AreEqual(ToolStatus.Failed, result.Status);
+            Assert.AreEqual(ToolErrorCodes.InvalidParams, result.Error.Code);
+            Assert.IsFalse(tool.ExecuteCalled, "反序列化失败不得进入 Execute");
+        }
+
+        [Test]
+        public void Invoke_UnknownPhase_ReturnsInvalidParams()
+        {
+            ToolRegistry registry = NewRegistry();
+            var tool = new FakeReadOnlyTool(_assets, _fs, _prefs);
+            registry.Register(tool);
+
+            ToolResult result = registry.Invoke(new ToolRequest
+            {
+                ToolId = ReadOnlyId,
+                Phase = (ToolPhase)99
+            });
+
+            Assert.AreEqual(ToolStatus.Failed, result.Status);
+            Assert.AreEqual(ToolErrorCodes.InvalidParams, result.Error.Code);
+            Assert.IsFalse(tool.ExecuteCalled, "未知 Phase 不得进入 Execute");
+        }
+
         // --- fake 工具 ---
 
         [Serializable]

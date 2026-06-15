@@ -78,11 +78,11 @@
         }
       ],
       "coverage_gate": {
-        "status": "pending",
+        "status": "passed",
         "target": 80,
-        "actual": null,
-        "report": "",
-        "checked_at": null
+        "actual": 83.8,
+        "report": "UIProbe.Core.Services 行覆盖 83.8%(109/130),方法 92.3%(12/13);21/21 EditMode 用例通过。范围仅 +UIProbe.Core.Services(Contract 为 DTO、Infrastructure 为接口,无可覆盖逻辑,不计入)。剩余 21 行未覆盖为 M5 写阶段桩(OperationTicket 字段初始化 + ToolRunnerBase.Preview 分派)。补测 3 用例(Run(Describe) 分派/畸形参数 INVALID_PARAMS/未知 Phase 默认分支)将 78.4%→83.8% 过线。coverage 经 com.unity.testtools.codecoverage 1.2.6 + assemblyFilters 量取。",
+        "checked_at": "2026-06-16T01:25:00Z"
       }
     },
     {
