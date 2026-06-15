@@ -71,6 +71,12 @@ namespace UIProbe
             EditorGUILayout.LabelField($"最新更新 (v{UIProbeUpdateChecker.VERSION})", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
 
+            EditorGUILayout.LabelField("• 动画路径自动修复模块 (v3.9.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 自动修复: 预制体内层级变化后自动检测并修复动画路径", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 协同导出: 无权限时导出 JSON 映射文件，交由 Vx 导入修复", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 侧边栏角标: 含动画的预制体自动显示 ⚠ 提醒", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("• 预制体助手创建的节点 Layer 固定为 UI (v3.9.0)", EditorStyles.miniLabel);
+
             EditorGUILayout.LabelField("• 批量命名模块全面升级 (v3.8.0)", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 预览缩略图 32x32 + 行级勾选排除指定文件", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 执行前自动备份、支持撤销恢复", EditorStyles.miniLabel);

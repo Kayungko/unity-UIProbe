@@ -140,22 +140,20 @@ namespace UIProbe
         private GameObject CreateGameObject(string name, GameObject parent)
         {
             GameObject go = new GameObject(name);
+            go.layer = LayerMask.NameToLayer("UI");
             if (parent != null)
             {
                 go.transform.SetParent(parent.transform, false);
-                go.layer = parent.layer;
             }
             else
             {
-                // Try to find a Canvas
                 Canvas canvas = Object.FindObjectOfType<Canvas>();
                 if (canvas != null)
                 {
                     go.transform.SetParent(canvas.transform, false);
-                    go.layer = canvas.gameObject.layer;
                 }
             }
-            
+
             go.AddComponent<RectTransform>();
             Undo.RegisterCreatedObjectUndo(go, "Create " + name);
             Selection.activeGameObject = go;

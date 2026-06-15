@@ -35,6 +35,7 @@ namespace UIProbe
             Screenshot,
             RichTextGenerator,
             Adaptor,
+            AnimationAutoRepair,
             FilterNodeScanner,
             ResourceDetector,
             Settings,
@@ -44,7 +45,7 @@ namespace UIProbe
         private Tab currentTab = Tab.Picker;
         private Vector2 mainScrollPos;
         private Vector2 sidebarScrollPos;
-        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "Filter节点排查", "资源使用检测", "设置", "关于" };
+        private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "动画修复", "Filter节点排查", "资源使用检测", "设置", "关于" };
         
         // 统一配置
         private UIProbeConfig config;
@@ -71,7 +72,8 @@ namespace UIProbe
             EnsureRedGoldUndoManager();
             ApplyImageNormalizerConfig();
             ApplyHelperConfig();
-            
+            ApplyAnimationAutoRepairConfig();
+
             // 注册全局更新回调，使拾取功能在窗口未激活时也能工作
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
@@ -81,12 +83,13 @@ namespace UIProbe
         {
             // 注销全局更新回调
             EditorApplication.update -= OnEditorUpdate;
-            
+
             CollectIndexerConfig(); // Was SaveAuxData
             
             // 收集并保存配置
             CollectImageNormalizerConfig();
             CollectHelperConfig();
+            CollectAnimationAutoRepairConfig();
             CollectPickerConfig();
             CollectSettingsData();
             if (config != null)
@@ -127,6 +130,7 @@ namespace UIProbe
                     case Tab.Screenshot: isHidden = !config.modulesVisibility.showScreenshot; break;
                     case Tab.RichTextGenerator: isHidden = !config.modulesVisibility.showRichTextGenerator; break;
                     case Tab.Adaptor: isHidden = !config.modulesVisibility.showAdaptor; break;
+                    case Tab.AnimationAutoRepair: isHidden = !config.modulesVisibility.showAnimationAutoRepair; break;
                     case Tab.FilterNodeScanner: isHidden = !config.modulesVisibility.showFilterNodeScanner; break;
                     case Tab.ResourceDetector: isHidden = !config.modulesVisibility.showResourceDetector; break;
                 }
@@ -181,6 +185,9 @@ namespace UIProbe
                 case Tab.Adaptor:
                     DrawAdaptorTab();
                     break;
+                case Tab.AnimationAutoRepair:
+                    DrawAnimationAutoRepairTab();
+                    break;
                 case Tab.FilterNodeScanner:
                     DrawFilterNodeScannerTab();
                     break;
@@ -218,6 +225,7 @@ namespace UIProbe
             if (config == null || config.modulesVisibility.showScreenshot) DrawSidebarButton(Tab.Screenshot, "游戏截屏");
             if (config == null || config.modulesVisibility.showRichTextGenerator) DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
             if (config == null || config.modulesVisibility.showAdaptor) DrawSidebarButton(Tab.Adaptor, "预制体助手");
+            if (config == null || config.modulesVisibility.showAnimationAutoRepair) DrawAnimationAutoRepairSidebarButton();
             if (config == null || config.modulesVisibility.showFilterNodeScanner) DrawSidebarButton(Tab.FilterNodeScanner, "Filter排查");
             if (config == null || config.modulesVisibility.showResourceDetector) DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
 

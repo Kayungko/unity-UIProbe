@@ -163,6 +163,7 @@ namespace UIProbe
         public bool showRichTextGenerator = true;
         public bool showAdaptor = true;
         public bool showFilterNodeScanner = true;
+        public bool showAnimationAutoRepair = true;
         public bool showRedGoldResourceImporter = true;
         public bool showResourceDetector = true;
     }
@@ -222,7 +223,7 @@ namespace UIProbe
     [Serializable]
     public class UIProbeConfig
     {
-        public string version = "3.8.0";
+        public string version = "3.9.0";
         public string lastUpdated = "";
 
         public IndexerConfig indexer = new IndexerConfig();

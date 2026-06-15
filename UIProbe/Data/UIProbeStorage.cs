@@ -23,6 +23,7 @@ namespace UIProbe
         private const string SCREENSHOTS_FOLDER = "Screenshots";
         private const string RESOURCE_CACHE_FOLDER = "ResourceCache";
         private const string IMAGE_RENAME_LOGS_FOLDER = "ImageRenameLogs";
+        private const string ANIM_REPAIR_FOLDER = "AnimationRepair";
 
         /// <summary>
         /// 获取主文件夹路径 (GetStoragePath 别名)
@@ -148,7 +149,15 @@ namespace UIProbe
             return path;
         }
 
-
+        /// <summary>
+        /// 获取动画修复映射存储路径
+        /// </summary>
+        public static string GetAnimRepairPath()
+        {
+            string path = Path.Combine(GetMainFolderPath(), ANIM_REPAIR_FOLDER);
+            EnsureDirectoryExists(path);
+            return path;
+        }
 
         /// <summary>
         /// 设置自定义主文件夹路径
@@ -194,6 +203,7 @@ namespace UIProbe
 ├── {SCREENSHOTS_FOLDER}/         (游戏截屏)
 ├── {RESOURCE_CACHE_FOLDER}/      (资源检测缓存)
 ├── {IMAGE_RENAME_LOGS_FOLDER}/   (图片重命名日志)
+├── {ANIM_REPAIR_FOLDER}/          (动画修复映射)
 └── {SETTINGS_FOLDER}/            (设置数据)";
         }
     }
