@@ -162,9 +162,15 @@ namespace UIProbe
             {
                 foreach (var log in animationAutoRepairLogs)
                 {
-                    bool isDetail = log.StartsWith("  [");
+                    bool isWarning = log.StartsWith("⚠");
+                    bool isDetail = log.StartsWith("  [") || log.StartsWith("  ");
                     var style = new GUIStyle(EditorStyles.miniLabel);
-                    style.normal.textColor = isDetail ? new Color(0.5f, 0.5f, 0.5f) : Color.white;
+                    if (isWarning)
+                        style.normal.textColor = new Color(1f, 0.75f, 0.3f);
+                    else if (isDetail)
+                        style.normal.textColor = new Color(0.5f, 0.5f, 0.5f);
+                    else
+                        style.normal.textColor = Color.white;
                     style.wordWrap = true;
                     EditorGUILayout.LabelField(log, style);
                 }

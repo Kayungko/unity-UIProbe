@@ -264,17 +264,34 @@ namespace UIProbe
             var matches = new List<Transform>();
             FindTransformsByName(animationRoot, nodeName, matches);
 
-            if (matches.Count != 1) return null;
+            if (matches.Count == 1)
+            {
+                string newPath = AnimationPathRepair.GetRelativePath(animationRoot, matches[0]);
+                if (newPath == binding.path) return null;
 
-            string newPath = AnimationPathRepair.GetRelativePath(animationRoot, matches[0]);
-            if (newPath == binding.path) return null;
+                return new AnimationPathMapping
+                {
+                    status = "resolved",
+                    clipAssetGuid = clipGuid,
+                    clipName = clip.name,
+                    oldPath = binding.path,
+                    newPath = newPath,
+                    bindingType = bindingType,
+                    propertyName = binding.propertyName
+                };
+            }
 
+            // 节点已删除: 按名称找不到任何匹配
             return new AnimationPathMapping
             {
+                status = "unresolved",
+                unresolvedNote = (matches.Count > 1)
+                    ? $"存在 {matches.Count} 个同名节点 \"{nodeName}\"，无法确定目标"
+                    : $"节点 \"{nodeName}\" 已被删除，无法自动修复",
                 clipAssetGuid = clipGuid,
                 clipName = clip.name,
                 oldPath = binding.path,
-                newPath = newPath,
+                newPath = "",
                 bindingType = bindingType,
                 propertyName = binding.propertyName
             };
@@ -348,15 +365,19 @@ namespace UIProbe
                 if (stage != null) repairRoot = stage.prefabContentsRoot;
             }
 
-            var mappings = DetectBrokenPaths(root);
-            if (mappings.Count == 0)
+            var allMappings = DetectBrokenPaths(root);
+            var resolvedOnly = allMappings.Where(m => m.status == "resolved").ToList();
+            var unresolvedOnly = allMappings.Where(m => m.status == "unresolved").ToList();
+
+            if (resolvedOnly.Count == 0 && unresolvedOnly.Count == 0)
             {
                 if (repairRoot != null) CaptureSnapshotForRoot(repairRoot);
                 return 0;
             }
 
+            int fixedCount = 0;
             var fixedClipGuids = new HashSet<string>();
-            foreach (var m in mappings)
+            foreach (var m in resolvedOnly)
             {
                 string clipPath = AssetDatabase.GUIDToAssetPath(m.clipAssetGuid);
                 if (string.IsNullOrEmpty(clipPath)) continue;
@@ -365,7 +386,15 @@ namespace UIProbe
 
                 ApplySingleMapping(clip, m);
                 fixedClipGuids.Add(m.clipAssetGuid);
+                fixedCount++;
                 Log($"  [{m.clipName}] {m.oldPath} -> {m.newPath}");
+            }
+
+            if (unresolvedOnly.Count > 0)
+            {
+                Log($"⚠ {unresolvedOnly.Count} 条引用无法自动修复 (节点已删除):");
+                foreach (var m in unresolvedOnly)
+                    Log($"  [{m.clipName}] {m.oldPath} — {m.unresolvedNote}");
             }
 
             foreach (var guid in fixedClipGuids)
@@ -375,10 +404,14 @@ namespace UIProbe
                 if (clip != null) EditorUtility.SetDirty(clip);
             }
 
-            AssetDatabase.SaveAssets();
-            Log($"已自动修复 {fixedClipGuids.Count} 个动画剪辑的路径引用");
+            if (fixedCount > 0)
+            {
+                AssetDatabase.SaveAssets();
+                Log($"已自动修复 {fixedCount} 个动画剪辑的路径引用");
+            }
+
             if (repairRoot != null) CaptureSnapshotForRoot(repairRoot);
-            return fixedClipGuids.Count;
+            return fixedCount;
         }
 
         private static void CaptureSnapshotForRoot(GameObject root)
@@ -413,14 +446,23 @@ namespace UIProbe
                 return null;
             }
 
+            int resolved = mappings.Count(m => m.status == "resolved");
+            int unresolved = mappings.Count(m => m.status == "unresolved");
+
             var file = new AnimationRepairMappingFile
             {
                 exportTime = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 prefabName = root.name,
                 prefabAssetPath = prefabPath,
                 exportedBy = System.Environment.UserName,
+                resolvedCount = resolved,
+                unresolvedCount = unresolved,
                 mappings = mappings
             };
+
+            Log(resolved > 0
+                ? $"已导出 {resolved} 条可修复 + {unresolved} 条需人工处理 -> {outputPath}"
+                : $"已导出 {unresolved} 条需人工处理 (无可自动修复项) -> {outputPath}");
 
             if (string.IsNullOrEmpty(outputPath))
             {
@@ -472,12 +514,21 @@ namespace UIProbe
 
             var fixedClipGuids = new HashSet<string>();
             int appliedCount = 0;
+            int skippedCount = 0;
 
             foreach (var m in file.mappings)
             {
+                if (m.status == "unresolved")
+                {
+                    skippedCount++;
+                    Log($"  跳过 [{m.clipName}] {m.oldPath}: {m.unresolvedNote}");
+                    continue;
+                }
+
                 string clipPath = AssetDatabase.GUIDToAssetPath(m.clipAssetGuid);
                 if (string.IsNullOrEmpty(clipPath))
                 {
+                    skippedCount++;
                     Log($"  跳过 [{m.clipName}]: GUID 无效 ({m.clipAssetGuid})");
                     continue;
                 }
@@ -485,6 +536,7 @@ namespace UIProbe
                 var clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(clipPath);
                 if (clip == null)
                 {
+                    skippedCount++;
                     Log($"  跳过 [{m.clipName}]: 剪辑不存在 ({clipPath})");
                     continue;
                 }
@@ -503,7 +555,9 @@ namespace UIProbe
             }
 
             AssetDatabase.SaveAssets();
-            Log($"导入完成: 应用了 {appliedCount} 条修复映射 (涉及 {fixedClipGuids.Count} 个剪辑)");
+            string summary = $"导入完成: 应用 {appliedCount} 条";
+            if (skippedCount > 0) summary += $", 跳过 {skippedCount} 条 (需人工处理)";
+            Log(summary);
             return fixedClipGuids.Count;
         }
 

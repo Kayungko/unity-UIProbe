@@ -10,9 +10,15 @@ namespace UIProbe
     [Serializable]
     public class AnimationPathMapping
     {
+        /// <summary>resolved = 可自动修复, unresolved = 节点已删除需人工处理</summary>
+        public string status = "resolved";
+        /// <summary>unresolved 时的原因说明</summary>
+        public string unresolvedNote = "";
         public string clipAssetGuid;
         public string clipName;
+        /// <summary>动画中的旧路径（已失效）</summary>
         public string oldPath;
+        /// <summary>修复后的新路径（unresolved 时为空）</summary>
         public string newPath;
         public string bindingType;      // "float" 或 "objectReference"
         public string propertyName;
@@ -29,7 +35,9 @@ namespace UIProbe
         public string exportTime;
         public string prefabName;
         public string prefabAssetPath;
-        public string exportedBy;       // 导出者标识
+        public string exportedBy;
+        public int resolvedCount;
+        public int unresolvedCount;
         public List<AnimationPathMapping> mappings = new List<AnimationPathMapping>();
     }
 }
