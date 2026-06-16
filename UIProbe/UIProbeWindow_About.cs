@@ -71,6 +71,10 @@ namespace UIProbe
             EditorGUILayout.LabelField($"最新更新 (v{UIProbeUpdateChecker.VERSION})", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
 
+            EditorGUILayout.LabelField("• 资源引用刷新与节点定位修复 (v3.9.3)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 刷新预制体索引后自动重算资源引用结果，避免旧节点记录残留", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 引用位置显示完整层级，蓝色节点路径可点击并定位到 Prefab 内节点", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - Image/RawImage 引用说明改为黄色，材质贴图按实际使用节点记录", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("• 动画路径自动修复 — 节点删除检测 (v3.9.2)", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 删除检测: 节点被移除后标记为 unresolved，区分 [已删除] / [多个同名]", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 导出增强: JSON 包含 resolvedCount/unresolvedCount 统计", EditorStyles.miniLabel);

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -12,6 +13,7 @@ namespace UIProbe
         private string assetSearchQuery = "";
         private Vector2 assetReferencesScrollPos;
         private List<PrefabReferenceInfo> assetSearchResults = new List<PrefabReferenceInfo>();
+        private int assetSearchIndexVersion = -1;
         private AssetReferenceType selectedAssetType = AssetReferenceType.Image; // 默认搜索图片
         
         private class PrefabReferenceInfo
@@ -46,6 +48,8 @@ namespace UIProbe
             GUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("资源类型:", GUILayout.Width(70));
             
+            EnsureAssetReferenceResultsFresh();
+
             var newType = (AssetReferenceType)EditorGUILayout.EnumPopup(selectedAssetType, GUILayout.Width(150));
             if (newType != selectedAssetType)
             {
@@ -168,9 +172,31 @@ namespace UIProbe
         /// <summary>
         /// 搜索资源引用
         /// </summary>
+        private void OnPrefabIndexChangedForAssetReferences()
+        {
+            assetSearchIndexVersion = -1;
+            EnsureAssetReferenceResultsFresh();
+        }
+
+        private void EnsureAssetReferenceResultsFresh()
+        {
+            if (assetSearchIndexVersion == prefabIndexVersion)
+                return;
+
+            if (string.IsNullOrEmpty(assetSearchQuery))
+            {
+                assetSearchResults.Clear();
+                assetSearchIndexVersion = prefabIndexVersion;
+                return;
+            }
+
+            SearchAssetReferences();
+        }
+
         private void SearchAssetReferences()
         {
             assetSearchResults.Clear();
+            assetSearchIndexVersion = prefabIndexVersion;
             
             if (string.IsNullOrEmpty(assetSearchQuery))
                 return;
@@ -271,7 +297,23 @@ namespace UIProbe
                 EditorGUILayout.LabelField(icon, GUILayout.Width(20));
                 
                 // 节点路径
-                EditorGUILayout.LabelField($"{reference.NodePath}", EditorStyles.miniLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
+                GUIStyle nodePathStyle = new GUIStyle(EditorStyles.linkLabel);
+                nodePathStyle.wordWrap = true;
+                nodePathStyle.normal.textColor = new Color(0.25f, 0.55f, 1f);
+                nodePathStyle.hover.textColor = new Color(0.45f, 0.7f, 1f);
+                nodePathStyle.active.textColor = new Color(0.2f, 0.45f, 0.9f);
+                float nodePathWidth = Mathf.Max(120f, EditorGUIUtility.currentViewWidth - 100f);
+                float nodePathHeight = Mathf.Max(EditorGUIUtility.singleLineHeight, nodePathStyle.CalcHeight(new GUIContent(reference.NodePath), nodePathWidth));
+                if (GUILayout.Button(reference.NodePath, nodePathStyle, GUILayout.MinWidth(120), GUILayout.Height(nodePathHeight), GUILayout.ExpandWidth(true)))
+                {
+                    OpenPrefabAndSelectNode(info.PrefabPath, reference.NodePath);
+                }
+
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(40);
+                EditorGUILayout.LabelField("资源:", EditorStyles.miniLabel, GUILayout.Width(35));
                 
                 // 资源名称（可点击）
                 if (GUILayout.Button(reference.AssetName, EditorStyles.linkLabel, GUILayout.MinWidth(60), GUILayout.ExpandWidth(true)))
@@ -298,7 +340,9 @@ namespace UIProbe
                     GUILayout.Space(30);
                     
                     GUIStyle infoStyle = new GUIStyle(EditorStyles.miniLabel);
-                    infoStyle.normal.textColor = new Color(0.5f, 0.7f, 1f); // 淡蓝色
+                    infoStyle.normal.textColor = IsImageReference(reference.Type)
+                        ? new Color(1f, 0.82f, 0.2f)
+                        : new Color(0.5f, 0.7f, 1f);
                     
                     EditorGUILayout.LabelField($"↳ {reference.ExtraInfo}", infoStyle);
                     GUILayout.EndHorizontal();
@@ -315,6 +359,107 @@ namespace UIProbe
         /// <summary>
         /// 导出当前资源引用搜索结果到 CSV
         /// </summary>
+        private bool IsImageReference(AssetReferenceType type)
+        {
+            return type == AssetReferenceType.Image || type == AssetReferenceType.RawImage;
+        }
+
+        private void OpenPrefabAndSelectNode(string prefabPath, string nodePath)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null)
+                return;
+
+            AssetDatabase.OpenAsset(prefab);
+            EditorApplication.delayCall += () => SelectNodeInOpenedPrefab(prefabPath, nodePath);
+        }
+
+        private void SelectNodeInOpenedPrefab(string prefabPath, string nodePath)
+        {
+            GameObject root = null;
+
+            object prefabStage = GetCurrentPrefabStage();
+            if (prefabStage != null && GetPrefabStageAssetPath(prefabStage) == prefabPath)
+            {
+                root = GetPrefabStageRoot(prefabStage);
+            }
+
+            if (root == null)
+            {
+                root = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            }
+
+            if (root == null)
+                return;
+
+            Transform target = FindNodeByPath(root.transform, nodePath);
+            if (target == null)
+            {
+                EditorGUIUtility.PingObject(root);
+                return;
+            }
+
+            Selection.activeObject = target.gameObject;
+            EditorGUIUtility.PingObject(target.gameObject);
+        }
+
+        private object GetCurrentPrefabStage()
+        {
+            Type utilityType = Type.GetType("UnityEditor.SceneManagement.PrefabStageUtility, UnityEditor")
+                ?? Type.GetType("UnityEditor.Experimental.SceneManagement.PrefabStageUtility, UnityEditor");
+            if (utilityType == null)
+                return null;
+
+            var method = utilityType.GetMethod("GetCurrentPrefabStage", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            return method != null ? method.Invoke(null, null) : null;
+        }
+
+        private string GetPrefabStageAssetPath(object prefabStage)
+        {
+            var property = prefabStage.GetType().GetProperty("assetPath");
+            return property != null ? property.GetValue(prefabStage, null) as string : null;
+        }
+
+        private GameObject GetPrefabStageRoot(object prefabStage)
+        {
+            var property = prefabStage.GetType().GetProperty("prefabContentsRoot");
+            return property != null ? property.GetValue(prefabStage, null) as GameObject : null;
+        }
+
+        private Transform FindNodeByPath(Transform root, string nodePath)
+        {
+            if (root == null || string.IsNullOrEmpty(nodePath))
+                return root;
+
+            string[] parts = nodePath.Replace("\\", "/").Split('/');
+            int startIndex = parts.Length > 0 && parts[0] == root.name ? 1 : 0;
+
+            Transform current = root;
+            for (int i = startIndex; i < parts.Length; i++)
+            {
+                if (string.IsNullOrEmpty(parts[i]))
+                    continue;
+
+                Transform next = null;
+                for (int childIndex = 0; childIndex < current.childCount; childIndex++)
+                {
+                    Transform child = current.GetChild(childIndex);
+                    if (child.name == parts[i])
+                    {
+                        next = child;
+                        break;
+                    }
+                }
+
+                if (next == null)
+                    return null;
+
+                current = next;
+            }
+
+            return current;
+        }
+
         private void ExportAssetReferenceResultsToCSV()
         {
             if (assetSearchResults == null || assetSearchResults.Count == 0)

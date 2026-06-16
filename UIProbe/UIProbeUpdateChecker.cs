@@ -12,7 +12,7 @@ namespace UIProbe
     [InitializeOnLoad]
     public static class UIProbeUpdateChecker
     {
-        public const string VERSION = "3.9.2";
+        public const string VERSION = "3.9.3";
         private static readonly string[] API_URLS = {
             "https://api.github.com/repos/Kayungko/unity-UIProbe/releases/latest"
         };

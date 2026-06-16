@@ -17,6 +17,7 @@ namespace UIProbe
         private bool isIndexBuilt = false;
         private string indexRootPath = "";  // Configured in Settings
         private string lastIndexUpdateTime = "";
+        private int prefabIndexVersion = 0;
         
         // Batch Operation State
         private bool isIndexerBatchMode = false;
@@ -600,6 +601,13 @@ namespace UIProbe
             
             // 保存索引缓存
             SaveIndexCache();
+            NotifyPrefabIndexChanged();
+        }
+
+        private void NotifyPrefabIndexChanged()
+        {
+            prefabIndexVersion++;
+            OnPrefabIndexChangedForAssetReferences();
         }
 
         private void AddToFolderTree(PrefabIndexItem item, string folderPath)
@@ -1276,16 +1284,16 @@ namespace UIProbe
             // 扫描所有 Renderer 组件（包括 MeshRenderer, SpriteRenderer, UI 组件等）
             var renderers = prefab.GetComponentsInChildren<Renderer>(true);
             
-            HashSet<Material> processedMaterials = new HashSet<Material>();
-            
             foreach (var renderer in renderers)
             {
                 if (renderer.sharedMaterials == null) continue;
-                
+
+                HashSet<Material> processedMaterialsOnRenderer = new HashSet<Material>();
+
                 foreach (var mat in renderer.sharedMaterials)
                 {
-                    if (mat == null || processedMaterials.Contains(mat)) continue;
-                    processedMaterials.Add(mat);
+                    if (mat == null || processedMaterialsOnRenderer.Contains(mat)) continue;
+                    processedMaterialsOnRenderer.Add(mat);
                     
                     // 获取材质路径
                     string materialPath = AssetDatabase.GetAssetPath(mat);
@@ -1334,16 +1342,19 @@ namespace UIProbe
         private string GetNodePath(Transform root, Transform target)
         {
             if (target == root) return root.name;
-            
+
             List<string> path = new List<string>();
             Transform current = target;
-            
-            while (current != null && current != root)
+
+            while (current != null)
             {
                 path.Insert(0, current.name);
+                if (current == root)
+                    break;
+
                 current = current.parent;
             }
-            
+
             return string.Join("/", path);
         }
         

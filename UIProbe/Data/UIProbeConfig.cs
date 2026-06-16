@@ -223,7 +223,7 @@ namespace UIProbe
     [Serializable]
     public class UIProbeConfig
     {
-        public string version = "3.9.1";
+        public string version = "3.9.3";
         public string lastUpdated = "";
 
         public IndexerConfig indexer = new IndexerConfig();
