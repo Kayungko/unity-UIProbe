@@ -7,7 +7,7 @@
 <!-- 未完成 / 阻塞 / 下一步。永不压缩。 -->
 
 - [ ] 编译/测试基建(机器相关,暂不入库):临时宿主 `E:\uiprobe-compile-host`(junction 挂 UIProbe→Assets/UIProbe;manifest 含 com.unity.test-framework 1.1.33 + com.unity.testtools.codecoverage 1.2.6)。编译:`Unity.exe -batchmode -quit -nographics -projectPath <host> -logFile <log>`;测试:加 `-runTests -testPlatform EditMode -testResults <xml>`(去掉 -quit);覆盖率:再加 `-enableCodeCoverage -coverageResultsPath <dir> -coverageOptions "generateAdditionalMetrics;generateHtmlReport;assemblyFilters:+<asm>" -debugCodeOptimization`
-- [ ] Next: M2/T2-1 — 抽离 PrefabIndexService(/plan 已定稿,待 /build)。已决:① 给 `UIProbe/Data/` 建运行时 asmdef `UIProbe.Data`(引用 Contract),新数据类型(PrefabIndex/PrefabIndexItem/PrefabIndexBuildOptions)落 Data/,同时解锁 T2-2/T2-3;② 同步 + IProgress<float> 形态,jobId/Dispatcher 留 M3;③ 不包装 IUIProbeTool/不进 Registry(留 M4);④ 不复用 ResourceScanner(直调静态 API,在 IAssetGateway 接缝上写薄 BuildIndex)。接口:BuildIndex/LoadCache/SaveCache/Search/GetPrefabDetail(缺失→TOOL_NOT_FOUND)。TDD spec 已落可执行用例
+- [ ] Next: T2-2(AssetReferenceService)/ T2-3(UICheckService)— 均依赖 T2-1,现已就绪可启动。沿用 T2-1 同模式:经 IAssetGateway/IFileSystem 接缝注入,只读派生自 PrefabIndex(不另缓存),黄金样本回归。
 
 ## 归档 (Archive)
 
@@ -26,8 +26,10 @@ _尚无快速任务或调试记录。_
 
 ### M2 只读 Service 抽离:PrefabIndex + AssetReference + UICheck(经接缝 + 黄金样本回归)
 
-#### T2-1: 抽离 PrefabIndexService (NOT_STARTED — /plan 已定稿)
-- plan: 2026-06-16 — 范围/架构/接口/验收→验证映射已锁定(详见 Pending → Next)。prefab-index.spec.md 已从模板替换为可执行用例(NUnit:BuildIndex/LoadCache/SaveCache/Search/GetPrefabDetail + golden 回归)。
+#### T2-1: 抽离 PrefabIndexService (DONE — 2026-06-16)
+- plan: 范围/架构/接口/验收→验证映射已锁定;prefab-index.spec.md 替换为可执行用例。
+- build: PrefabIndexService 经 IAssetGateway/IFileSystem/IEditorPrefs 接缝注入,提供 BuildIndex(增量+IProgress)/LoadCache/SaveCache/Search/GetPrefabDetail(缺失→TOOL_NOT_FOUND)。RED 36总/21过/15失(干净);GREEN 两跑 36/36;三格式黄金样本 diff 全绿;结构 gate high=0。
+- 偏差:新数据类型(PrefabIndex/Item/AssetRef/BuildOptions/LoadCacheResult)落 `Core/Services/PrefabIndexData.cs` 而非计划的 `Data/`——`UIProbe/Data/` 整体编译进 Editor-only 程序集(9/29 文件引用 UnityEditor),Core.Services(全平台)无法引用。未建第 6 个程序集(scope-discipline)。FolderTree 弃用(由 Items.FolderPath 派生,YAGNI)。Window 改造/jobId/Registry 包装按 /plan 推后 M3/M4。
 
 #### T2-2: 抽离 AssetReferenceService (NOT_STARTED) — 依赖 T2-1
 #### T2-3: 抽离 UICheckService (NOT_STARTED) — 依赖 T2-1

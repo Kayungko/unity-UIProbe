@@ -1,6 +1,6 @@
 {
   "workspace_readiness": "governance_ready",
-  "current_milestone": "M1",
+  "current_milestone": "M2",
   "milestones": [
     {
       "id": "M1",
@@ -91,9 +91,12 @@
       "tasks": [
         {
           "id": "T2-1",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-16T02:10:00Z",
+          "completed_at": "2026-06-16T03:31:00Z",
+          "evidence": "RED 36/21/15(干净失败);GREEN 两跑 36/36;三格式黄金样本 diff 全绿;结构 gate high=0。PrefabIndexService 经接缝可单测,数据类型落 Core/Services(程序集可见性偏差,已记录于 T2-1.md)。"
         },
         {
           "id": "T2-2",

@@ -1,0 +1,31 @@
+{
+    "SchemaVersion": 1,
+    "BuiltAt": "",
+    "RootPath": "",
+    "Items": [
+        {
+            "Guid": "guid-card",
+            "AssetPath": "Assets/UI/Card.prefab",
+            "Name": "Card",
+            "FolderPath": "Assets/UI",
+            "ReferencedAssets": [],
+            "ComponentSummary": ""
+        },
+        {
+            "Guid": "guid-button",
+            "AssetPath": "Assets/UI/Common/Button.prefab",
+            "Name": "Button",
+            "FolderPath": "Assets/UI/Common",
+            "ReferencedAssets": [],
+            "ComponentSummary": ""
+        },
+        {
+            "Guid": "guid-panel",
+            "AssetPath": "Assets/UI/Panel.prefab",
+            "Name": "Panel",
+            "FolderPath": "Assets/UI",
+            "ReferencedAssets": [],
+            "ComponentSummary": ""
+        }
+    ]
+}

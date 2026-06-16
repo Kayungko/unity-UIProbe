@@ -1,0 +1,4 @@
+AssetPath,Guid,Name,FolderPath,RefCount
+Assets/UI/Card.prefab,guid-card,Card,Assets/UI,0
+Assets/UI/Common/Button.prefab,guid-button,Button,Assets/UI/Common,0
+Assets/UI/Panel.prefab,guid-panel,Panel,Assets/UI,0
