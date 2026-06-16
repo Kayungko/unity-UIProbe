@@ -72,7 +72,7 @@ namespace UIProbe
             EditorGUILayout.Space(5);
 
             EditorGUILayout.LabelField("• 动画路径自动修复 — 节点删除检测 (v3.9.2)", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("  - 删除检测: 节点被移除后标记为 unresolved，区分"已删除"/"多个同名"", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 删除检测: 节点被移除后标记为 unresolved，区分 [已删除] / [多个同名]", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 导出增强: JSON 包含 resolvedCount/unresolvedCount 统计", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 导入跳过: 自动跳过 unresolved 条目并记录日志", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("• 动画路径自动修复模块 (v3.9.1)", EditorStyles.miniLabel);
