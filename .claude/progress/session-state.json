@@ -100,9 +100,17 @@
         },
         {
           "id": "T2-2",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-16T12:50:00Z",
+          "completed_at": "2026-06-16T13:06:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "RED 8/8 干净失败(NotImplementedException);GREEN 两跑 44/44 Passed;golden CSV diff 全绿;结构 gate high=0",
+            "timestamp": "2026-06-16T13:06:00Z"
+          },
+          "evidence": "AssetReferenceService 严格从 PrefabIndexService.Current 派生(AND-匹配 AssetPath/AssetName/Guid/SpriteName/ReferenceType,无维度→INVALID_PARAMS,未构建→ExecutionFailed,无命中→Success+空列表),ExportCsv 经 IFileSystem 写受控目录返回 reportPath(失败→IO_ERROR)。完整路径偏差:补 unity-adapters 引用采集接缝(IAssetGateway.CollectReferences + 中立 DTO AssetReferenceRecord 置于 Infrastructure 避循环)与 prefab-index(AssetRef.Guid + Current 访问器 + BuildIndex 填充 ReferencedAssets,采集移植自遗留 Indexer);旧 prefab_index golden 不受影响(测试 prefab 无预置引用)。两跑 44/44,gate high=0,跨模块写入已扩展记录于 T2-2.md。Window 改造与 jobId/分页推后 M3/M4。"
         },
         {
           "id": "T2-3",

@@ -11,6 +11,7 @@ namespace UIProbe.Core.Services
     public sealed class AssetRef
     {
         public string AssetPath;
+        public string Guid;
         public string NodePath;
         public string AssetName;
         public string Kind;

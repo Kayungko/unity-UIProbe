@@ -21,6 +21,8 @@ namespace UIProbe.Tests.Editor.Fakes
         }
 
         private readonly List<Entry> _entries = new List<Entry>();
+        private readonly Dictionary<string, List<AssetReferenceRecord>> _references =
+            new Dictionary<string, List<AssetReferenceRecord>>();
 
         /// <summary>可控数据规模上限。null 表示不限制;超过上限时 Seed 抛出。</summary>
         public int? MaxEntries { get; set; }
@@ -74,6 +76,24 @@ namespace UIProbe.Tests.Editor.Fakes
         public string AssetPathToGUID(string assetPath)
         {
             return _entries.FirstOrDefault(e => e.Path == assetPath)?.Guid ?? string.Empty;
+        }
+
+        /// <summary>为某 prefab 路径预置一条引用记录,供 CollectReferences 返回。</summary>
+        public void SeedReference(string prefabPath, AssetReferenceRecord record)
+        {
+            if (!_references.TryGetValue(prefabPath, out List<AssetReferenceRecord> list))
+            {
+                list = new List<AssetReferenceRecord>();
+                _references[prefabPath] = list;
+            }
+            list.Add(record);
+        }
+
+        public IReadOnlyList<AssetReferenceRecord> CollectReferences(string prefabPath)
+        {
+            return _references.TryGetValue(prefabPath, out List<AssetReferenceRecord> list)
+                ? list
+                : new List<AssetReferenceRecord>();
         }
     }
 }

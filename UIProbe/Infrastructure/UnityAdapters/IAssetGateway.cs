@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace UIProbe.Infrastructure.UnityAdapters
@@ -23,5 +24,11 @@ namespace UIProbe.Infrastructure.UnityAdapters
 
         /// <summary>资源路径转 GUID,未命中返回空字符串。</summary>
         string AssetPathToGUID(string assetPath);
+
+        /// <summary>
+        /// 加载 prefab 并收集其 Image/RawImage/Material/Prefab 资源引用。
+        /// prefab 不存在或无引用时返回空列表(非 null)。须在主线程调用。
+        /// </summary>
+        IReadOnlyList<AssetReferenceRecord> CollectReferences(string prefabPath);
     }
 }

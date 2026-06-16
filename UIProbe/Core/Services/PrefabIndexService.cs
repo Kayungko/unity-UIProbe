@@ -24,6 +24,9 @@ namespace UIProbe.Core.Services
 
         private PrefabIndex _current;
 
+        /// <summary>当前持有的索引(尚未构建/加载时为 null)。其他只读 Service 经此派生,不另缓存。</summary>
+        public PrefabIndex Current => _current;
+
         public PrefabIndexService(IAssetGateway assets, IFileSystem fs, IEditorPrefs prefs)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
@@ -75,7 +78,8 @@ namespace UIProbe.Core.Services
                         AssetPath = path,
                         Name = Path.GetFileNameWithoutExtension(path),
                         FolderPath = NormalizeFolder(Path.GetDirectoryName(path)),
-                        ComponentSummary = string.Empty
+                        ComponentSummary = string.Empty,
+                        ReferencedAssets = CollectReferences(path)
                     };
                 }
                 items.Add(item);
@@ -166,6 +170,25 @@ namespace UIProbe.Core.Services
             }
 
             return new ToolResult { Status = ToolStatus.Success, Data = JsonUtility.ToJson(item) };
+        }
+
+        /// <summary>经 IAssetGateway 接缝收集 prefab 引用,映射为 Core 层 AssetRef(零静态 Unity 调用)。</summary>
+        private List<AssetRef> CollectReferences(string path)
+        {
+            var refs = new List<AssetRef>();
+            foreach (AssetReferenceRecord r in _assets.CollectReferences(path))
+            {
+                refs.Add(new AssetRef
+                {
+                    AssetPath = r.AssetPath,
+                    Guid = r.Guid,
+                    NodePath = r.NodePath,
+                    AssetName = r.AssetName,
+                    Kind = r.Kind,
+                    ExtraInfo = r.ExtraInfo
+                });
+            }
+            return refs;
         }
 
         private static bool Contains(string haystack, string needle) =>

@@ -1,0 +1,3 @@
+ReferenceType,PrefabPath,NodePath,ComponentType,AssetName,AssetPath,ExtraInfo
+Image,Assets/UI/Card.prefab,Root/Icon,Image,icon_gold,Assets/Art/icon_gold.png,Image
+Image,Assets/UI/Panel.prefab,Header/Coin,Image,icon_gold,Assets/Art/icon_gold.png,Image

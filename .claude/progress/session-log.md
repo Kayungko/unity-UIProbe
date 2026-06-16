@@ -7,7 +7,7 @@
 <!-- 未完成 / 阻塞 / 下一步。永不压缩。 -->
 
 - [ ] 编译/测试基建(机器相关,暂不入库):临时宿主 `E:\uiprobe-compile-host`(junction 挂 UIProbe→Assets/UIProbe;manifest 含 com.unity.test-framework 1.1.33 + com.unity.testtools.codecoverage 1.2.6)。编译:`Unity.exe -batchmode -quit -nographics -projectPath <host> -logFile <log>`;测试:加 `-runTests -testPlatform EditMode -testResults <xml>`(去掉 -quit);覆盖率:再加 `-enableCodeCoverage -coverageResultsPath <dir> -coverageOptions "generateAdditionalMetrics;generateHtmlReport;assemblyFilters:+<asm>" -debugCodeOptimization`
-- [ ] Next: T2-2(AssetReferenceService)/ T2-3(UICheckService)— 均依赖 T2-1,现已就绪可启动。沿用 T2-1 同模式:经 IAssetGateway/IFileSystem 接缝注入,只读派生自 PrefabIndex(不另缓存),黄金样本回归。
+- [ ] Next: T2-3(UICheckService)— 依赖 T2-1,现已就绪。沿用同模式:经接缝注入,只读派生自 PrefabIndex,黄金样本回归。
 
 ## 归档 (Archive)
 
@@ -31,5 +31,7 @@ _尚无快速任务或调试记录。_
 - build: PrefabIndexService 经 IAssetGateway/IFileSystem/IEditorPrefs 接缝注入,提供 BuildIndex(增量+IProgress)/LoadCache/SaveCache/Search/GetPrefabDetail(缺失→TOOL_NOT_FOUND)。RED 36总/21过/15失(干净);GREEN 两跑 36/36;三格式黄金样本 diff 全绿;结构 gate high=0。
 - 偏差:新数据类型(PrefabIndex/Item/AssetRef/BuildOptions/LoadCacheResult)落 `Core/Services/PrefabIndexData.cs` 而非计划的 `Data/`——`UIProbe/Data/` 整体编译进 Editor-only 程序集(9/29 文件引用 UnityEditor),Core.Services(全平台)无法引用。未建第 6 个程序集(scope-discipline)。FolderTree 弃用(由 Items.FolderPath 派生,YAGNI)。Window 改造/jobId/Registry 包装按 /plan 推后 M3/M4。
 
-#### T2-2: 抽离 AssetReferenceService (NOT_STARTED) — 依赖 T2-1
+#### T2-2: 抽离 AssetReferenceService (DONE — 2026-06-16)
+- build: AssetReferenceService 严格从 PrefabIndexService.Current 派生(AND-匹配 AssetPath/AssetName/Guid/SpriteName/ReferenceType;无维度→INVALID_PARAMS;未构建→ExecutionFailed;无命中→Success+空列表);ExportCsv 经 IFileSystem 写受控目录返回 reportPath(失败→IO_ERROR)。RED 8/8 干净失败(NotImplementedException);GREEN 两跑 44/44;golden CSV diff 全绿;gate high=0。
+- 完整路径偏差(跨 3 模块):补 unity-adapters 引用采集接缝——`IAssetGateway.CollectReferences` + 中立 DTO `AssetReferenceRecord` 定义在 Infrastructure(避 Infrastructure→Core.Services 循环),生产实现移植自遗留 `UIProbeWindow_Indexer` 的 Image/RawImage/Material/Prefab 采集;prefab-index 加 `AssetRef.Guid` 字段 + `PrefabIndexService.Current` 访问器 + `BuildIndex` 填充 `ReferencedAssets`。旧 prefab_index golden 不变(测试 prefab 无预置引用,RefCount 恒 0)。Window 改造/jobId/分页推后 M3/M4。
 #### T2-3: 抽离 UICheckService (NOT_STARTED) — 依赖 T2-1
