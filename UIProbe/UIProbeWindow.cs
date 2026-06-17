@@ -85,7 +85,7 @@ namespace UIProbe
                 new BrowserModule(),
                 new DuplicateCheckerModule(configService, indexService),
                 new AssetReferencesModule(indexService),
-                new NestingOverviewModule(),
+                new NestingOverviewModule(indexService),
                 new ImageNormalizerModule(),
                 new ScreenshotModule(),
                 new RichTextGeneratorModule(),

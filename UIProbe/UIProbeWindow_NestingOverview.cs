@@ -8,7 +8,7 @@ using System.Text;
 
 namespace UIProbe
 {
-    partial class UIProbeWindow
+    internal sealed partial class NestingOverviewModule
     {
         // 嵌套关系总览状态
         private Vector2 nestingOverviewScrollPos;
