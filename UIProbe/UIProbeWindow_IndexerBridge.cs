@@ -8,14 +8,24 @@ using UnityEditor;
 namespace UIProbe
 {
     /// <summary>
-    /// Indexer 迁移遗留的壳层桥接：保留耦合 DuplicateChecker/Settings 的批量检测入口
-    /// （duplicateSettings / currentTab / LoadBatchResultIntoChecker / currentBatchResultPath），
-    /// 待 DuplicateChecker 与 Settings 迁移后再收敛。
+    /// Indexer 迁移遗留的壳层桥接：保留批量检测入口 RunBatchDetectDuplicates_Bridge，
+    /// 它仍依赖壳层 duplicateSettings（归 Settings，最后迁移）与 currentTab，
+    /// 结果经 DuplicateCheckerModule.LoadBatchResult 加载。待 Settings 迁移后再收敛。
     /// </summary>
     public partial class UIProbeWindow
     {
         /// <summary>转发资源引用页的索引变更通知（OnPrefabIndexChangedForAssetReferences 尚在 partial）。</summary>
         internal void OnPrefabIndexChangedForAssetReferences_Bridge() => OnPrefabIndexChangedForAssetReferences();
+
+        /// <summary>
+        /// 过渡期桥接：duplicateSettings 实例仍归 Settings（最后迁移），
+        /// 经此暴露给已迁移的 DuplicateCheckerModule 读写同一实例。
+        /// </summary>
+        internal DuplicateDetectionSettings DuplicateSettings
+        {
+            get => duplicateSettings;
+            set => duplicateSettings = value;
+        }
 
         // ===== 过渡期 shim：未迁移的 Settings / AssetReferences partial 仍按原字段/方法名访问 =====
         // Settings 数据管理按钮清理 Indexer 的收藏/历史；AssetReferences 复用类型图标。
@@ -137,7 +147,7 @@ namespace UIProbe
                     {
                         // 切换到重名检测标签页
                         currentTab = Tab.DuplicateChecker;
-                        LoadBatchResultIntoCheckerWithPath(batchDuplicateResult, jsonPath);
+                        modules.OfType<DuplicateCheckerModule>().First().LoadBatchResult(batchDuplicateResult, jsonPath);
                     }
                 }
                 else
@@ -156,24 +166,5 @@ namespace UIProbe
 
             return batchDuplicateResult;
         }
-
-        /// <summary>
-        /// 加载批量检测结果到重名检测页面（带JSON路径）
-        /// </summary>
-        private void LoadBatchResultIntoCheckerWithPath(BatchDuplicateResult result, string jsonPath)
-        {
-            // 调用partial方法
-            LoadBatchResultIntoChecker(result);
-
-            // 在UIProbeWindow_DuplicateCheckerBatch.cs中会设置currentBatchResult
-            // 这里我们需要另外设置路径
-            currentBatchResultPath = jsonPath;
-        }
-
-        /// <summary>
-        /// 加载批量检测结果到重名检测页面
-        /// (此方法在UIProbeWindow_DuplicateCheckerBatch.cs中实现)
-        /// </summary>
-        partial void LoadBatchResultIntoChecker(BatchDuplicateResult result);
     }
 }

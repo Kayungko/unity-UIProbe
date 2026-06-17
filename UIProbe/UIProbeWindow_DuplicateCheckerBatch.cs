@@ -6,12 +6,12 @@ using System.IO;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class DuplicateCheckerModule
     {
         /// <summary>
         /// 实现从索引页面加载批量检测结果到重名检测页面
         /// </summary>
-        partial void LoadBatchResultIntoChecker(BatchDuplicateResult result)
+        private void LoadBatchResultIntoChecker(BatchDuplicateResult result)
         {
             if (result == null)
                 return;

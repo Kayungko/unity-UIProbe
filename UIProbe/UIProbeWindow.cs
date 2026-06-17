@@ -83,7 +83,7 @@ namespace UIProbe
                 new IndexerModule(configService, indexService),
                 new RecorderModule(),
                 new BrowserModule(),
-                new DuplicateCheckerModule(),
+                new DuplicateCheckerModule(configService, indexService),
                 new AssetReferencesModule(),
                 new NestingOverviewModule(),
                 new ImageNormalizerModule(),

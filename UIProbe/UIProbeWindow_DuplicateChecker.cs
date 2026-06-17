@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class DuplicateCheckerModule
     {
         // Duplicate Checker State
         private Vector2 duplicateCheckerScrollPosition;

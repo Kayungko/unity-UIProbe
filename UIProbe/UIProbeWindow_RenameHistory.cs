@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class DuplicateCheckerModule
     {
         private Dictionary<string, bool> historyPrefabFoldouts = new Dictionary<string, bool>();
         
