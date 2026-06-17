@@ -114,9 +114,17 @@
         },
         {
           "id": "T2-3",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-17T05:40:00Z",
+          "completed_at": "2026-06-17T05:58:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "RED 54总/44过/10失(10 个 UICheck 用例干净 NotImplementedException);GREEN 两跑 54/54 Passed;golden JSON 首跑录制次跑 diff 全绿;结构 gate high=0",
+            "timestamp": "2026-06-17T05:58:00Z"
+          },
+          "evidence": "UICheckService 经 PrefabIndexService.Current 取目标 prefab,经新增节点检视接缝 IAssetGateway.InspectPrefab(中立 PrefabNodeRecord 置于 Infrastructure 避循环)在 Core.Services 跑 7 条规则(duplicate-name/missing-sprite/missing-font/unnecessary-raycast-target/bad-naming + opt-in empty-text + 关键字驱动 filter-node),统一产契约 Issue(单一来源)并序列化为可读报告 DTO。索引未构建→ExecutionFailed;无问题→Success+空 Issues+非空 Summary;Issue 字段完整(severity/ruleId/prefabPath/nodePath/componentType/message/suggestedFixId/canAutoFix)。生产 UnityAssetGateway.InspectPrefab 遍历 prefab 树产中立记录(IsInteractable=Selectable||ScrollRect 由适配层判定)。两跑 54/54,gate high=0。偏差:Data/UIProbeChecker.cs 不动(Editor-only 程序集约束,类型落 Core/Services);省 MissingCanvasGroup/RanAt;Window 改造推后 M3/M4。详见 T2-3.md。"
         }
       ],
       "coverage_gate": {

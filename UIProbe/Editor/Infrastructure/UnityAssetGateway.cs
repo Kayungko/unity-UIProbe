@@ -159,6 +159,45 @@ namespace UIProbe.Editor.Infrastructure
             }
         }
 
+        /// <summary>
+        /// 遍历 prefab 节点树(含根),把每个节点的 Image/Text/Graphic 检测要点扁平为中立记录。
+        /// IsInteractable 由适配层判定(Selectable || ScrollRect),避免 Unity 类型层级泄漏进 Core。
+        /// </summary>
+        public IReadOnlyList<PrefabNodeRecord> InspectPrefab(string prefabPath)
+        {
+            var nodes = new List<PrefabNodeRecord>();
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null) return nodes;
+
+            Transform root = prefab.transform;
+            foreach (Transform t in prefab.GetComponentsInChildren<Transform>(true))
+            {
+                GameObject go = t.gameObject;
+                var image = go.GetComponent<UnityEngine.UI.Image>();
+                var text = go.GetComponent<UnityEngine.UI.Text>();
+                var graphic = go.GetComponent<UnityEngine.UI.Graphic>();
+                bool interactable = go.GetComponent<UnityEngine.UI.Selectable>() != null
+                                    || go.GetComponent<UnityEngine.UI.ScrollRect>() != null;
+
+                nodes.Add(new PrefabNodeRecord
+                {
+                    NodePath = GetNodePath(root, t),
+                    Name = go.name,
+                    IsRoot = t == root,
+                    IsInteractable = interactable,
+                    HasImage = image != null,
+                    ImageSpriteAssigned = image != null && image.sprite != null,
+                    ImageColorAlpha = image != null ? image.color.a : 0f,
+                    HasText = text != null,
+                    TextFontAssigned = text != null && text.font != null,
+                    TextContent = text != null ? text.text : string.Empty,
+                    HasGraphic = graphic != null,
+                    GraphicRaycastTarget = graphic != null && graphic.raycastTarget
+                });
+            }
+            return nodes;
+        }
+
         private static string GetNodePath(Transform root, Transform target)
         {
             if (target == root) return root.name;

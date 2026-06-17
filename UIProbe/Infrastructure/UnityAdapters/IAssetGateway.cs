@@ -30,5 +30,11 @@ namespace UIProbe.Infrastructure.UnityAdapters
         /// prefab 不存在或无引用时返回空列表(非 null)。须在主线程调用。
         /// </summary>
         IReadOnlyList<AssetReferenceRecord> CollectReferences(string prefabPath);
+
+        /// <summary>
+        /// 加载 prefab 并把每个节点的 UI 检测要点扁平为中立 PrefabNodeRecord 列表(含根节点)。
+        /// prefab 不存在时返回空列表(非 null)。须在主线程调用,供 UICheckService 在 Core 侧跑规则。
+        /// </summary>
+        IReadOnlyList<PrefabNodeRecord> InspectPrefab(string prefabPath);
     }
 }

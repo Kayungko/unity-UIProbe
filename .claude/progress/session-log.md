@@ -7,7 +7,7 @@
 <!-- 未完成 / 阻塞 / 下一步。永不压缩。 -->
 
 - [ ] 编译/测试基建(机器相关,暂不入库):临时宿主 `E:\uiprobe-compile-host`(junction 挂 UIProbe→Assets/UIProbe;manifest 含 com.unity.test-framework 1.1.33 + com.unity.testtools.codecoverage 1.2.6)。编译:`Unity.exe -batchmode -quit -nographics -projectPath <host> -logFile <log>`;测试:加 `-runTests -testPlatform EditMode -testResults <xml>`(去掉 -quit);覆盖率:再加 `-enableCodeCoverage -coverageResultsPath <dir> -coverageOptions "generateAdditionalMetrics;generateHtmlReport;assemblyFilters:+<asm>" -debugCodeOptimization`
-- [ ] Next: T2-3(UICheckService)— 依赖 T2-1,现已就绪。沿用同模式:经接缝注入,只读派生自 PrefabIndex,黄金样本回归。
+- [ ] Next: M2 coverage gate(+UIProbe.Core.Services 范围重测 80% 目标),三个只读 Service 已就位。之后进 M3(Unity Bridge:HTTP loopback + 主线程 Dispatcher + Domain Reload 恢复)。
 
 ## 归档 (Archive)
 
@@ -34,4 +34,6 @@ _尚无快速任务或调试记录。_
 #### T2-2: 抽离 AssetReferenceService (DONE — 2026-06-16)
 - build: AssetReferenceService 严格从 PrefabIndexService.Current 派生(AND-匹配 AssetPath/AssetName/Guid/SpriteName/ReferenceType;无维度→INVALID_PARAMS;未构建→ExecutionFailed;无命中→Success+空列表);ExportCsv 经 IFileSystem 写受控目录返回 reportPath(失败→IO_ERROR)。RED 8/8 干净失败(NotImplementedException);GREEN 两跑 44/44;golden CSV diff 全绿;gate high=0。
 - 完整路径偏差(跨 3 模块):补 unity-adapters 引用采集接缝——`IAssetGateway.CollectReferences` + 中立 DTO `AssetReferenceRecord` 定义在 Infrastructure(避 Infrastructure→Core.Services 循环),生产实现移植自遗留 `UIProbeWindow_Indexer` 的 Image/RawImage/Material/Prefab 采集;prefab-index 加 `AssetRef.Guid` 字段 + `PrefabIndexService.Current` 访问器 + `BuildIndex` 填充 `ReferencedAssets`。旧 prefab_index golden 不变(测试 prefab 无预置引用,RefCount 恒 0)。Window 改造/jobId/分页推后 M3/M4。
-#### T2-3: 抽离 UICheckService (NOT_STARTED) — 依赖 T2-1
+#### T2-3: 抽离 UICheckService (DONE — 2026-06-17)
+- build: UICheckService 经 PrefabIndexService.Current 取目标,经新增节点检视接缝 `IAssetGateway.InspectPrefab`(中立 `PrefabNodeRecord` 置于 Infrastructure 避循环)在 Core.Services 跑 7 条规则(duplicate-name/missing-sprite/missing-font/unnecessary-raycast-target/bad-naming + opt-in empty-text + 关键字驱动 filter-node),统一产契约 `Issue`(单一来源)序列化为可读报告 DTO。索引未构建→ExecutionFailed;无问题→Success+空 Issues+非空 Summary。RED 54/44过/10失(干净 NotImplementedException);GREEN 两跑 54/54;golden JSON 录制→diff 全绿;gate high=0。
+- 偏差:`Data/UIProbeChecker.cs` 不动(`UIProbe/Data/` 编译进 Editor-only 程序集,Core.Services 够不到 → 类型落 `Core/Services/UICheckService.cs`,同 T2-1);省 `MissingCanvasGroupRule`(不在 6 类内)与报告 `RanAt`(无时钟接缝,YAGNI);生产 `UnityAssetGateway.InspectPrefab` 遍历 prefab 树(`IsInteractable=Selectable||ScrollRect` 适配层判定)。Window 改造(DuplicateChecker/FilterNodeScanner 接统一 Service)推后 M3/M4。
