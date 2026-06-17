@@ -51,7 +51,9 @@ namespace UIProbe
             if (picker != null) picker.IsPickerActive = !picker.IsPickerActive;
         }
 
-        private Tab currentTab = Tab.Picker;
+        // 当前激活 Tab 归 NavigationService 持有，以同名 shim 委托使壳层/未迁移模块编译不变。
+        private NavigationService navService;
+        private Tab currentTab { get => navService.Current; set => navService.Current = value; }
         private Vector2 mainScrollPos;
         private Vector2 sidebarScrollPos;
         private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "动画修复", "Filter节点排查", "资源使用检测", "设置", "关于" };
@@ -110,6 +112,9 @@ namespace UIProbe
 
             // 构造共享索引服务（在注册表/索引消费者使用前）
             indexService = new PrefabIndexService();
+
+            // 构造导航服务（在注册表前，供需要跨模块跳转的模块构造注入）
+            navService = new NavigationService();
 
             // 构造模块注册表（生命周期 Apply/Collect 仍由窗口显式调度，Step 2 再迁移）
             BuildModuleRegistry();
