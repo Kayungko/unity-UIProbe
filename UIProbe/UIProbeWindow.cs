@@ -49,7 +49,8 @@ namespace UIProbe
         private Vector2 sidebarScrollPos;
         private string[] tabNames = new string[] { "运行时拾取", "预制体索引", "界面记录", "历史浏览", "重名检测", "资源引用", "嵌套总览", "图片规范化", "游戏截屏", "富文本生成", "适配助手", "动画修复", "Filter节点排查", "资源使用检测", "设置", "关于" };
         
-        // 统一配置
+        // 统一配置（config 始终指向 configService.Config 同一实例，过渡期供未迁移模块直接访问）
+        private ConfigService configService;
         private UIProbeConfig config;
 
         // 模块注册表（Step 1：薄适配器，按侧栏顺序构造）
@@ -84,13 +85,9 @@ namespace UIProbe
 
         private void OnEnable()
         {
-            // 加载统一配置
-            config = UIProbeConfigManager.Load();
-            if (config == null)
-            {
-                // 首次运行，从EditorPrefs迁移
-                config = UIProbeConfigManager.MigrateFromEditorPrefs();
-            }
+            // 加载统一配置（经服务统一管理；config 指向同一实例供过渡期模块直接读写）
+            configService = new ConfigService();
+            config = configService.Config;
 
             // 构造模块注册表（生命周期 Apply/Collect 仍由窗口显式调度，Step 2 再迁移）
             BuildModuleRegistry();
@@ -127,10 +124,7 @@ namespace UIProbe
             CollectAnimationAutoRepairConfig();
             CollectPickerConfig();
             CollectSettingsData();
-            if (config != null)
-            {
-                UIProbeConfigManager.Save(config);
-            }
+            configService?.Save();
         }
 
         private void OnGUI()
