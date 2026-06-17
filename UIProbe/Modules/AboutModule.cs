@@ -80,6 +80,10 @@ namespace UIProbe
             {
             EditorGUILayout.Space(5);
 
+            EditorGUILayout.LabelField("• 编辑器内一键自动更新 (v3.11.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 关于页「检查更新」可直接下载最新 .unitypackage 并触发导入，带可取消进度条", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 三选一：立即更新(自动导入) / 稍后再说 / 前往下载页；失败自动回退浏览器下载", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 全程不依赖 git/CLI，也不要求工程绑定 GitHub 仓库", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("• 模块化架构重构 + 设置/关于页折叠 (v3.10.0)", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - God Object 拆分为模块注册表 + 三大共享服务，新增模块只需登记一个类", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 按职责重组目录 (Modules/Services/Core/Data/IO)，对终端用户功能透明无回退", EditorStyles.miniLabel);
