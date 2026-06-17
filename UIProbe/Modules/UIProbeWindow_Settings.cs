@@ -21,6 +21,7 @@ namespace UIProbe
         private bool showCustomTags = false;
         private bool showDataManagement = false;
         private bool showHelperSettings = false;
+        private bool showPickerInputMode = false;
         
         // Duplicate Detection Settings
         private DuplicateDetectionSettings duplicateSettings;
@@ -347,11 +348,11 @@ namespace UIProbe
             
             // ===== Picker Input Mode Settings =====
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("运行时拾取方式 (Picker Input Mode)", EditorStyles.boldLabel);
-            EditorGUILayout.Space(3);
-            
-            if (config != null && config.picker != null)
+            showPickerInputMode = EditorGUILayout.Foldout(showPickerInputMode, "运行时拾取方式 (Picker Input Mode)", true, EditorStyles.foldoutHeader);
+
+            if (showPickerInputMode && config != null && config.picker != null)
             {
+                EditorGUILayout.Space(3);
                 EditorGUILayout.HelpBox("选择在 Play 模式下拾取 UI 元素的输入方式。推荐使用右键以避免触发按钮点击。", MessageType.Info);
                 EditorGUILayout.Space(5);
                 

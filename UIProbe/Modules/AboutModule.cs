@@ -12,6 +12,7 @@ namespace UIProbe
         public override SidebarSection Section => SidebarSection.Bottom;
 
         private Vector2 aboutScrollPosition;
+        private bool showVersionHistory = false;
 
         /// <summary>
         /// 绘制关于标签页
@@ -74,7 +75,9 @@ namespace UIProbe
 
             // Version History Highlights
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField($"最新更新 (v{UIProbeUpdateChecker.VERSION})", EditorStyles.boldLabel);
+            showVersionHistory = EditorGUILayout.Foldout(showVersionHistory, $"最新更新 (v{UIProbeUpdateChecker.VERSION})", true, EditorStyles.foldoutHeader);
+            if (showVersionHistory)
+            {
             EditorGUILayout.Space(5);
 
             EditorGUILayout.LabelField("• 资源引用刷新与节点定位修复 (v3.9.3)", EditorStyles.miniLabel);
@@ -126,6 +129,7 @@ namespace UIProbe
             EditorGUILayout.LabelField("  - 根级 ScrollView + 侧栏可滚动 + 窗口最小尺寸 400x250", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 所有 Tab 固定宽度控件改为 ExpandWidth 自适应", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - Recorder 清空加确认、Picker 快捷键不再写死", EditorStyles.miniLabel);
+            }
 
             EditorGUILayout.EndVertical();
 
