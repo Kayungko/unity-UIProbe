@@ -1,12 +1,45 @@
-# UIProbe
+<div align="center">
 
-**功能全面的 Unity UI 开发辅助工具集** - 涵盖资源索引、质量检测、运行时调试、批量操作等全方位解决方案,显著提升 UI 开发效率和质量。
+# 🔍 UIProbe
 
-**核心功能**:动画路径自动修复 | 预制体索引与搜索 | 综合质量检测 | 协作式重命名 | 资源引用追踪 | 嵌套关系总览 | 运行时拾取调试 | 图片规范化 | 大红大金资源导入 | 高清截图 | TMP富文本生成器 | 预制体快速创建与布局
+**功能全面的 Unity UI 开发辅助工具集**
 
-📖 **[点击查看完整使用手册 (User Manual)](UserManual.md)**
+一站式覆盖 **资源索引 · 质量检测 · 运行时调试 · 批量操作**，显著提升 UI 开发效率与质量。
 
-## ✨ 最新更新 (v3.11.0)
+![version](https://img.shields.io/badge/version-v3.11.0-2ea44f)
+![Unity](https://img.shields.io/badge/Unity-2019.4%2B-black?logo=unity&logoColor=white)
+![platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
+![type](https://img.shields.io/badge/type-Editor%20Extension-orange)
+
+📖 **[使用手册](UserManual.md)** &nbsp;·&nbsp; 🆕 **[最新更新](#-最新更新-v3110)** &nbsp;·&nbsp; 🌐 **[GitHub](https://github.com/Kayungko/unity-UIProbe)**
+
+</div>
+
+---
+
+## ✨ 核心功能
+
+| 类别 | 功能 |
+| :--- | :--- |
+| 🔍 **索引与搜索** | 预制体索引与搜索 · 资源引用追踪（图片/字体/材质/嵌套预制体）· 嵌套关系双向总览 |
+| ✅ **质量检测** | 综合检测（重名节点 / 多余 Raycast Target / 资源丢失）· 协作式重命名 · 动画路径自动修复 |
+| 🎯 **运行时调试** | Play 模式点击拾取 UI 元素 · Device Simulator 支持 · 完整层级与组件信息面板 |
+| 🛠️ **实用工具** | 图片规范化 · 大红大金资源导入 · 高清/透明截图 · TMP 富文本可视化生成器 |
+| ⚡ **预制体助手** | 快速创建 UI 节点 · 九宫格锚点 · 智能布局（全屏/居中/侧边栏） |
+| 🔄 **一键更新** | 关于页检测新版本，编辑器内直接下载并导入，零 git/CLI 依赖 |
+
+## 🚀 快速开始
+
+1. 从 [Release 页面](https://github.com/Kayungko/unity-UIProbe/releases) 下载最新 `.unitypackage`（或下载 `.zip` 解压）。
+2. 在 Unity 中通过 `Assets > Import Package > Custom Package` 导入；或将 `UIProbe` 文件夹放入项目 `Assets` 任意位置（建议置于 `Editor` 目录）。
+3. 菜单栏点击 **`Tools > UIProbe`** 打开工具窗口。
+4. 首次使用：在「设置」页配置检测规则 → 在「预制体索引」页点击 **🔄 刷新索引**。
+
+> 📖 完整功能说明请见 **[使用手册 (User Manual)](UserManual.md)**。
+
+---
+
+## 🆕 最新更新 (v3.11.0)
 
 ### 编辑器内一键自动更新
 
@@ -15,9 +48,12 @@
 - 三选一交互：立即更新(自动导入) / 稍后再说 / 前往下载页；自动导入失败时自动回退到浏览器下载页。
 - 全程不依赖 git/CLI，也不要求工程绑定 GitHub 仓库。
 
-## 历史更新 (v3.10.0)
+## 📜 完整更新历史
 
-### 模块化架构重构 + 界面折叠优化
+<details>
+<summary>点击展开查看 v3.10.0 → v1.4 的全部更新记录</summary>
+
+### v3.10.0 — 模块化架构重构 + 界面折叠优化
 
 **v3.10.0 重构**
 - God Object 拆分：`UIProbeWindow` 重构为模块注册表 + 三大共享服务（Config / PrefabIndex / Navigation），新增模块只需登记一个类，不再需要改 7 处。
@@ -667,16 +703,21 @@ macOS: ~/Library/Application Support/UIProbe/Settings/config.json
 - **历史归档**：重命名历史自动保存到 `Rename_History` 目录。
 - **索引缓存**：预制体索引自动保存，启动即用。
 
-## 📦 安装与使用
+</details>
 
-1. 将 `UIProbe` 文件夹放入项目的 `Assets` 目录中（建议放在 Editor 目录下或独立的工具目录）。
-2. 在 Unity 菜单栏点击 `Tools > UIProbe` 打开窗口。
-3. **设置**：首次使用建议先到设置页配置检测规则。
-4. **索引**：在索引页点击"刷新"构建预制体索引。
+---
 
 ## 🛠️ 配置说明
 
-在设置页面可以配置：
+在「设置」页面可以配置：
 - **检测模式**：Smart（智能过滤） / Strict（严格模式）
 - **检测范围**：Global（全局） / SameLevel（同级）/ Children（子节点）
 - **白名单/黑名单**：自定义允许或禁止重复的节点名称
+
+配置文件独立于 Unity `EditorPrefs`，便于团队共享：
+- Windows: `%AppData%/UIProbe/Settings/config.json`
+- macOS: `~/Library/Application Support/UIProbe/Settings/config.json`
+
+## 👥 开发者
+
+柯家荣 · 沈浩天 — © 2024-2026 UIProbe Team.
