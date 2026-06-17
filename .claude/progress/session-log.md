@@ -7,8 +7,8 @@
 <!-- 未完成 / 阻塞 / 下一步。永不压缩。 -->
 
 - [ ] 编译/测试基建(机器相关,暂不入库):临时宿主 `E:\uiprobe-compile-host`(junction 挂 UIProbe→Assets/UIProbe;manifest 含 com.unity.test-framework 1.1.33 + com.unity.testtools.codecoverage 1.2.6)。编译:`Unity.exe -batchmode -quit -nographics -projectPath <host> -logFile <log>`;测试:加 `-runTests -testPlatform EditMode -testResults <xml>`(去掉 -quit);覆盖率:再加 `-enableCodeCoverage -coverageResultsPath <dir> -coverageOptions "generateAdditionalMetrics;generateHtmlReport;assemblyFilters:+<asm>" -debugCodeOptimization`
-- [ ] Next: M3 coverage gate(范围 +UIProbe.Core.Services;Bridge/Dispatcher 在 Editor 程序集不计入,确认目标 80% 是否仍达标),随后进 M4 Node MCP Server。
-- [ ] T3-3 提交待推送(本地新增,未 push),push 前须用户明确确认。
+- [ ] Next: M4 Node MCP Server(连接/握手/工具代理 + v0.1 只读工具端到端 AI 向验收;独立 npm 包,经 HTTP loopback + jobId 轮询接 Unity Bridge)。
+- [ ] push 前须用户明确确认(每次单独授权,非长期)。
 
 ## 归档 (Archive)
 
@@ -34,6 +34,8 @@ _尚无快速任务或调试记录。_
 ## 当前里程碑 (Current Milestone)
 
 ### M3 Unity Bridge:HTTP loopback + 主线程 Dispatcher + Domain Reload 恢复
+
+> coverage gate **passed**(2026-06-18):范围 +UIProbe.Core.Services,line 88.4%(376/425)method 94.4%(51/54),79/79 全过。M3 全部代码在 UIProbe.Editor 程序集不计入本范围,故与 M2 持平。3/3 任务 DONE。
 
 #### T3-1: MainThreadDispatcher (DONE — 2026-06-17)
 - build: MainThreadDispatcher 落 `UIProbe/Editor/Infrastructure/Bridge`。`Enqueue<T>(Func<CancellationToken,T>,kind,timeout)` 后台入并发队列返回可 await Task;`Pump()` 主线程 drain。超时经 `Task.WhenAny(tcs,Task.Delay)` 即便不 Pump 也触发→抛 `MainThreadTimeoutException(MAIN_THREAD_TIMEOUT)` 并 cts.Cancel。`IsCompiling/IsUpdating` 时 `JobKind.Write` 回填重入队、只读放行。`EnqueueLong` 即时返回 jobId + `GetJob` 轮询(Running/Done/Failed/Interrupted)。RED 62总/55过/7失(干净 NotImplementedException);GREEN 两跑 62/62;gate high=0。

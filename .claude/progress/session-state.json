@@ -183,11 +183,11 @@
         }
       ],
       "coverage_gate": {
-        "status": "pending",
+        "status": "passed",
         "target": 80,
-        "actual": null,
-        "report": "",
-        "checked_at": null
+        "actual": 88.4,
+        "report": "范围 +UIProbe.Core.Services;line 88.4%(376/425)method 94.4%(51/54),79/79 EditMode 全过。与 M2 持平——M3 全部代码(MainThreadDispatcher/UIProbeBridge/BridgeReloadHandler/BridgeBootstrap)在 UIProbe.Editor 程序集,不计入 Core.Services 范围;ToolRegistry 80.6% 为本范围最低。未覆盖 49 行集中在 OperationTicket(写阶段桩,M5)与各 Service 边界分支。",
+        "checked_at": "2026-06-18T01:20:00Z"
       }
     },
     {
