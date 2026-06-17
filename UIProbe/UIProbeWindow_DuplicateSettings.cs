@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class SettingsModule
     {
         // Foldout states for duplicate detection settings
         private bool showDuplicateModeSettings = true;

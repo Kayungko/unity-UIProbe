@@ -95,7 +95,7 @@ namespace UIProbe
                 new AnimationAutoRepairModule(),
                 new FilterNodeScannerModule(indexService),
                 new ResourceDetectorModule(),
-                new SettingsModule(),
+                new SettingsModule(configService),
                 new AboutModule(),
             };
             foreach (var m in modules)
@@ -120,7 +120,7 @@ namespace UIProbe
             BuildModuleRegistry();
 
             modules.OfType<IndexerModule>().First().Apply();
-            LoadSettingsData();
+            modules.OfType<SettingsModule>().First().Apply();
             modules.OfType<BrowserModule>().First().Apply();
             modules.OfType<PickerModule>().First().Apply();
             
@@ -149,7 +149,7 @@ namespace UIProbe
             modules.OfType<AdaptorModule>().First().Collect();
             modules.OfType<AnimationAutoRepairModule>().First().Collect();
             modules.OfType<PickerModule>().First().Collect();
-            CollectSettingsData();
+            modules.OfType<SettingsModule>().First().Collect();
             configService?.Save();
         }
 

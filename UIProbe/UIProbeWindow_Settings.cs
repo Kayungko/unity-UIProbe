@@ -5,7 +5,7 @@ using TMPro;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class SettingsModule
     {
         // Settings State
         private string recordStoragePath = "";

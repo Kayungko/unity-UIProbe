@@ -9,8 +9,8 @@ namespace UIProbe
 {
     /// <summary>
     /// Indexer 迁移遗留的壳层桥接：保留批量检测入口 RunBatchDetectDuplicates_Bridge，
-    /// 它仍依赖壳层 duplicateSettings（归 Settings，最后迁移）与 currentTab，
-    /// 结果经 DuplicateCheckerModule.LoadBatchResult 加载。待 Settings 迁移后再收敛。
+    /// 它经壳层 DuplicateSettings（归 SettingsModule）与 currentTab 协作，
+    /// 结果经 DuplicateCheckerModule.LoadBatchResult 加载。
     /// </summary>
     public partial class UIProbeWindow
     {
@@ -18,19 +18,18 @@ namespace UIProbe
         internal void OnPrefabIndexChangedForAssetReferences_Bridge() => modules.OfType<AssetReferencesModule>().First().OnPrefabIndexChangedForAssetReferences();
 
         /// <summary>
-        /// 过渡期桥接：duplicateSettings 实例仍归 Settings（最后迁移），
-        /// 经此暴露给已迁移的 DuplicateCheckerModule 读写同一实例。
+        /// duplicateSettings 实例归 SettingsModule 持有，经此壳层桥接暴露给
+        /// DuplicateCheckerModule 与批量检测读写同一实例。
         /// </summary>
         internal DuplicateDetectionSettings DuplicateSettings
         {
-            get => duplicateSettings;
-            set => duplicateSettings = value;
+            get => modules.OfType<SettingsModule>().First().DuplicateSettings;
+            set => modules.OfType<SettingsModule>().First().DuplicateSettings = value;
         }
 
-        // ===== 过渡期 shim：未迁移的 Settings partial 仍按原字段名访问 Indexer 收藏/历史 =====
-        // 待 Settings 迁移到独立模块后删除。
-        private List<string> searchHistory => modules.OfType<IndexerModule>().First().SearchHistory;
-        private List<string> bookmarks => modules.OfType<IndexerModule>().First().Bookmarks;
+        // ===== 壳层桥接：收藏/历史归 IndexerModule，经此暴露给 SettingsModule 的数据管理页 =====
+        internal List<string> IndexerSearchHistory => modules.OfType<IndexerModule>().First().SearchHistory;
+        internal List<string> IndexerBookmarks => modules.OfType<IndexerModule>().First().Bookmarks;
         // AssetReferencesModule 复用 Indexer 的类型图标映射，经此桥接读取。
         internal string GetAssetTypeIcon_Bridge(AssetReferenceType type) => modules.OfType<IndexerModule>().First().GetAssetTypeIconPublic(type);
 
@@ -46,23 +45,23 @@ namespace UIProbe
             }
 
             // 加载检测设置
-            if (duplicateSettings == null)
+            if (DuplicateSettings == null)
             {
                 string settingsJson = EditorPrefs.GetString("UIProbe_DuplicateSettings", "");
                 if (!string.IsNullOrEmpty(settingsJson))
                 {
                     try
                     {
-                        duplicateSettings = JsonUtility.FromJson<DuplicateDetectionSettings>(settingsJson);
+                        DuplicateSettings = JsonUtility.FromJson<DuplicateDetectionSettings>(settingsJson);
                     }
                     catch
                     {
-                        duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                        DuplicateSettings = DuplicateDetectionSettings.GetDefault();
                     }
                 }
                 else
                 {
-                    duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                    DuplicateSettings = DuplicateDetectionSettings.GetDefault();
                 }
             }
 
@@ -92,11 +91,11 @@ namespace UIProbe
                         continue;
 
                     // 执行重名检测（使用设置中配置的范围）
-                    DuplicateDetectionMode scope = duplicateSettings.DetectionScope;
+                    DuplicateDetectionMode scope = DuplicateSettings.DetectionScope;
                     DuplicateNameResult result = DuplicateNameRule.DetectDuplicates(
                         prefabAsset,
                         scope,
-                        duplicateSettings
+                        DuplicateSettings
                     );
 
                     // 记录结果

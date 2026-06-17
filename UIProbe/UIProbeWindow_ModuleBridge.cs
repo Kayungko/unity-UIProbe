@@ -8,7 +8,5 @@ namespace UIProbe
     public partial class UIProbeWindow
     {
         internal void DrawSidebarButtonPublic(Tab tab, string label) => DrawSidebarButton(tab, label);
-
-        internal void DrawSettingsTab_Bridge() => DrawSettingsTab();
     }
 }
