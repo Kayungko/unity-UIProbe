@@ -91,7 +91,7 @@ namespace UIProbe
                 new ImageNormalizerModule(configService),
                 new ScreenshotModule(),
                 new RichTextGeneratorModule(),
-                new AdaptorModule(),
+                new AdaptorModule(configService, navService),
                 new AnimationAutoRepairModule(),
                 new FilterNodeScannerModule(indexService),
                 new ResourceDetectorModule(),
@@ -129,7 +129,7 @@ namespace UIProbe
             
             // 应用配置到图片规范化工具（含 RedGold Undo 管理初始化，迁入模块 Apply）
             modules.OfType<ImageNormalizerModule>().First().Apply();
-            ApplyHelperConfig();
+            modules.OfType<AdaptorModule>().First().Apply();
             modules.OfType<AnimationAutoRepairModule>().First().Apply();
 
             // 注册全局更新回调，使拾取功能在窗口未激活时也能工作
@@ -146,7 +146,7 @@ namespace UIProbe
             
             // 收集并保存配置
             modules.OfType<ImageNormalizerModule>().First().Collect();
-            CollectHelperConfig();
+            modules.OfType<AdaptorModule>().First().Collect();
             modules.OfType<AnimationAutoRepairModule>().First().Collect();
             modules.OfType<PickerModule>().First().Collect();
             CollectSettingsData();

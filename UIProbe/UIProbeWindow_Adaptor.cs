@@ -7,7 +7,7 @@ using TMPro;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class AdaptorModule
     {
         // 助手状态 (Helper State)
         private Vector2 helperScrollPos;
@@ -128,7 +128,7 @@ namespace UIProbe
                     EditorGUILayout.LabelField("请在 [设置] 中添加字体", EditorStyles.miniLabel);
                     if (GUILayout.Button("去设置", EditorStyles.miniButton))
                     {
-                        currentTab = Tab.Settings; // Jump to settings
+                        _navService.GoTo(Tab.Settings); // Jump to settings
                     }
                     EditorGUILayout.EndHorizontal();
                 }
