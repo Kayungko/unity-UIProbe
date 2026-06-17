@@ -83,7 +83,7 @@ namespace UIProbe
             {
                 new PickerModule(configService),
                 new IndexerModule(configService, indexService),
-                new RecorderModule(),
+                new RecorderModule(navService),
                 new BrowserModule(),
                 new DuplicateCheckerModule(configService, indexService),
                 new AssetReferencesModule(indexService),
@@ -256,8 +256,14 @@ namespace UIProbe
         {
             // 确保注销全局更新回调（双重保险）
             EditorApplication.update -= OnEditorUpdate;
-            
-            RecorderOnDestroy();
+
+            if (modules != null)
+            {
+                foreach (var m in modules)
+                {
+                    m.OnDestroy();
+                }
+            }
         }
     }
 }

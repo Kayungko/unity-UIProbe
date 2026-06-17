@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class RecorderModule
     {
         // Recorder V2 State
         private bool isRecordingV2 = false;
@@ -55,7 +55,7 @@ namespace UIProbe
             
             if (GUILayout.Button("浏览历史", GUILayout.Height(25)))
             {
-                currentTab = Tab.Browser;
+                _navService.GoTo(Tab.Browser);
             }
             
             if (GUILayout.Button("清空", GUILayout.Height(25)))
@@ -311,7 +311,7 @@ namespace UIProbe
         private void DetectUIRootV2()
         {
             // Try to find Canvas
-            var canvas = FindObjectOfType<Canvas>();
+            var canvas = Object.FindObjectOfType<Canvas>();
             if (canvas != null)
             {
                 uiRootV2 = canvas.transform;
