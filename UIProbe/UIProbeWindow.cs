@@ -228,11 +228,8 @@ namespace UIProbe
         
         private void Update()
         {
-            // 截屏快捷键（仅在 Play 模式且截屏页签激活时）
-            if (Application.isPlaying && currentTab == Tab.Screenshot)
-            {
-                HandleScreenshotInput();
-            }
+            var active = modules.FirstOrDefault(m => m.Tab == currentTab);
+            active?.OnWindowUpdate();
         }
 
         private void OnDestroy()
