@@ -14,8 +14,8 @@ namespace UIProbe
     /// </summary>
     public partial class UIProbeWindow
     {
-        /// <summary>转发资源引用页的索引变更通知（OnPrefabIndexChangedForAssetReferences 尚在 partial）。</summary>
-        internal void OnPrefabIndexChangedForAssetReferences_Bridge() => OnPrefabIndexChangedForAssetReferences();
+        /// <summary>Indexer 索引变更时转发给已迁移的 AssetReferencesModule 刷新搜索结果。</summary>
+        internal void OnPrefabIndexChangedForAssetReferences_Bridge() => modules.OfType<AssetReferencesModule>().First().OnPrefabIndexChangedForAssetReferences();
 
         /// <summary>
         /// 过渡期桥接：duplicateSettings 实例仍归 Settings（最后迁移），
@@ -27,12 +27,12 @@ namespace UIProbe
             set => duplicateSettings = value;
         }
 
-        // ===== 过渡期 shim：未迁移的 Settings / AssetReferences partial 仍按原字段/方法名访问 =====
-        // Settings 数据管理按钮清理 Indexer 的收藏/历史；AssetReferences 复用类型图标。
-        // 待二者迁移到独立模块后删除。
+        // ===== 过渡期 shim：未迁移的 Settings partial 仍按原字段名访问 Indexer 收藏/历史 =====
+        // 待 Settings 迁移到独立模块后删除。
         private List<string> searchHistory => modules.OfType<IndexerModule>().First().SearchHistory;
         private List<string> bookmarks => modules.OfType<IndexerModule>().First().Bookmarks;
-        private string GetAssetTypeIcon(AssetReferenceType type) => modules.OfType<IndexerModule>().First().GetAssetTypeIconPublic(type);
+        // AssetReferencesModule 复用 Indexer 的类型图标映射，经此桥接读取。
+        internal string GetAssetTypeIcon_Bridge(AssetReferenceType type) => modules.OfType<IndexerModule>().First().GetAssetTypeIconPublic(type);
 
         /// <summary>
         /// 批量检测预制体重名节点。IndexerModule 传入选中路径集合，返回检测结果。

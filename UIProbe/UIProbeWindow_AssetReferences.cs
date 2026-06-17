@@ -7,7 +7,7 @@ using System.IO;
 
 namespace UIProbe
 {
-    partial class UIProbeWindow
+    internal sealed partial class AssetReferencesModule
     {
         // 资源引用标签页状态
         private string assetSearchQuery = "";
@@ -172,7 +172,7 @@ namespace UIProbe
         /// <summary>
         /// 搜索资源引用
         /// </summary>
-        private void OnPrefabIndexChangedForAssetReferences()
+        internal void OnPrefabIndexChangedForAssetReferences()
         {
             assetSearchIndexVersion = -1;
             EnsureAssetReferenceResultsFresh();

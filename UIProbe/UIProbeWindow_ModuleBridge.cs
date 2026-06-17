@@ -11,7 +11,6 @@ namespace UIProbe
 
         internal void DrawRecorderTab_Bridge() => DrawRecorderTab();
         internal void DrawBrowserTab_Bridge() => DrawBrowserTab();
-        internal void DrawAssetReferencesTab_Bridge() => DrawAssetReferencesTab();
         internal void DrawNestingOverviewTab_Bridge() => DrawNestingOverviewTab();
         internal void DrawImageNormalizerTab_Bridge() => DrawImageNormalizerTab();
         internal void DrawAdaptorTab_Bridge() => DrawAdaptorTab();
