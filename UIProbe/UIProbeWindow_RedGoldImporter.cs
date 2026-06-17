@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class ImageNormalizerModule
     {
         private string redGoldTablePath = "";
         private readonly List<string> redGoldImageSourceFolders = new List<string> { "" };

@@ -39,7 +39,7 @@ namespace UIProbe
         public bool IsFoldout = true;
     }
 
-    partial class UIProbeWindow
+    internal sealed partial class ImageNormalizerModule
     {
         // ─── 图片工具子标签 ──────────────────────────────────────────────
         private enum ImageToolSubTab { Normalizer, BatchRename, RedGoldImporter }

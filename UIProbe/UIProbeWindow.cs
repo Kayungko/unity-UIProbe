@@ -86,7 +86,7 @@ namespace UIProbe
                 new DuplicateCheckerModule(configService, indexService),
                 new AssetReferencesModule(indexService),
                 new NestingOverviewModule(indexService),
-                new ImageNormalizerModule(),
+                new ImageNormalizerModule(configService),
                 new ScreenshotModule(),
                 new RichTextGeneratorModule(),
                 new AdaptorModule(),
@@ -122,9 +122,8 @@ namespace UIProbe
             // 尝试加载索引缓存（已迁入服务）
             indexService.LoadIndexCache();
             
-            // 应用配置到图片规范化工具
-            EnsureRedGoldUndoManager();
-            ApplyImageNormalizerConfig();
+            // 应用配置到图片规范化工具（含 RedGold Undo 管理初始化，迁入模块 Apply）
+            modules.OfType<ImageNormalizerModule>().First().Apply();
             ApplyHelperConfig();
             modules.OfType<AnimationAutoRepairModule>().First().Apply();
 
@@ -141,7 +140,7 @@ namespace UIProbe
             modules.OfType<IndexerModule>().First().Collect();
             
             // 收集并保存配置
-            CollectImageNormalizerConfig();
+            modules.OfType<ImageNormalizerModule>().First().Collect();
             CollectHelperConfig();
             modules.OfType<AnimationAutoRepairModule>().First().Collect();
             modules.OfType<PickerModule>().First().Collect();

@@ -26,8 +26,8 @@ namespace UIProbe
         public string FinalFileName => FinalNameNoExt + Extension;
     }
 
-    // ─── 批量命名 UI + 逻辑（UIProbeWindow partial class）──────────────────
-    public partial class UIProbeWindow
+    // ─── 批量命名 UI + 逻辑（ImageNormalizerModule partial class）──────────────────
+    internal sealed partial class ImageNormalizerModule
     {
         // ── 文件来源状态 ──────────────────────────────────────────────────────
         private string renamerSourceFolder      = "";
