@@ -171,16 +171,42 @@ namespace UIProbe
             {
                 UIProbeUpdateChecker.PerformCheck((hasUpdate, msg) =>
                 {
-                    if (hasUpdate)
+                    if (!hasUpdate)
+                    {
+                        EditorUtility.DisplayDialog("UIProbe 更新检测", msg, "确定");
+                        return;
+                    }
+
+                    // 无可下载的 .unitypackage 时退回到仅浏览器下载
+                    if (string.IsNullOrEmpty(UIProbeUpdateChecker.DownloadUrl))
                     {
                         if (EditorUtility.DisplayDialog("UIProbe 更新检测", msg, "前往下载", "稍后再说"))
                         {
                             Application.OpenURL(UIProbeUpdateChecker.ReleaseUrl);
                         }
+                        return;
                     }
-                    else
+
+                    // 三选一：编辑器内一键更新 / 稍后 / 前往下载页（DisplayDialogComplex 返回 0=ok 1=cancel 2=alt）
+                    int choice = EditorUtility.DisplayDialogComplex(
+                        "UIProbe 更新检测", msg, "立即更新 (自动导入)", "稍后再说", "前往下载页");
+                    if (choice == 0)
                     {
-                        EditorUtility.DisplayDialog("UIProbe 更新检测", msg, "确定");
+                        UIProbeUpdateChecker.DownloadAndImportUpdate((ok, resultMsg) =>
+                        {
+                            if (ok)
+                            {
+                                EditorUtility.DisplayDialog("UIProbe 自动更新", resultMsg, "确定");
+                            }
+                            else if (EditorUtility.DisplayDialog("UIProbe 自动更新", resultMsg, "前往下载页", "关闭"))
+                            {
+                                Application.OpenURL(UIProbeUpdateChecker.ReleaseUrl);
+                            }
+                        });
+                    }
+                    else if (choice == 2)
+                    {
+                        Application.OpenURL(UIProbeUpdateChecker.ReleaseUrl);
                     }
                 });
             }

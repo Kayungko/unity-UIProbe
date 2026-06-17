@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.Networking;
 using System;
+using System.IO;
 
 namespace UIProbe
 {
@@ -21,6 +22,9 @@ namespace UIProbe
         public static bool HasUpdateAvailable { get; private set; }
         public static string LatestVersion { get; private set; }
         public static string ReleaseUrl { get; private set; }
+        // 最新 Release 中 .unitypackage 资源的下载地址与文件名（用于编辑器内一键更新）
+        public static string DownloadUrl { get; private set; }
+        public static string DownloadFileName { get; private set; }
 
         static UIProbeUpdateChecker()
         {
@@ -89,8 +93,26 @@ namespace UIProbe
                                 HasUpdateAvailable = true;
                                 LatestVersion = info.tag_name;
                                 ReleaseUrl = !string.IsNullOrEmpty(info.html_url) ? info.html_url : "https://github.com/Kayungko/unity-UIProbe/releases";
-                                
-                                onComplete?.Invoke(true, $"发现新版本：{info.tag_name}\n\n是否立即前往下载？");
+
+                                // 在 Release 资源中定位 .unitypackage，供编辑器内一键更新使用
+                                DownloadUrl = null;
+                                DownloadFileName = null;
+                                if (info.assets != null)
+                                {
+                                    foreach (var asset in info.assets)
+                                    {
+                                        if (asset != null && !string.IsNullOrEmpty(asset.name) &&
+                                            asset.name.EndsWith(".unitypackage", StringComparison.OrdinalIgnoreCase) &&
+                                            !string.IsNullOrEmpty(asset.browser_download_url))
+                                        {
+                                            DownloadUrl = asset.browser_download_url;
+                                            DownloadFileName = asset.name;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                onComplete?.Invoke(true, $"发现新版本：{info.tag_name}\n\n当前版本：v{VERSION}");
                             }
                             else
                             {
@@ -122,12 +144,83 @@ namespace UIProbe
             };
         }
 
+        /// <summary>
+        /// 编辑器内一键更新：下载最新 .unitypackage 并触发导入。
+        /// 任意环节失败时通过 onComplete(false, msg) 上报，由调用方回退到浏览器下载。
+        /// 全程不依赖 git/CLI，也不要求工程绑定 GitHub 仓库。
+        /// </summary>
+        public static void DownloadAndImportUpdate(Action<bool, string> onComplete = null)
+        {
+            if (string.IsNullOrEmpty(DownloadUrl))
+            {
+                onComplete?.Invoke(false, "未在 Release 中找到可下载的 .unitypackage，请前往下载页手动下载。");
+                return;
+            }
+
+            string fileName = string.IsNullOrEmpty(DownloadFileName) ? "unity-UIProbe-update.unitypackage" : DownloadFileName;
+            var request = UnityWebRequest.Get(DownloadUrl);
+            request.SetRequestHeader("User-Agent", "unity-UIProbe-UpdateChecker");
+            request.timeout = 120; // 安装包可能较大，给足下载时间
+            var op = request.SendWebRequest();
+
+            EditorApplication.CallbackFunction progressUpdater = null;
+            progressUpdater = () =>
+            {
+                if (!op.isDone)
+                {
+                    bool cancel = EditorUtility.DisplayCancelableProgressBar(
+                        "UIProbe 自动更新",
+                        $"正在下载 {LatestVersion} ... {(request.downloadProgress * 100f):F0}%",
+                        request.downloadProgress);
+                    if (cancel)
+                        request.Abort();
+                    return;
+                }
+
+                EditorApplication.update -= progressUpdater;
+                EditorUtility.ClearProgressBar();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    try
+                    {
+                        string tempPath = Path.Combine(Path.GetTempPath(), fileName);
+                        File.WriteAllBytes(tempPath, request.downloadHandler.data);
+                        request.Dispose();
+                        // interactive=true：弹出 Unity 原生导入窗口，由用户确认覆盖文件
+                        AssetDatabase.ImportPackage(tempPath, true);
+                        onComplete?.Invoke(true, $"已下载 {LatestVersion}，请在弹出的导入窗口中确认导入。");
+                    }
+                    catch (Exception e)
+                    {
+                        request.Dispose();
+                        onComplete?.Invoke(false, "下载成功但导入失败：" + e.Message);
+                    }
+                }
+                else
+                {
+                    string err = request.error;
+                    request.Dispose();
+                    onComplete?.Invoke(false, "下载失败：" + (string.IsNullOrEmpty(err) ? "已取消或网络异常" : err));
+                }
+            };
+            EditorApplication.update += progressUpdater;
+        }
+
         [Serializable]
         private class GitHubReleaseInfo
         {
             public string tag_name;
             public string html_url;
             public string body;
+            public GitHubAsset[] assets;
+        }
+
+        [Serializable]
+        private class GitHubAsset
+        {
+            public string name;
+            public string browser_download_url;
         }
     }
 }
