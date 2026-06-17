@@ -80,6 +80,10 @@ namespace UIProbe
             {
             EditorGUILayout.Space(5);
 
+            EditorGUILayout.LabelField("• 模块化架构重构 + 设置/关于页折叠 (v3.10.0)", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - God Object 拆分为模块注册表 + 三大共享服务，新增模块只需登记一个类", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 按职责重组目录 (Modules/Services/Core/Data/IO)，对终端用户功能透明无回退", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("  - 设置页「运行时拾取方式」、关于页「最新更新」改为默认收起折叠", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("• 资源引用刷新与节点定位修复 (v3.9.3)", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 刷新预制体索引后自动重算资源引用结果，避免旧节点记录残留", EditorStyles.miniLabel);
             EditorGUILayout.LabelField("  - 引用位置显示完整层级，蓝色节点路径可点击并定位到 Prefab 内节点", EditorStyles.miniLabel);
