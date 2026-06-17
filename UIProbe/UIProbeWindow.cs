@@ -60,6 +60,18 @@ namespace UIProbe
         private ConfigService configService;
         private UIProbeConfig config;
 
+        // 共享索引服务（持有 allPrefabs / folderTree / 版本号 / 缓存 I/O）。
+        // 下列 shim 属性以原字段同名委托到服务，使尚未迁移的索引消费者
+        // (Indexer / AssetReferences / NestingOverview / DuplicateChecker / FilterNodeScanner)
+        // 编译不变；随各消费者迁移逐步移除。
+        private PrefabIndexService indexService;
+        private System.Collections.Generic.List<PrefabIndexItem> allPrefabs => indexService.AllPrefabs;
+        private System.Collections.Generic.Dictionary<string, FolderNode> folderTree => indexService.FolderTree;
+        private bool isIndexBuilt { get => indexService.IsIndexBuilt; set => indexService.IsIndexBuilt = value; }
+        private string indexRootPath { get => indexService.IndexRootPath; set => indexService.IndexRootPath = value; }
+        private string lastIndexUpdateTime => indexService.LastIndexUpdateTime;
+        private int prefabIndexVersion { get => indexService.PrefabIndexVersion; set => indexService.PrefabIndexVersion = value; }
+
         // 模块注册表（Step 1：薄适配器，按侧栏顺序构造）
         private List<IUIProbeModule> modules;
 
@@ -96,6 +108,9 @@ namespace UIProbe
             configService = new ConfigService();
             config = configService.Config;
 
+            // 构造共享索引服务（在注册表/索引消费者使用前）
+            indexService = new PrefabIndexService();
+
             // 构造模块注册表（生命周期 Apply/Collect 仍由窗口显式调度，Step 2 再迁移）
             BuildModuleRegistry();
 
@@ -104,8 +119,8 @@ namespace UIProbe
             RefreshSessionList();
             modules.OfType<PickerModule>().First().Apply();
             
-            // 尝试加载索引缓存
-            LoadIndexCache();
+            // 尝试加载索引缓存（已迁入服务）
+            indexService.LoadIndexCache();
             
             // 应用配置到图片规范化工具
             EnsureRedGoldUndoManager();
