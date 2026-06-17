@@ -8,7 +8,7 @@ using System.Text;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class FilterNodeScannerModule
     {
         private const string FilterNodeReplacementPrefabPath = "Assets/UI/Prefabs/UI_CommonTemplate/Common_Dropdown_Filter_Universal.prefab";
 

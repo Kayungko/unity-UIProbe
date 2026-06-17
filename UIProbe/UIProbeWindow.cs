@@ -91,7 +91,7 @@ namespace UIProbe
                 new RichTextGeneratorModule(),
                 new AdaptorModule(),
                 new AnimationAutoRepairModule(),
-                new FilterNodeScannerModule(),
+                new FilterNodeScannerModule(indexService),
                 new ResourceDetectorModule(),
                 new SettingsModule(),
                 new AboutModule(),

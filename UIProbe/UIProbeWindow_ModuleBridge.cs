@@ -13,7 +13,6 @@ namespace UIProbe
         internal void DrawBrowserTab_Bridge() => DrawBrowserTab();
         internal void DrawImageNormalizerTab_Bridge() => DrawImageNormalizerTab();
         internal void DrawAdaptorTab_Bridge() => DrawAdaptorTab();
-        internal void DrawFilterNodeScannerTab_Bridge() => DrawFilterNodeScannerTab();
         internal void DrawSettingsTab_Bridge() => DrawSettingsTab();
     }
 }
