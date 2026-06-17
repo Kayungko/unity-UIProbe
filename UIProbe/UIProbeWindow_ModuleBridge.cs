@@ -21,7 +21,6 @@ namespace UIProbe
         internal void DrawAdaptorTab_Bridge() => DrawAdaptorTab();
         internal void DrawAnimationAutoRepairTab_Bridge() => DrawAnimationAutoRepairTab();
         internal void DrawFilterNodeScannerTab_Bridge() => DrawFilterNodeScannerTab();
-        internal void DrawResourceDetectorTab_Bridge() => DrawResourceDetectorTab();
         internal void DrawSettingsTab_Bridge() => DrawSettingsTab();
 
         internal void DrawAnimationAutoRepairSidebarButton_Bridge() => DrawAnimationAutoRepairSidebarButton();
