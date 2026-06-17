@@ -1,0 +1,1861 @@
+using UnityEngine;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace UIProbe
+{
+    internal sealed partial class DuplicateCheckerModule
+    {
+        // Duplicate Checker State
+        private Vector2 duplicateCheckerScrollPosition;
+        private DuplicateNameResult currentDuplicateResult;
+        private GameObject lastCheckedPrefab;
+        private DuplicateDetectionMode duplicateDetectionMode = DuplicateDetectionMode.Global;
+        private Dictionary<string, bool> duplicateGroupFoldouts = new Dictionary<string, bool>();
+        private Dictionary<GameObject, string> renameInputs = new Dictionary<GameObject, string>();
+        private int duplicateCheckerSubTab = 0;  // 0=检测功能, 1=综合检查, 2=历史记录
+        private string lastRenamedNodeName = "";  // 最后重命名的节点名（用于保持焦点）
+        
+        // Comprehensive Check State
+        private List<UIProblem> currentGeneralProblems = new List<UIProblem>();
+        private Vector2 comprehensiveScrollPosition;
+        private GameObject lastComprehensiveCheckedPrefab;
+        private Dictionary<string, bool> ruleVisibility = new Dictionary<string, bool>(); // Filter state
+        private HashSet<UIProblem> selectedProblems = new HashSet<UIProblem>(); // Selection state
+
+
+        
+        // Batch Mode State
+        private bool isBatchMode = false;
+        private BatchDuplicateResult currentBatchResult = null;
+        private int batchCardPageIndex = 0;
+        private bool batchShowOnlyDuplicates = true;
+        private const int CARDS_PER_PAGE = 5;
+        
+        // Folder Exclusion Filter State
+        private HashSet<string> excludedFolders = new HashSet<string>();  // 当前排除的文件夹
+        private bool showFolderFilter = false;  // 是否显示文件夹过滤面板
+        private Dictionary<string, int> folderPrefabCounts = new Dictionary<string, int>();  // 各文件夹的预制体数量
+        
+        // Batch Mode Context (for return functionality)
+        private string currentBatchResultPath = "";  // JSON文件路径
+        private PrefabDuplicateResult currentProcessingItem = null;  // 当前处理的项
+        private bool isFromBatchMode = false;  // 是否来自批量模式
+        
+        // Shared with Settings tab - declared in UIProbeWindow_Settings.cs
+        // private DuplicateDetectionSettings duplicateSettings;
+        
+        // Rename History State
+        private Vector2 renameHistoryScrollPosition;
+        private Dictionary<string, bool> historyDateFoldouts = new Dictionary<string, bool>();
+        
+        // Pre-Rename Mapping State (导入的预重命名映射)
+        private RenameMappingData importedMappingData = null;  // 当前导入的映射数据
+        private HashSet<GameObject> importedRenameObjects = new HashSet<GameObject>();  // 标记哪些对象是从JSON导入的
+        
+        // Canvas Config Detection State
+        private List<CanvasShaderChannelInfo> canvasResults = new List<CanvasShaderChannelInfo>();
+        private Vector2 canvasScrollPosition;
+        private int canvasFilterMode = 0;  // 0=全部, 1=有额外通道, 2=无额外通道
+        private bool isScanning = false;
+        private HashSet<CanvasShaderChannelInfo> selectedCanvasItems = new HashSet<CanvasShaderChannelInfo>();  // 批量操作选中的项
+        private bool canvasSelectAll = false;  // 全选状态
+        
+        /// <summary>
+        /// 绘制重名检测标签页
+        /// </summary>
+        private void DrawDuplicateCheckerTab()
+        {
+            EditorGUILayout.LabelField("预制体综合检测 (Prefab Inspector)", EditorStyles.boldLabel);
+
+            EditorGUILayout.Space(5);
+            
+            // 子标签工具栏 - 在检测功能和历史记录之间切换
+            GUILayout.BeginHorizontal(EditorStyles.toolbar);
+            
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 0, "综合检测", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 0;
+            }
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 1, "重命名修改", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 1;
+            }
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 2, "历史记录", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 2;
+            }
+            if (GUILayout.Toggle(duplicateCheckerSubTab == 3, "Canvas配置", EditorStyles.toolbarButton))
+            {
+                duplicateCheckerSubTab = 3;
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
+            // 根据子标签显示不同内容
+            if (duplicateCheckerSubTab == 0)
+            {
+                // 综合检查标签
+                DrawComprehensiveSubTab();
+            }
+            else if (duplicateCheckerSubTab == 1)
+            {
+                // 重命名修改（原检测功能）标签
+                DrawDetectionSubTab();
+            }
+            else if (duplicateCheckerSubTab == 2)
+            {
+                // 历史记录标签
+                DrawHistorySubTab();
+            }
+            else
+            {
+                // Canvas配置标签
+                DrawCanvasConfigSubTab();
+            }
+        }
+        
+        /// <summary>
+        /// 绘制检测功能子标签
+        /// </summary>
+        private void DrawDetectionSubTab()
+        {
+            // 模式切换区域
+            GUILayout.BeginHorizontal();
+            
+            if (isBatchMode)
+            {
+                EditorGUILayout.HelpBox($"批量模式: {currentBatchResult.TotalPrefabs} 个预制体，{currentBatchResult.PrefabsWithDuplicates} 个存在重名", MessageType.Info);
+                if (GUILayout.Button("返回单个检测模式", GUILayout.Width(120)))
+                {
+                    ClearBatchMode();
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("检测配置在「设置」标签页中配置", MessageType.Info, true);
+                GUILayout.FlexibleSpace();
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
+            // 根据模式绘制不同内容
+            if (isBatchMode)
+            {
+                // 批量模式UI（使用主scrollview）
+                duplicateCheckerScrollPosition = EditorGUILayout.BeginScrollView(duplicateCheckerScrollPosition);
+                DrawBatchModeUI();
+                EditorGUILayout.EndScrollView();
+            }
+            else
+            {
+                // 单个检测模式UI
+                DrawSingleDetectionUI();
+            }
+        }
+        
+        /// <summary>
+        /// 绘制历史记录子标签
+        /// </summary>
+        private void DrawHistorySubTab()
+        {
+            DrawRenameHistorySection();
+        }
+
+        /// <summary>
+        /// 绘制综合检查子标签
+        /// </summary>
+        private void DrawComprehensiveSubTab()
+        {
+            EditorGUILayout.Space(5);
+            
+            // Auto-detect button
+            GUILayout.BeginHorizontal();
+            GUI.enabled = PrefabStageUtility.GetCurrentPrefabStage() != null;
+            if (GUILayout.Button("检查当前预制体", GUILayout.Width(150), GUILayout.Height(30)))
+            {
+                RunComprehensiveCheck();
+            }
+            GUI.enabled = true;
+            
+            GUILayout.FlexibleSpace();
+            
+            if (currentGeneralProblems.Count > 0)
+            {
+                if (GUILayout.Button("清除结果", GUILayout.Width(80)))
+                {
+                    currentGeneralProblems.Clear();
+                    lastComprehensiveCheckedPrefab = null;
+                }
+            }
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
+            if (lastComprehensiveCheckedPrefab != null && currentGeneralProblems.Count > 0)
+            {
+                DrawFilterToolbar();
+            }
+
+            // ScrollView
+            comprehensiveScrollPosition = EditorGUILayout.BeginScrollView(comprehensiveScrollPosition);
+            
+            if (lastComprehensiveCheckedPrefab != null)
+            {
+                if (currentGeneralProblems.Count == 0)
+                {
+                    EditorGUILayout.HelpBox("✓ 未发现任何问题", MessageType.Info);
+                }
+                else
+                {
+                    // Filtered count
+                    int visibleCount = currentGeneralProblems.Count(p => !ruleVisibility.ContainsKey(p.RuleName) || ruleVisibility[p.RuleName]);
+                    
+                    EditorGUILayout.LabelField($"发现 {currentGeneralProblems.Count} 个问题 (显示 {visibleCount} 个):", EditorStyles.boldLabel);
+                    EditorGUILayout.Space(5);
+                    
+                    // Group by rule
+                    var groupedProblems = currentGeneralProblems
+                        .Where(p => !ruleVisibility.ContainsKey(p.RuleName) || ruleVisibility[p.RuleName])
+                        .GroupBy(p => p.RuleName)
+                        .OrderBy(g => g.Key);
+                        
+                    foreach (var group in groupedProblems)
+                    {
+                        DrawProblemGroup(group.Key, group.ToList());
+                    }
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("请打开预制体并点击上方按钮开始综合检查。\n\n此模式将运行所有启用的检测规则（如缺失图片、字体、RaycastTarget 等）。", MessageType.None);
+            }
+            
+            EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawFilterToolbar()
+        {
+            var rules = currentGeneralProblems.Select(p => p.RuleName).Distinct().OrderBy(r => r).ToList();
+            if (rules.Count == 0) return;
+
+            GUILayout.BeginHorizontal(EditorStyles.toolbar);
+            GUILayout.Label("筛选:", GUILayout.Width(35));
+            
+            bool changed = false;
+            
+            // "All" button
+            bool allVisible = rules.All(r => !ruleVisibility.ContainsKey(r) || ruleVisibility[r]);
+            if (GUILayout.Button("全部", allVisible ? EditorStyles.toolbarButton : EditorStyles.toolbarButton, GUILayout.Width(40)))
+            {
+                foreach (var r in rules) ruleVisibility[r] = true;
+                changed = true;
+            }
+
+            foreach (var rule in rules)
+            {
+                if (!ruleVisibility.ContainsKey(rule)) ruleVisibility[rule] = true;
+                
+                int count = currentGeneralProblems.Count(p => p.RuleName == rule);
+                string label = $"{rule} ({count})";
+                
+                bool isVisible = ruleVisibility[rule];
+                bool newVisible = GUILayout.Toggle(isVisible, label, EditorStyles.toolbarButton);
+                
+                if (newVisible != isVisible)
+                {
+                    ruleVisibility[rule] = newVisible;
+                    changed = true;
+                }
+            }
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            
+            if (changed) Repaint();
+        }
+        
+        private void DrawProblemGroup(string ruleName, List<UIProblem> problems)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
+            // Header
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"▼ {ruleName} ({problems.Count})", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            
+            // Batch actions for specific rules
+            if (ruleName.Contains("Raycast Target"))
+            {
+                // Check if any in this group are selected
+                int selectedCount = problems.Count(p => selectedProblems.Contains(p));
+
+                if (GUILayout.Button("导出CSV", EditorStyles.miniButton, GUILayout.Width(60)))
+                {
+                    ExportRaycastResultsToCSV(problems);
+                }
+                
+                if (GUILayout.Button("全选", EditorStyles.miniButton, GUILayout.Width(40)))
+                {
+                    foreach (var p in problems) selectedProblems.Add(p);
+                }
+                
+                if (selectedCount > 0)
+                {
+                    if (GUILayout.Button("取消", EditorStyles.miniButton, GUILayout.Width(40)))
+                    {
+                        foreach (var p in problems) selectedProblems.Remove(p);
+                    }
+
+                    GUI.backgroundColor = new Color(1f, 0.6f, 0.6f);
+                    if (GUILayout.Button($"关闭选中 ({selectedCount})", EditorStyles.miniButton))
+                    {
+                        BatchFixProblems(problems.Where(p => selectedProblems.Contains(p)).ToList());
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.Space(5); // Add spacing between title and content
+
+            foreach (var problem in problems)
+            {
+                EditorGUILayout.BeginHorizontal();
+                
+                 // Checkbox
+                bool isSelected = selectedProblems.Contains(problem);
+                bool newSelected = GUILayout.Toggle(isSelected, "", GUILayout.Width(20));
+                if (newSelected != isSelected)
+                {
+                    if (newSelected) selectedProblems.Add(problem);
+                    else selectedProblems.Remove(problem);
+                }
+
+                // Icon
+                GUI.backgroundColor = problem.GetColor();
+                GUILayout.Label(problem.GetIcon(), EditorStyles.miniButton, GUILayout.Width(20));
+                GUI.backgroundColor = Color.white;
+                
+                // Content
+                EditorGUILayout.BeginVertical();
+                EditorGUILayout.LabelField(problem.Description, EditorStyles.wordWrappedLabel);
+                EditorGUILayout.LabelField(problem.NodePath, EditorStyles.miniLabel);
+                EditorGUILayout.EndVertical();
+                
+                // Close Raycast Button (Specific to Raycast Target rule)
+                if (problem.RuleName.Contains("Raycast Target"))
+                {
+                     if (GUILayout.Button("关闭射线", EditorStyles.miniButton, GUILayout.Width(60)))
+                     {
+                         FixProblem(problem);
+                     }
+                }
+
+                // Locate
+                if (GUILayout.Button("定位", EditorStyles.miniButton, GUILayout.Width(40)))
+                {
+                    if (problem.Target != null)
+                    {
+                        Selection.activeGameObject = problem.Target;
+                        EditorGUIUtility.PingObject(problem.Target);
+                    }
+                }
+                
+                EditorGUILayout.EndHorizontal();
+                GUILayout.Space(2);
+            }
+            
+            EditorGUILayout.EndVertical();
+            GUILayout.Space(5);
+        }
+
+        private void FixProblem(UIProblem problem)
+        {
+            if (problem.Target == null) return;
+            
+            if (problem.RuleName.Contains("Raycast Target"))
+            {
+                var graphic = problem.Target.GetComponent<UnityEngine.UI.Graphic>();
+                if (graphic != null)
+                {
+                    Undo.RecordObject(graphic, "Fix Raycast Target");
+                    graphic.raycastTarget = false;
+                    EditorUtility.SetDirty(problem.Target);
+                    
+                    // Remove from list
+                    currentGeneralProblems.Remove(problem);
+                    selectedProblems.Remove(problem);
+                    
+                    Debug.Log($"[UIProbe] Closed Raycast Target for: {problem.Target.name}");
+                }
+            }
+        }
+
+        private void BatchFixProblems(List<UIProblem> problemsToFix)
+        {
+            foreach (var problem in problemsToFix)
+            {
+                FixProblem(problem);
+            }
+            Repaint();
+        }
+
+        private void ExportRaycastResultsToCSV(List<UIProblem> problems)
+        {
+            if (problems == null || problems.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有射线检测结果可以导出", "确定");
+                return;
+            }
+
+            string prefabName = lastComprehensiveCheckedPrefab != null ? lastComprehensiveCheckedPrefab.name : "UnknownPrefab";
+            string prefabPath = "";
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null)
+            {
+                prefabPath = prefabStage.assetPath;
+            }
+
+            string savePath = CSVExporter.GetSaveFilePath($"{prefabName}_RaycastTargetReport");
+            if (string.IsNullOrEmpty(savePath))
+                return;
+
+            CSVExporter.ExportRaycastTargetResults(savePath, problems, prefabName, prefabPath);
+        }
+        
+        /// <summary>
+        /// 运行综合检查
+        /// </summary>
+        private void RunComprehensiveCheck()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+            {
+                EditorUtility.DisplayDialog("提示", "请先打开一个预制体进行编辑", "确定");
+                return;
+            }
+            
+            GameObject prefabRoot = prefabStage.prefabContentsRoot;
+            lastComprehensiveCheckedPrefab = prefabRoot;
+            
+            // Run all checks
+            var allProblems = UIProbeChecker.CheckAll(prefabRoot);
+            
+            // Filter out duplicate name results (as they are handled in the other tab)
+            // Optional: keep them if we want "Comprehensive" to truly mean EVERYTHING
+            // For now, let's keep them to be truly comprehensive
+            
+            currentGeneralProblems = allProblems;
+            ruleVisibility.Clear(); // Reset filters
+            selectedProblems.Clear(); // Reset selection
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 绘制单个检测模式UI
+        /// </summary>
+        private void DrawSingleDetectionUI()
+        {
+            // 如果来自批量模式，显示返回按钮
+            if (isFromBatchMode && currentProcessingItem != null)
+            {
+                GUILayout.BeginHorizontal(EditorStyles.helpBox);
+                if (GUILayout.Button("← 返回批量结果", GUILayout.Width(110)))
+                {
+                    ReturnToBatchMode();
+                }
+                EditorGUILayout.LabelField($"当前: {currentProcessingItem.PrefabName}", EditorStyles.boldLabel);
+                GUILayout.EndHorizontal();
+                EditorGUILayout.Space(5);
+            }
+            
+            // Detection button
+            GUILayout.BeginHorizontal();
+            
+            // 导入批量结果按钮
+            if (GUILayout.Button("导入批量结果", GUILayout.Width(100)))
+            {
+                ImportBatchResult();
+            }
+            
+            // 预重命名相关按钮
+            GUILayout.Space(10);
+            if (GUILayout.Button("导出预重命名", GUILayout.Width(100)))
+            {
+                ExportPreRenameMappings();
+            }
+            
+            if (GUILayout.Button("导入预重命名", GUILayout.Width(100)))
+            {
+                ImportPreRenameMappings();
+            }
+            
+            if (importedMappingData != null && GUILayout.Button("清除导入", GUILayout.Width(80)))
+            {
+                ClearImportedMappings();
+            }
+            
+            GUILayout.FlexibleSpace();
+            
+            // 完成修改按钮 (仅当有修改记录时显示)
+            if (ModificationLogManager.HasLogs())
+            {
+                Color originalColor = GUI.backgroundColor;
+                GUI.backgroundColor = Color.green;
+                
+                if (GUILayout.Button("完成修改并生成日志", GUILayout.Width(150), GUILayout.Height(30)))
+                {
+                    FinishModification();
+                }
+                
+                GUI.backgroundColor = originalColor;
+                GUILayout.Space(10);
+            }
+            
+            // Auto-detect current prefab
+            GUI.enabled = PrefabStageUtility.GetCurrentPrefabStage() != null;
+            if (GUILayout.Button("检测当前预制体", GUILayout.Width(120), GUILayout.Height(30)))
+            {
+                DetectCurrentPrefab();
+            }
+            GUI.enabled = true;
+            
+            GUILayout.EndHorizontal();
+            
+            // 显示导入映射的状态提示
+            if (importedMappingData != null)
+            {
+                EditorGUILayout.Space(5);
+                GUILayout.BeginHorizontal(EditorStyles.helpBox);
+                
+                EditorGUILayout.LabelField($"📋 已导入 {importedMappingData.validMappings} 个重命名映射", EditorStyles.boldLabel);
+                
+                GUILayout.FlexibleSpace();
+                
+                // 批量应用所有按钮
+                if (importedMappingData.validMappings > 0)
+                {
+                    Color originalColor = GUI.backgroundColor;
+                    GUI.backgroundColor = new Color(0.5f, 1f, 0.5f);
+                    
+                    if (GUILayout.Button($"批量应用所有 ({importedMappingData.validMappings})", GUILayout.Width(130)))
+                    {
+                        ApplyAllImportedMappings();
+                    }
+                    
+                    GUI.backgroundColor = originalColor;
+                }
+                
+                GUILayout.EndHorizontal();
+            }
+            
+            EditorGUILayout.Space(5);
+            
+            // Main content ScrollView
+            duplicateCheckerScrollPosition = EditorGUILayout.BeginScrollView(duplicateCheckerScrollPosition);
+            
+            // Detection results
+            if (currentDuplicateResult != null && lastCheckedPrefab != null)
+            {
+                DrawDuplicateResult();
+            }
+            else
+            {
+                EditorGUILayout.Space(10);
+                EditorGUILayout.HelpBox("请在预制体编辑模式下点击 '检测当前预制体' 按钮开始检测。\n\n步骤：\n1. 在 Project 窗口中双击打开一个预制体\n2. 选择检测模式（全局或同级）\n3. 点击上方的 '检测当前预制体' 按钮", MessageType.None);
+            }
+            
+            // End main ScrollView
+            EditorGUILayout.EndScrollView();
+        }
+        
+        /// <summary>
+        /// 检测当前打开的预制体
+        /// </summary>
+        private void DetectCurrentPrefab()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+            {
+                EditorUtility.DisplayDialog("提示", "请先打开一个预制体进行编辑", "确定");
+                return;
+            }
+            
+            // Ensure duplicateSettings is loaded
+            if (duplicateSettings == null)
+            {
+                string settingsJson = EditorPrefs.GetString("UIProbe_DuplicateSettings", "");
+                if (!string.IsNullOrEmpty(settingsJson))
+                {
+                    try
+                    {
+                        duplicateSettings = JsonUtility.FromJson<DuplicateDetectionSettings>(settingsJson);
+                    }
+                    catch
+                    {
+                        duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                    }
+                }
+                else
+                {
+                    duplicateSettings = DuplicateDetectionSettings.GetDefault();
+                }
+            }
+            
+            GameObject prefabRoot = prefabStage.prefabContentsRoot;
+            lastCheckedPrefab = prefabRoot;
+            
+            // Use detection scope from settings
+            DuplicateDetectionMode scope = duplicateSettings.DetectionScope;
+            
+            // Pass user-configured settings to detection
+            currentDuplicateResult = DuplicateNameRule.DetectDuplicates(prefabRoot, scope, duplicateSettings);
+            duplicateGroupFoldouts.Clear();
+            
+            // 默认收起所有组，不再自动展开
+            // 用户可以按需展开查看
+            
+            // 如果有刚重命名的节点，自动展开对应的组
+            if (!string.IsNullOrEmpty(lastRenamedNodeName))
+            {
+                bool foundGroup = false;
+                
+                // 检查该组是否还存在
+                foreach (var group in currentDuplicateResult.Groups)
+                {
+                    if (group.NodeName == lastRenamedNodeName)
+                    {
+                        // 自动展开该组，方便用户继续处理
+                        duplicateGroupFoldouts[group.NodeName] = true;
+                        foundGroup = true;
+                        break;
+                    }
+                }
+                
+                // 如果组不存在了（重命名后无重名），显示提示
+                if (!foundGroup && currentDuplicateResult.Groups.Count > 0)
+                {
+                    // 只在还有其他重名组的情况下显示提示
+                    // 避免在完全解决所有重名时显示
+                    Debug.Log($"[UIProbe] '{lastRenamedNodeName}' 已无重名节点");
+                }
+                
+                // 清除记录
+                lastRenamedNodeName = "";
+            }
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 绘制检测结果
+        /// </summary>
+        private void DrawDuplicateResult()
+        {
+            // 添加null检查，防止在清除结果后访问null对象
+            if (currentDuplicateResult == null)
+                return;
+            
+            EditorGUILayout.Space(5);
+            
+            // Summary
+            GUILayout.BeginHorizontal(EditorStyles.helpBox);
+            if (currentDuplicateResult.GroupCount == 0)
+            {
+                EditorGUILayout.LabelField("✓ 未发现重名节点", EditorStyles.boldLabel);
+                GUI.backgroundColor = new Color(0.3f, 0.8f, 0.3f);
+            }
+            else
+            {
+                EditorGUILayout.LabelField($"⚠ {currentDuplicateResult.GetSummary()}", EditorStyles.boldLabel);
+                GUI.backgroundColor = new Color(0.9f, 0.7f, 0.2f);
+            }
+            GUILayout.EndHorizontal();
+            GUI.backgroundColor = Color.white;
+            
+            if (currentDuplicateResult.GroupCount == 0)
+                return;
+            if (currentDuplicateResult.GroupCount == 0)
+            {
+                EditorGUILayout.HelpBox("✓ 未发现重名节点", MessageType.Info);
+                return;
+            }
+            
+            EditorGUILayout.HelpBox($"⚠ {currentDuplicateResult.GetSummary()}", MessageType.Warning);
+            
+            EditorGUILayout.Space(5);
+            
+            // Action buttons
+            GUILayout.BeginHorizontal();
+            
+            if (GUILayout.Button("导出 CSV", GUILayout.Width(80)))
+            {
+                ExportToCSV();
+            }
+            
+            if (GUILayout.Button("导出报告", GUILayout.Width(80)))
+            {
+                ExportDuplicateReport();
+            }
+            
+            if (GUILayout.Button("复制路径", GUILayout.Width(80)))
+            {
+                CopyDuplicatePaths();
+            }
+            
+            GUILayout.FlexibleSpace();
+            
+            if (GUILayout.Button("清除结果", GUILayout.Width(80)))
+            {
+                currentDuplicateResult = null;
+                lastCheckedPrefab = null;
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.Space(5);
+            
+            // Duplicate groups - No inner ScrollView
+            foreach (var group in currentDuplicateResult.Groups)
+            {
+                DrawDuplicateGroup(group);
+            }
+        }
+        
+        /// <summary>
+        /// 绘制单个重名分组
+        /// </summary>
+        private void DrawDuplicateGroup(DuplicateNameGroup group)
+        {
+            if (!duplicateGroupFoldouts.ContainsKey(group.NodeName))
+                duplicateGroupFoldouts[group.NodeName] = true;
+            
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            
+            // Group header
+            GUILayout.BeginHorizontal();
+            
+            duplicateGroupFoldouts[group.NodeName] = EditorGUILayout.Foldout(
+                duplicateGroupFoldouts[group.NodeName],
+                $"\"{group.NodeName}\" ({group.Count} 个重名)",
+                true,
+                EditorStyles.foldoutHeader
+            );
+            
+            GUILayout.EndHorizontal();
+            
+            // Group items
+            if (duplicateGroupFoldouts[group.NodeName])
+            {
+                EditorGUI.indentLevel++;
+                
+                for (int i = 0; i < group.Objects.Count; i++)
+                {
+                    var obj = group.Objects[i];
+                    string path = group.Paths[i];
+                    
+                    DrawDuplicateItem(obj, path, i + 1, group.Count);
+                }
+                
+                EditorGUI.indentLevel--;
+            }
+            
+            EditorGUILayout.EndVertical();
+        }
+        
+        /// <summary>
+        /// 绘制单个重名节点项
+        /// </summary>
+        private void DrawDuplicateItem(GameObject obj, string path, int index, int total)
+        {
+            GUILayout.BeginVertical(EditorStyles.helpBox);
+            GUILayout.BeginHorizontal();
+            
+            // Index label
+            GUILayout.Space(5);
+            EditorGUILayout.LabelField($"#{index}", GUILayout.Width(30));
+            
+            // Path
+            EditorGUILayout.LabelField(path, EditorStyles.miniLabel);
+            
+            // Locate button (combined select + ping functionality)
+            if (GUILayout.Button("定位", EditorStyles.miniButton, GUILayout.Width(50)))
+            {
+                LocateNodeInHierarchy(obj);
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            // Rename input field
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(35);
+            EditorGUILayout.LabelField("新名称:", GUILayout.Width(60));
+            
+            if (!renameInputs.ContainsKey(obj))
+            {
+                renameInputs[obj] = obj != null ? obj.name : "";
+            }
+            
+            // 检查是否是导入的重命名
+            bool isImported = importedRenameObjects.Contains(obj);
+            
+            GUI.enabled = obj != null;
+            
+            // 如果是导入的，显示蓝色背景
+            if (isImported)
+            {
+                GUI.backgroundColor = new Color(0.7f, 0.9f, 1f);
+            }
+            
+            renameInputs[obj] = EditorGUILayout.TextField(renameInputs[obj], GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
+            
+            GUI.backgroundColor = Color.white;
+            
+            // 如果是导入的，显示图标
+            if (isImported)
+            {
+                EditorGUILayout.LabelField("📋", GUILayout.Width(20));
+            }
+            
+            bool isValidName = IsValidNodeName(renameInputs[obj]);
+            GUI.enabled = obj != null && isValidName && renameInputs[obj] != obj.name;
+            
+            if (GUILayout.Button("应用", EditorStyles.miniButton, GUILayout.Width(50)))
+            {
+                ApplyRename(obj, renameInputs[obj]);
+            }
+            
+            // 如果是导入的，显示撤销导入按钮
+            GUI.enabled = isImported;
+            if (isImported && GUILayout.Button("撤销导入", EditorStyles.miniButton, GUILayout.Width(70)))
+            {
+                RemoveImportedMapping(obj);
+            }
+            
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+            
+            // Validation message
+            if (!isValidName && !string.IsNullOrEmpty(renameInputs[obj]))
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(35);
+                EditorGUILayout.HelpBox("名称包含非法字符", MessageType.Warning);
+                GUILayout.EndHorizontal();
+            }
+            
+            GUILayout.EndVertical();
+            GUILayout.Space(2);
+        }
+        
+        /// <summary>
+        /// 在 Hierarchy 中定位并选中节点
+        /// </summary>
+        private void LocateNodeInHierarchy(GameObject obj)
+        {
+            if (obj == null)
+            {
+                EditorUtility.DisplayDialog("提示", "节点已被删除或不存在", "确定");
+                return;
+            }
+            
+            // Select in hierarchy
+            Selection.activeGameObject = obj;
+            
+            // Ping to highlight
+            EditorGUIUtility.PingObject(obj);
+            
+            // Focus hierarchy window
+            EditorApplication.ExecuteMenuItem("Window/General/Hierarchy");
+        }
+        
+        /// <summary>
+        /// 导出重名检测报告
+        /// </summary>
+        private void ExportDuplicateReport()
+        {
+            if (currentDuplicateResult == null || currentDuplicateResult.GroupCount == 0)
+                return;
+            
+            string report = "=== UIProbe 重名节点检测报告 ===\n\n";
+            report += $"预制体: {lastCheckedPrefab.name}\n";
+            report += $"检测模式: {(duplicateDetectionMode == DuplicateDetectionMode.Global ? "全局" : "同级")}\n";
+            report += $"检测时间: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
+            report += $"{currentDuplicateResult.GetSummary()}\n\n";
+            
+            foreach (var group in currentDuplicateResult.Groups)
+            {
+                report += $"\n【{group.NodeName}】 - {group.Count} 个重名:\n";
+                for (int i = 0; i < group.Paths.Count; i++)
+                {
+                    report += $"  {i + 1}. {group.Paths[i]}\n";
+                }
+            }
+            
+            // Copy to clipboard
+            EditorGUIUtility.systemCopyBuffer = report;
+            EditorUtility.DisplayDialog("导出成功", "报告已复制到剪贴板", "确定");
+        }
+        
+        /// <summary>
+        /// 复制所有重名节点的路径
+        /// </summary>
+        private void CopyDuplicatePaths()
+        {
+            if (currentDuplicateResult == null || currentDuplicateResult.GroupCount == 0)
+                return;
+            
+            var allPaths = new List<string>();
+            foreach (var group in currentDuplicateResult.Groups)
+            {
+                allPaths.AddRange(group.Paths);
+            }
+            
+            string pathsText = string.Join("\n", allPaths);
+            EditorGUIUtility.systemCopyBuffer = pathsText;
+            EditorUtility.DisplayDialog("复制成功", $"已复制 {allPaths.Count} 个节点路径到剪贴板", "确定");
+        }
+
+        /// <summary>
+        /// 导出为 CSV 文件
+        /// </summary>
+        private void ExportToCSV()
+        {
+            if (currentDuplicateResult == null || currentDuplicateResult.GroupCount == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有检测结果可以导出", "确定");
+                return;
+            }
+
+            string savePath = CSVExporter.GetSaveFilePath($"{lastCheckedPrefab.name}_DuplicateReport");
+            if (!string.IsNullOrEmpty(savePath))
+            {
+                CSVExporter.ExportSingleResult(currentDuplicateResult, savePath);
+            }
+        }
+
+        /// <summary>
+        /// 验证节点名称是否合法
+        /// </summary>
+        private bool IsValidNodeName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+
+            // 检查非法字符
+            char[] invalidChars = new char[] { '/', '\\', ':', '*', '?', '"', '<', '>', '|' };
+            foreach (char c in invalidChars)
+            {
+                if (name.Contains(c))
+                    return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 应用重命名
+        /// </summary>
+        private void ApplyRename(GameObject obj, string newName)
+        {
+            if (obj == null || string.IsNullOrWhiteSpace(newName))
+                return;
+
+            if (!IsValidNodeName(newName))
+            {
+                EditorUtility.DisplayDialog("错误", "名称包含非法字符", "确定");
+                return;
+            }
+
+            string oldName = obj.name;
+            
+            // 记录重命名的节点名称（用于保持焦点）
+            lastRenamedNodeName = oldName;
+            
+            // 获取预制体路径和根节点
+            string prefabPath = "";
+            GameObject prefabRoot = null;
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null)
+            {
+                prefabPath = prefabStage.assetPath;
+                prefabRoot = prefabStage.prefabContentsRoot;
+            }
+            
+            // 检查并修复动画引用
+            if (prefabRoot != null && !AnimationPathRepair.CheckAndRepairForRename(prefabRoot, obj.transform, newName))
+            {
+                // 用户取消了操作
+                return;
+            }
+            
+            // 使用 Undo 支持撤销
+            Undo.RecordObject(obj, "Rename Node");
+            obj.name = newName;
+            EditorUtility.SetDirty(obj);
+            
+            // 保存重命名历史记录
+            if (!string.IsNullOrEmpty(prefabPath))
+            {
+                RenameHistoryManager.AddRecord(obj, oldName, newName, prefabPath);
+                
+                // 记录到本次会话日志，用于生成CSV
+                string prefabName = "";
+                if (prefabRoot != null)
+                {
+                    prefabName = prefabRoot.name;
+                }
+                else
+                {
+                    prefabName = Path.GetFileNameWithoutExtension(prefabPath);
+                }
+                
+                // 获取节点路径
+                string nodePath = AnimationPathRepair.GetRelativePath(prefabRoot != null ? prefabRoot.transform : null, obj.transform);
+                
+                ModificationLogManager.AddLog(prefabName, oldName, newName, nodePath);
+            }
+            
+            // 清除输入框状态，避免残留旧文本
+            renameInputs.Remove(obj);
+            
+            // 清除当前焦点，避免输入框保持激活状态
+            GUI.FocusControl(null);
+            
+            // 重新检测以更新结果
+            DetectCurrentPrefab();
+            
+            Debug.Log($"[UIProbe] Renamed: {oldName} → {newName}");
+        }
+        
+        /// <summary>
+        /// 完成修改并生成日志
+        /// </summary>
+        private void FinishModification()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            string prefabName = "Unknown";
+            
+            if (prefabStage != null)
+            {
+                prefabName = prefabStage.prefabContentsRoot.name;
+            }
+            else if (lastCheckedPrefab != null)
+            {
+                prefabName = lastCheckedPrefab.name;
+            }
+            
+            string csvPath = ModificationLogManager.GenerateCSV(prefabName);
+            
+            if (!string.IsNullOrEmpty(csvPath))
+            {
+                EditorUtility.DisplayDialog("成功", $"修改日志已生成:\n{csvPath}", "确定");
+                
+                // 如果是从批量模式进入的，自动返回，并标记当前项已处理
+                if (isFromBatchMode)
+                {
+                    if (currentProcessingItem != null)
+                    {
+                        currentProcessingItem.IsProcessed = true;
+                        currentProcessingItem.ProcessedTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    }
+                    ReturnToBatchMode();
+                }
+            }
+        }
+        
+        // ==================== 预重命名功能方法 ====================
+        
+        /// <summary>
+        /// 导出预重命名映射
+        /// </summary>
+        private void ExportPreRenameMappings()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+            {
+                EditorUtility.DisplayDialog("错误", "请先打开预制体", "确定");
+                return;
+            }
+            
+            RenameMappingManager.ExportRenameMappings(renameInputs, prefabStage.prefabContentsRoot);
+        }
+        
+        /// <summary>
+        /// 导入预重命名映射
+        /// </summary>
+        private void ImportPreRenameMappings()
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+            {
+                EditorUtility.DisplayDialog("错误", "请先打开预制体", "确定");
+                return;
+            }
+            
+            GameObject prefabRoot = prefabStage.prefabContentsRoot;
+            
+            // 导入映射数据
+            RenameMappingData mappingData = RenameMappingManager.ImportRenameMappings(prefabRoot);
+            
+            if (mappingData == null)
+                return; // 用户取消或导入失败
+            
+            // 保存导入的数据
+            importedMappingData = mappingData;
+            importedRenameObjects.Clear();
+            
+            // 填充到输入框
+            foreach (var mapping in mappingData.mappings)
+            {
+                // 查找节点
+                Transform targetNode = prefabRoot.transform.Find(mapping.nodePath);
+                
+                if (targetNode != null && targetNode.name == mapping.oldName)
+                {
+                    GameObject obj = targetNode.gameObject;
+                    
+                    // 填充输入框
+                    renameInputs[obj] = mapping.newName;
+                    
+                    // 标记为导入的
+                    importedRenameObjects.Add(obj);
+                }
+            }
+            
+            // 显示导入结果
+            if (importedMappingData.invalidMappings > 0)
+            {
+                EditorUtility.DisplayDialog("导入完成",
+                    $"成功导入 {importedMappingData.validMappings} 个映射\n跳过 {importedMappingData.invalidMappings} 个无效映射",
+                    "确定");
+            }
+            
+            // 自动检测以显示结果
+            if (currentDuplicateResult == null)
+            {
+                DetectCurrentPrefab();
+            }
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 清除导入的映射
+        /// </summary>
+        private void ClearImportedMappings()
+        {
+            if (!EditorUtility.DisplayDialog("确认", "是否清除所有导入的重命名映射？", "确定", "取消"))
+                return;
+            
+            // 清除导入的输入框内容
+            foreach (var obj in importedRenameObjects.ToList())
+            {
+                if (renameInputs.ContainsKey(obj))
+                {
+                    renameInputs.Remove(obj);
+                }
+            }
+            
+            importedMappingData = null;
+            importedRenameObjects.Clear();
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 移除单个导入的映射
+        /// </summary>
+        private void RemoveImportedMapping(GameObject obj)
+        {
+            if (obj == null)
+                return;
+            
+            importedRenameObjects.Remove(obj);
+            renameInputs.Remove(obj);
+            
+            // 如果没有导入的对象了，清除导入数据
+            if (importedRenameObjects.Count == 0)
+            {
+                importedMappingData = null;
+            }
+            else if (importedMappingData != null)
+            {
+                // 更新有效映射数量
+                importedMappingData.validMappings = importedRenameObjects.Count;
+            }
+            
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 批量应用所有导入的重命名
+        /// </summary>
+        private void ApplyAllImportedMappings()
+        {
+            if (importedMappingData == null || importedRenameObjects.Count == 0)
+                return;
+            
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null)
+                return;
+            
+            GameObject prefabRoot = prefabStage.prefabContentsRoot;
+            
+            // 收集所有要应用的映射
+            List<(GameObject obj, string newName)> pendingRenames = new List<(GameObject, string)>();
+            
+            foreach (var obj in importedRenameObjects)
+            {
+                if (renameInputs.ContainsKey(obj))
+                {
+                    string newName = renameInputs[obj];
+                    if (!string.IsNullOrWhiteSpace(newName) && obj.name != newName)
+                    {
+                        pendingRenames.Add((obj, newName));
+                    }
+                }
+            }
+            
+            if (pendingRenames.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有需要应用的重命名", "确定");
+                return;
+            }
+            
+            // 显示确认对话框
+            string message = $"即将应用 {pendingRenames.Count} 个重命名:\n\n";
+            for (int i = 0; i < Math.Min(5, pendingRenames.Count); i++)
+            {
+                message += $"• {pendingRenames[i].obj.name} → {pendingRenames[i].newName}\n";
+            }
+            if (pendingRenames.Count > 5)
+            {
+                message += $"... 还有 {pendingRenames.Count - 5} 个\n";
+            }
+            message += "\n是否继续？";
+            
+            if (!EditorUtility.DisplayDialog("批量应用确认", message, "应用", "取消"))
+                return;
+            
+            // 批量应用
+            int successCount = 0;
+            foreach (var (obj, newName) in pendingRenames)
+            {
+                // 调用现有的ApplyRename方法（包含动画修复逻辑）
+                ApplyRename(obj, newName);
+                successCount++;
+            }
+            
+            if (successCount > 0)
+            {
+                EditorUtility.DisplayDialog("完成", $"成功应用 {successCount} 个重命名", "确定");
+                
+                // 清除导入状态
+                importedMappingData = null;
+                importedRenameObjects.Clear();
+            }
+        }
+        
+        // ====================================
+        // Canvas Config Detection Methods
+        // ====================================
+        
+        /// <summary>
+        /// 绘制Canvas配置检测子标签
+        /// </summary>
+        private void DrawCanvasConfigSubTab()
+        {
+            EditorGUILayout.Space(5);
+            
+            // 工具栏
+            GUILayout.BeginHorizontal();
+            
+            GUI.enabled = !isScanning;
+            if (GUILayout.Button("🔄 扫描预制体", GUILayout.Width(120), GUILayout.Height(30)))
+            {
+                ScanCanvasInPrefabs();
+            }
+            GUI.enabled = true;
+            
+            GUILayout.FlexibleSpace();
+            
+            // 筛选
+            EditorGUILayout.LabelField("筛选:", GUILayout.Width(40));
+            string[] filterOptions = new string[] { "全部", "有额外通道", "无额外通道" };
+            canvasFilterMode = EditorGUILayout.Popup(canvasFilterMode, filterOptions, GUILayout.Width(120));
+            
+            GUILayout.Space(10);
+            
+            GUI.enabled = canvasResults.Count > 0;
+            if (GUILayout.Button("📊 导出Canvas CSV", GUILayout.Width(140)))
+            {
+                ExportCanvasToCSV();
+            }
+            
+            if (GUILayout.Button("清除结果", GUILayout.Width(80)))
+            {
+                canvasResults.Clear();
+                selectedCanvasItems.Clear(); // Clear selections when results are cleared
+                canvasSelectAll = false;
+            }
+            GUI.enabled = true;
+            
+            GUILayout.EndHorizontal();
+            
+            // 批量操作栏
+            if (canvasResults.Count > 0)
+            {
+                EditorGUILayout.Space(5);
+                GUILayout.BeginHorizontal(EditorStyles.toolbar);
+                
+                // 全选复选框
+                EditorGUI.BeginChangeCheck();
+                canvasSelectAll = EditorGUILayout.ToggleLeft("全选", canvasSelectAll, GUILayout.Width(60));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    selectedCanvasItems.Clear();
+                    if (canvasSelectAll)
+                    {
+                        var filtered = FilterCanvasResults();
+                        foreach (var item in filtered)
+                        {
+                            selectedCanvasItems.Add(item);
+                        }
+                    }
+                }
+                
+                EditorGUILayout.LabelField($"已选: {selectedCanvasItems.Count}", GUILayout.Width(80));
+                
+                GUILayout.FlexibleSpace();
+                
+                // 批量设置为Nothing按钮
+                GUI.enabled = selectedCanvasItems.Count > 0;
+                if (GUILayout.Button("🔧 批量设置为None", EditorStyles.toolbarButton, GUILayout.Width(150)))
+                {
+                    if (EditorUtility.DisplayDialog("确认批量修改", 
+                        $"确定要将选中的 {selectedCanvasItems.Count} 个Canvas的\nAdditional Shader Channels设置为None吗？\n\n此操作将修改预制体文件！", 
+                        "确定", "取消"))
+                    {
+                        BatchSetCanvasChannels();
+                    }
+                }
+                GUI.enabled = true;
+                
+                GUILayout.EndHorizontal();
+            }
+            
+            EditorGUILayout.Space(5);
+            
+            // 结果列表
+            canvasScrollPosition = EditorGUILayout.BeginScrollView(canvasScrollPosition);
+            
+            if (canvasResults.Count == 0)
+            {
+                if (isScanning)
+                {
+                    EditorGUILayout.HelpBox("正在扫描预制体...", MessageType.Info);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox(
+                        "点击上方「扫描预制体」按钮开始检测 Canvas 组件配置。\n\n" +
+                        "将扫描所有已索引的预制体，检测 Additional Shader Channels 等配置。",
+                        MessageType.None
+                    );
+                }
+            }
+            else
+            {
+                // 筛选结果
+                var filteredResults = FilterCanvasResults();
+                
+                EditorGUILayout.LabelField(
+                    $"找到 {canvasResults.Count} 个Canvas组件 (显示 {filteredResults.Count} 个)",
+                    EditorStyles.boldLabel
+                );
+                
+                EditorGUILayout.Space(5);
+                
+                // 绘制每个Canvas信息
+                int itemIndex = 0;
+                foreach (var info in filteredResults)
+                {
+                    DrawCanvasInfoItem(info, itemIndex++);
+                }
+            }
+            
+            EditorGUILayout.EndScrollView();
+        }
+        
+        /// <summary>
+        /// 扫描所有预制体中的Canvas组件
+        /// </summary>
+        private void ScanCanvasInPrefabs()
+        {
+            canvasResults.Clear();
+            selectedCanvasItems.Clear(); // Clear selections on new scan
+            canvasSelectAll = false;
+            isScanning = true;
+            
+            // 获取所有已索引的预制体
+            int total = allPrefabs.Count;
+            
+            if (total == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有找到已索引的预制体。\n请先在「预制体索引」标签页中索引预制体。", "确定");
+                isScanning = false;
+                return;
+            }
+            
+            for (int i = 0; i < total; i++)
+            {
+                if (EditorUtility.DisplayCancelableProgressBar(
+                    "扫描Canvas", 
+                    $"正在扫描 {allPrefabs[i].Name}... ({i + 1}/{total})", 
+                    (float)i / total))
+                {
+                    break;  // 用户取消
+                }
+                
+                ScanPrefabCanvas(allPrefabs[i].Path);
+            }
+            
+            EditorUtility.ClearProgressBar();
+            isScanning = false;
+            
+            Debug.Log($"[Canvas检测] 扫描完成，共找到 {canvasResults.Count} 个Canvas组件");
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 扫描单个预制体中的Canvas组件
+        /// </summary>
+        private void ScanPrefabCanvas(string prefabPath)
+        {
+            GameObject prefabContents = null;
+            bool isLoadedContents = false;
+
+            try
+            {
+                // 尝试使用LoadPrefabContents获取最新数据
+                prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+                isLoadedContents = true;
+            }
+            catch (System.Exception ex)
+            {
+                // 捕获加载异常（如Missing Nested Prefab）并尝试降级
+                Debug.LogWarning($"[Canvas检测] LoadPrefabContents失败，尝试降级加载: {prefabPath}\n{ex.Message}");
+                prefabContents = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                isLoadedContents = false;
+            }
+
+            if (prefabContents == null) return;
+            
+            try
+            {
+                var canvases = prefabContents.GetComponentsInChildren<Canvas>(true);
+                
+                foreach (var canvas in canvases)
+                {
+                    canvasResults.Add(new CanvasShaderChannelInfo
+                    {
+                        PrefabPath = prefabPath,
+                        PrefabName = Path.GetFileNameWithoutExtension(prefabPath),
+                        CanvasPath = GetHierarchyPath(canvas.transform, prefabContents.transform),
+                        Channels = canvas.additionalShaderChannels,
+                        RenderMode = canvas.renderMode,
+                        SortingOrder = canvas.sortingOrder,
+                        OverrideSorting = canvas.overrideSorting
+                    });
+                }
+            }
+            finally
+            {
+                // 只有通过LoadPrefabContents加载的内容才需要卸载
+                if (isLoadedContents && prefabContents != null)
+                {
+                    PrefabUtility.UnloadPrefabContents(prefabContents);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 获取GameObject在预制体中的层级路径
+        /// </summary>
+        private string GetHierarchyPath(Transform target, Transform root)
+        {
+            if (target == root) return target.name;
+            
+            List<string> path = new List<string>();
+            Transform current = target;
+            
+            while (current != null && current != root)
+            {
+                path.Insert(0, current.name);
+                current = current.parent;
+            }
+            
+            if (current == root && root != target)
+            {
+                path.Insert(0, root.name);
+            }
+            
+            return string.Join("/", path);
+        }
+        
+        /// <summary>
+        /// 筛选Canvas结果
+        /// </summary>
+        private List<CanvasShaderChannelInfo> FilterCanvasResults()
+        {
+            if (canvasFilterMode == 1) // 有额外通道
+            {
+                return canvasResults.Where(r => r.Channels != AdditionalCanvasShaderChannels.None).ToList();
+            }
+            else if (canvasFilterMode == 2) // 无额外通道
+            {
+                return canvasResults.Where(r => r.Channels == AdditionalCanvasShaderChannels.None).ToList();
+            }
+            
+            return canvasResults; // 全部
+        }
+        
+        /// <summary>
+        /// 绘制单个Canvas信息项
+        /// </summary>
+        private void DrawCanvasInfoItem(CanvasShaderChannelInfo info, int index)
+        {
+            GUILayout.BeginVertical("box");
+            
+            GUILayout.BeginHorizontal();
+            
+            // 复选框
+            bool isSelected = selectedCanvasItems.Contains(info);
+            bool newSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
+            if (newSelected != isSelected)
+            {
+                if (newSelected)
+                    selectedCanvasItems.Add(info);
+                else
+                    selectedCanvasItems.Remove(info);
+                    
+                // 更新全选状态
+                var filtered = FilterCanvasResults();
+                canvasSelectAll = selectedCanvasItems.Count == filtered.Count && filtered.Count > 0;
+            }
+            
+            // 预制体名称
+            EditorGUILayout.LabelField($"📦 {info.PrefabName}", EditorStyles.boldLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
+            
+            if (GUILayout.Button("📍 定位", EditorStyles.miniButton, GUILayout.Width(60)))
+            {
+                var obj = AssetDatabase.LoadAssetAtPath<GameObject>(info.PrefabPath);
+                if (obj != null)
+                {
+                    EditorGUIUtility.PingObject(obj);
+                    Selection.activeObject = obj;
+                }
+            }
+            
+            EditorGUILayout.EndHorizontal();
+            
+            // Canvas路径
+            EditorGUILayout.LabelField($"  └─ {info.CanvasPath}", EditorStyles.miniLabel);
+            
+            // Shader Channels
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            EditorGUILayout.LabelField("Channels:", GUILayout.Width(70));
+            
+            string channelsStr = GetChannelsString(info.Channels);
+            GUIStyle channelStyle = new GUIStyle(EditorStyles.label);
+            channelStyle.normal.textColor = info.Channels == AdditionalCanvasShaderChannels.None 
+                ? Color.gray 
+                : new Color(0.3f, 0.8f, 0.3f);
+            
+            EditorGUILayout.LabelField(channelsStr, channelStyle);
+            GUILayout.EndHorizontal();
+            
+            // 其他信息
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(20);
+            EditorGUILayout.LabelField($"RenderMode: {info.RenderMode}", EditorStyles.miniLabel, GUILayout.MinWidth(80), GUILayout.ExpandWidth(true));
+            EditorGUILayout.LabelField($"SortOrder: {info.SortingOrder}", EditorStyles.miniLabel);
+            GUILayout.EndHorizontal();
+            
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Space(2);
+        }
+        
+        /// <summary>
+        /// 获取Channels的字符串表示
+        /// </summary>
+        private string GetChannelsString(AdditionalCanvasShaderChannels channels)
+        {
+            if (channels == AdditionalCanvasShaderChannels.None)
+                return "None";
+            
+            List<string> list = new List<string>();
+            if ((channels & AdditionalCanvasShaderChannels.TexCoord1) != 0) list.Add("TexCoord1");
+            if ((channels & AdditionalCanvasShaderChannels.TexCoord2) != 0) list.Add("TexCoord2");
+            if ((channels & AdditionalCanvasShaderChannels.TexCoord3) != 0) list.Add("TexCoord3");
+            if ((channels & AdditionalCanvasShaderChannels.Normal) != 0) list.Add("Normal");
+            if ((channels & AdditionalCanvasShaderChannels.Tangent) != 0) list.Add("Tangent");
+            
+            return string.Join(", ", list);
+        }
+        
+        /// <summary>
+        /// 导出Canvas配置到CSV
+        /// </summary>
+        private void ExportCanvasToCSV()
+        {
+            if (canvasResults.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有检测结果可以导出", "确定");
+                return;
+            }
+            
+            string defaultName = $"Canvas_ShaderChannels_Report_{System.DateTime.Now:yyyyMMdd_HHmmss}";
+            string savePath = CSVExporter.GetSaveFilePath(defaultName);
+            
+            if (string.IsNullOrEmpty(savePath))
+                return;
+            
+            var csv = new System.Text.StringBuilder();
+            // 新格式：8列（序号,预制体路径,预制体名称,Canvas路径,启用的Channels,RenderMode,SortOrder,覆盖排序）
+            csv.AppendLine("序号,预制体路径,预制体名称,Canvas路径,启用的Channels,RenderMode,SortOrder,覆盖排序");
+            
+            int index = 1;
+            foreach (var info in canvasResults)
+            {
+                // 获取启用的Channels列表
+                List<string> enabledChannels = new List<string>();
+                var channels = info.Channels;
+                
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.TexCoord1))
+                    enabledChannels.Add("TexCoord1");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.TexCoord2))
+                    enabledChannels.Add("TexCoord2");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.TexCoord3))
+                    enabledChannels.Add("TexCoord3");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.Normal))
+                    enabledChannels.Add("Normal");
+                if (HasChannel(channels, AdditionalCanvasShaderChannels.Tangent))
+                    enabledChannels.Add("Tangent");
+                
+                string channelsStr = enabledChannels.Count > 0 ? string.Join(", ", enabledChannels.ToArray()) : "None";
+                
+                csv.AppendLine(string.Format("{0},{1},{2},{3},\"{4}\",{5},{6},{7}",
+                    index,
+                    info.PrefabPath,
+                    info.PrefabName,
+                    info.CanvasPath,
+                    channelsStr,  // 合并的Channels字符串，用引号包裹
+                    info.RenderMode,
+                    info.SortingOrder,
+                    info.OverrideSorting ? "是" : "否"  // 使用中文"是/否"
+                ));
+                
+                index++;
+            }
+            
+            System.IO.File.WriteAllText(savePath, csv.ToString(), System.Text.Encoding.UTF8);
+            EditorUtility.DisplayDialog("导出成功", $"已导出 {canvasResults.Count} 条记录到:\n{savePath}", "确定");
+            EditorUtility.RevealInFinder(savePath);
+        }
+        
+        /// <summary>
+        /// 检查是否包含指定的Shader Channel
+        /// </summary>
+        private bool HasChannel(AdditionalCanvasShaderChannels channels, AdditionalCanvasShaderChannels flag)
+        {
+            return (channels & flag) != 0;
+        }
+        
+        /// <summary>
+        /// 批量设置选中的Canvas的AdditionalShaderChannels为None
+        /// </summary>
+        private void BatchSetCanvasChannels()
+        {
+            if (selectedCanvasItems.Count == 0)
+                return;
+            
+            // 检查是否在预制体编辑模式
+            var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null)
+            {
+                EditorUtility.DisplayDialog("提示", "请先退出预制体编辑模式再执行批量修改。\n\n关闭当前编辑的预制体后重试。", "确定");
+                return;
+            }
+            
+            int successCount = 0;
+            int failCount = 0;
+            List<string> failedItems = new List<string>();
+            
+            try
+            {
+                AssetDatabase.StartAssetEditing();
+                
+                int currentIndex = 0;
+                foreach (var info in selectedCanvasItems)
+                {
+                    currentIndex++;
+                    EditorUtility.DisplayProgressBar("批量设置Canvas", 
+                        $"正在处理 ({currentIndex}/{selectedCanvasItems.Count})...\n{info.PrefabName}", 
+                        (float)currentIndex / selectedCanvasItems.Count);
+                    
+                    try
+                    {
+                        Debug.Log($"[Canvas批量设置] 开始处理: {info.PrefabPath}");
+                        
+                        // 加载预制体
+                        // 直接使用LoadPrefabContents加载预制体
+                        var prefabContents = PrefabUtility.LoadPrefabContents(info.PrefabPath);
+                        if (prefabContents == null)
+                        {
+                            string error = $"无法加载预制体: {info.PrefabPath}";
+                            Debug.LogWarning(error);
+                            failedItems.Add($"{info.PrefabName}: {error}");
+                            failCount++;
+                            continue;
+                        }
+                        
+                        // 查找Canvas组件（通过路径）
+                        Transform canvasTransform = prefabContents.transform;
+                        string searchPath = info.CanvasPath;
+                        
+                        Debug.Log($"[Canvas批量设置] 查找Canvas路径: {searchPath}");
+                        
+                        if (!string.IsNullOrEmpty(searchPath) && searchPath != prefabContents.name)
+                        {
+                            // 如果Canvas不在根节点，按路径查找
+                            string[] pathParts = searchPath.Split('/');
+                            foreach (var part in pathParts)
+                            {
+                                if (part == prefabContents.name)
+                                    continue;
+                                    
+                                Transform found = canvasTransform.Find(part);
+                                if (found == null)
+                                {
+                                    Debug.LogWarning($"[Canvas批量设置] 无法找到子节点: {part}");
+                                    canvasTransform = null;
+                                    break;
+                                }
+                                canvasTransform = found;
+                            }
+                        }
+                        
+                        if (canvasTransform == null)
+                        {
+                            string error = $"无法找到Canvas路径: {searchPath}";
+                            Debug.LogWarning($"[Canvas批量设置] {error} in {info.PrefabPath}");
+                            PrefabUtility.UnloadPrefabContents(prefabContents);
+                            failedItems.Add($"{info.PrefabName}: {error}");
+                            failCount++;
+                            continue;
+                        }
+                        
+                        Canvas canvas = canvasTransform.GetComponent<Canvas>();
+                        if (canvas != null)
+                        {
+                            var oldValue = canvas.additionalShaderChannels;
+                            Debug.Log($"[Canvas批量设置] 找到Canvas组件，当前值: {oldValue}");
+                            
+                            // 设置为None
+                            canvas.additionalShaderChannels = AdditionalCanvasShaderChannels.None;
+                            
+                            Debug.Log($"[Canvas批量设置] 已设置为None，新值: {canvas.additionalShaderChannels}");
+                            
+                            // **P4支持**: 在保存前确保文件可写（checkout）
+                            string[] filesToCheckout = new string[] { info.PrefabPath };
+                            if (!AssetDatabase.MakeEditable(filesToCheckout))
+                            {
+                                failCount++;
+                                string error = "无法checkout文件（P4版本控制）";
+                                Debug.LogWarning($"[Canvas批量设置] {error}: {info.PrefabPath}");
+                                failedItems.Add($"{info.PrefabName}: {error}");
+                                PrefabUtility.UnloadPrefabContents(prefabContents);
+                                continue;
+                            }
+                            
+                            Debug.Log($"[Canvas批量设置] 文件已checkout，准备保存");
+                            
+                            // 保存修改 - 直接保存到原路径
+                            bool saved = PrefabUtility.SaveAsPrefabAsset(prefabContents, info.PrefabPath);
+                            if (saved)
+                            {
+                                successCount++;
+                                Debug.Log($"[Canvas批量设置] 成功保存: {info.PrefabPath}");
+                                
+                                // 强制重新导入以刷新Inspector缓存
+                                AssetDatabase.ImportAsset(info.PrefabPath, ImportAssetOptions.ForceUpdate);
+                            }
+                            else
+                            {
+                                failCount++;
+                                string error = "SaveAsPrefabAsset返回false";
+                                Debug.LogWarning($"[Canvas批量设置] 保存失败: {error}");
+                                failedItems.Add($"{info.PrefabName}: {error}");
+                            }
+                        }
+                        else
+                        {
+                            string error = $"Canvas组件不存在于路径: {searchPath}";
+                            Debug.LogWarning($"[Canvas批量设置] {error} in {info.PrefabPath}");
+                            failedItems.Add($"{info.PrefabName}: {error}");
+                            failCount++;
+                        }
+                        
+                        PrefabUtility.UnloadPrefabContents(prefabContents);
+                    }
+                    catch (System.Exception e)
+                    {
+                        string error = $"处理预制体时出错: {e.Message}";
+                        Debug.LogError($"[Canvas批量设置] {error}\n{e.StackTrace}");
+                        failedItems.Add($"{info.PrefabName}: {error}");
+                        failCount++;
+                    }
+                }
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+                AssetDatabase.StopAssetEditing();
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+            }
+            
+            // 显示结果
+            string message = $"批量设置完成！\n\n成功: {successCount}\n失败: {failCount}";
+            if (failedItems.Count > 0 && failedItems.Count <= 5)
+            {
+                message += "\n\n失败项:\n" + string.Join("\n", failedItems.ToArray());
+            }
+            else if (failedItems.Count > 5)
+            {
+                message += $"\n\n{failedItems.Count}个失败项，详见Console";
+            }
+            
+            EditorUtility.DisplayDialog("批量设置完成", message, "确定");
+            
+            // 清空选择并重新扫描
+            selectedCanvasItems.Clear();
+            canvasSelectAll = false;
+            ScanCanvasInPrefabs();
+        }
+    }
+}
+
