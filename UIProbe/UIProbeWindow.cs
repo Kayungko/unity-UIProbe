@@ -1,8 +1,31 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 
 namespace UIProbe
 {
+    /// <summary>功能页签标识。Step 1 起提升为顶层 internal 枚举，供独立模块适配器引用。</summary>
+    internal enum Tab
+    {
+        Picker,
+        Indexer,
+        Recorder,
+        Browser,
+        DuplicateChecker,
+        AssetReferences,
+        NestingOverview,
+        ImageNormalizer,
+        Screenshot,
+        RichTextGenerator,
+        Adaptor,
+        AnimationAutoRepair,
+        FilterNodeScanner,
+        ResourceDetector,
+        Settings,
+        About
+    }
+
     public partial class UIProbeWindow : EditorWindow
     {
         // Menu item to open the window
@@ -21,27 +44,6 @@ namespace UIProbe
             window.Repaint();
         }
 
-        // Tabs
-        private enum Tab
-        {
-            Picker,
-            Indexer,
-            Recorder,
-            Browser,
-            DuplicateChecker,
-            AssetReferences,
-            NestingOverview,
-            ImageNormalizer,
-            Screenshot,
-            RichTextGenerator,
-            Adaptor,
-            AnimationAutoRepair,
-            FilterNodeScanner,
-            ResourceDetector,
-            Settings,
-            About
-        }
-
         private Tab currentTab = Tab.Picker;
         private Vector2 mainScrollPos;
         private Vector2 sidebarScrollPos;
@@ -49,6 +51,36 @@ namespace UIProbe
         
         // 统一配置
         private UIProbeConfig config;
+
+        // 模块注册表（Step 1：薄适配器，按侧栏顺序构造）
+        private List<IUIProbeModule> modules;
+
+        private void BuildModuleRegistry()
+        {
+            modules = new List<IUIProbeModule>
+            {
+                new PickerModule(),
+                new IndexerModule(),
+                new RecorderModule(),
+                new BrowserModule(),
+                new DuplicateCheckerModule(),
+                new AssetReferencesModule(),
+                new NestingOverviewModule(),
+                new ImageNormalizerModule(),
+                new ScreenshotModule(),
+                new RichTextGeneratorModule(),
+                new AdaptorModule(),
+                new AnimationAutoRepairModule(),
+                new FilterNodeScannerModule(),
+                new ResourceDetectorModule(),
+                new SettingsModule(),
+                new AboutModule(),
+            };
+            foreach (var m in modules)
+            {
+                ((UIProbeModuleBase)m).Bind(this);
+            }
+        }
 
         private void OnEnable()
         {
@@ -59,7 +91,10 @@ namespace UIProbe
                 // 首次运行，从EditorPrefs迁移
                 config = UIProbeConfigManager.MigrateFromEditorPrefs();
             }
-            
+
+            // 构造模块注册表（生命周期 Apply/Collect 仍由窗口显式调度，Step 2 再迁移）
+            BuildModuleRegistry();
+
             ApplyIndexerConfig(); // Was LoadAuxData
             LoadSettingsData();
             RefreshSessionList();
@@ -114,27 +149,10 @@ namespace UIProbe
             // =========================
 
             // 越界保护：如果当前停留的Tab在配置中被隐藏了，强制跳回到 Settings
-            if (config != null)
+            if (modules != null)
             {
-                bool isHidden = false;
-                switch (currentTab)
-                {
-                    case Tab.Picker: isHidden = !config.modulesVisibility.showPicker; break;
-                    case Tab.Indexer: isHidden = !config.modulesVisibility.showIndexer; break;
-                    case Tab.Recorder: isHidden = !config.modulesVisibility.showRecorder; break;
-                    case Tab.Browser: isHidden = !config.modulesVisibility.showBrowser; break;
-                    case Tab.DuplicateChecker: isHidden = !config.modulesVisibility.showDuplicateChecker; break;
-                    case Tab.AssetReferences: isHidden = !config.modulesVisibility.showAssetReferences; break;
-                    case Tab.NestingOverview: isHidden = !config.modulesVisibility.showNestingOverview; break;
-                    case Tab.ImageNormalizer: isHidden = !config.modulesVisibility.showImageNormalizer; break;
-                    case Tab.Screenshot: isHidden = !config.modulesVisibility.showScreenshot; break;
-                    case Tab.RichTextGenerator: isHidden = !config.modulesVisibility.showRichTextGenerator; break;
-                    case Tab.Adaptor: isHidden = !config.modulesVisibility.showAdaptor; break;
-                    case Tab.AnimationAutoRepair: isHidden = !config.modulesVisibility.showAnimationAutoRepair; break;
-                    case Tab.FilterNodeScanner: isHidden = !config.modulesVisibility.showFilterNodeScanner; break;
-                    case Tab.ResourceDetector: isHidden = !config.modulesVisibility.showResourceDetector; break;
-                }
-                if (isHidden)
+                var active = modules.FirstOrDefault(m => m.Tab == currentTab);
+                if (active != null && !active.IsVisible(config))
                 {
                     currentTab = Tab.Settings;
                 }
@@ -150,57 +168,8 @@ namespace UIProbe
 
             // 根级滚动视图（更新横幅 + Tab 内容统一滚动）
             mainScrollPos = EditorGUILayout.BeginScrollView(mainScrollPos, GUILayout.ExpandHeight(true));
-            switch (currentTab)
-            {
-                case Tab.Picker:
-                    DrawPickerTab();
-                    break;
-                case Tab.Indexer:
-                    DrawIndexerTab();
-                    break;
-                case Tab.Recorder:
-                    DrawRecorderTab();
-                    break;
-                case Tab.Browser:
-                    DrawBrowserTab();
-                    break;
-                case Tab.DuplicateChecker:
-                    DrawDuplicateCheckerTab();
-                    break;
-                case Tab.AssetReferences:
-                    DrawAssetReferencesTab();
-                    break;
-                case Tab.NestingOverview:
-                    DrawNestingOverviewTab();
-                    break;
-                case Tab.ImageNormalizer:
-                    DrawImageNormalizerTab();
-                    break;
-                case Tab.Screenshot:
-                    DrawScreenshotTab();
-                    break;
-                case Tab.RichTextGenerator:
-                    DrawRichTextGeneratorTab();
-                    break;
-                case Tab.Adaptor:
-                    DrawAdaptorTab();
-                    break;
-                case Tab.AnimationAutoRepair:
-                    DrawAnimationAutoRepairTab();
-                    break;
-                case Tab.FilterNodeScanner:
-                    DrawFilterNodeScannerTab();
-                    break;
-                case Tab.ResourceDetector:
-                    DrawResourceDetectorTab();
-                    break;
-                case Tab.Settings:
-                    DrawSettingsTab();
-                    break;
-                case Tab.About:
-                    DrawAboutTab();
-                    break;
-            }
+            var current = modules.FirstOrDefault(m => m.Tab == currentTab) ?? modules[0];
+            current.Draw();
 
             EditorGUILayout.EndScrollView();
             GUILayout.EndVertical();
@@ -214,25 +183,20 @@ namespace UIProbe
             GUILayout.Space(5);
             sidebarScrollPos = GUILayout.BeginScrollView(sidebarScrollPos, GUILayout.ExpandHeight(true));
 
-            if (config == null || config.modulesVisibility.showPicker) DrawSidebarButton(Tab.Picker, "运行时拾取");
-            if (config == null || config.modulesVisibility.showIndexer) DrawSidebarButton(Tab.Indexer, "预制体索引");
-            if (config == null || config.modulesVisibility.showRecorder) DrawSidebarButton(Tab.Recorder, "界面记录");
-            if (config == null || config.modulesVisibility.showBrowser) DrawSidebarButton(Tab.Browser, "历史浏览");
-            if (config == null || config.modulesVisibility.showDuplicateChecker) DrawSidebarButton(Tab.DuplicateChecker, "预制体综合检测");
-            if (config == null || config.modulesVisibility.showAssetReferences) DrawSidebarButton(Tab.AssetReferences, "资源引用");
-            if (config == null || config.modulesVisibility.showNestingOverview) DrawSidebarButton(Tab.NestingOverview, "嵌套总览");
-            if (config == null || config.modulesVisibility.showImageNormalizer) DrawSidebarButton(Tab.ImageNormalizer, "图片规范化");
-            if (config == null || config.modulesVisibility.showScreenshot) DrawSidebarButton(Tab.Screenshot, "游戏截屏");
-            if (config == null || config.modulesVisibility.showRichTextGenerator) DrawSidebarButton(Tab.RichTextGenerator, "富文本生成");
-            if (config == null || config.modulesVisibility.showAdaptor) DrawSidebarButton(Tab.Adaptor, "预制体助手");
-            if (config == null || config.modulesVisibility.showAnimationAutoRepair) DrawAnimationAutoRepairSidebarButton();
-            if (config == null || config.modulesVisibility.showFilterNodeScanner) DrawSidebarButton(Tab.FilterNodeScanner, "Filter排查");
-            if (config == null || config.modulesVisibility.showResourceDetector) DrawSidebarButton(Tab.ResourceDetector, "资源使用检测");
+            foreach (var m in modules.Where(m => m.Section == SidebarSection.Top))
+            {
+                if (m.IsVisible(config))
+                {
+                    m.DrawSidebarButton(this);
+                }
+            }
 
             GUILayout.FlexibleSpace();
 
-            DrawSidebarButton(Tab.Settings, "设置");
-            DrawSidebarButton(Tab.About, "关于");
+            foreach (var m in modules.Where(m => m.Section == SidebarSection.Bottom))
+            {
+                m.DrawSidebarButton(this);
+            }
 
             GUILayout.EndScrollView();
             GUILayout.Space(5);
