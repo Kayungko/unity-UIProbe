@@ -80,7 +80,7 @@ namespace UIProbe
             modules = new List<IUIProbeModule>
             {
                 new PickerModule(configService),
-                new IndexerModule(),
+                new IndexerModule(configService, indexService),
                 new RecorderModule(),
                 new BrowserModule(),
                 new DuplicateCheckerModule(),
@@ -114,7 +114,7 @@ namespace UIProbe
             // 构造模块注册表（生命周期 Apply/Collect 仍由窗口显式调度，Step 2 再迁移）
             BuildModuleRegistry();
 
-            ApplyIndexerConfig(); // Was LoadAuxData
+            modules.OfType<IndexerModule>().First().Apply();
             LoadSettingsData();
             RefreshSessionList();
             modules.OfType<PickerModule>().First().Apply();
@@ -138,7 +138,7 @@ namespace UIProbe
             // 注销全局更新回调
             EditorApplication.update -= OnEditorUpdate;
 
-            CollectIndexerConfig(); // Was SaveAuxData
+            modules.OfType<IndexerModule>().First().Collect();
             
             // 收集并保存配置
             CollectImageNormalizerConfig();

@@ -9,7 +9,6 @@ namespace UIProbe
     {
         internal void DrawSidebarButtonPublic(Tab tab, string label) => DrawSidebarButton(tab, label);
 
-        internal void DrawIndexerTab_Bridge() => DrawIndexerTab();
         internal void DrawRecorderTab_Bridge() => DrawRecorderTab();
         internal void DrawBrowserTab_Bridge() => DrawBrowserTab();
         internal void DrawDuplicateCheckerTab_Bridge() => DrawDuplicateCheckerTab();
