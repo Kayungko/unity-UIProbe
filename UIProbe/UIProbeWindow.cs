@@ -111,7 +111,7 @@ namespace UIProbe
             EnsureRedGoldUndoManager();
             ApplyImageNormalizerConfig();
             ApplyHelperConfig();
-            ApplyAnimationAutoRepairConfig();
+            modules.OfType<AnimationAutoRepairModule>().First().Apply();
 
             // 注册全局更新回调，使拾取功能在窗口未激活时也能工作
             EditorApplication.update -= OnEditorUpdate;
@@ -128,7 +128,7 @@ namespace UIProbe
             // 收集并保存配置
             CollectImageNormalizerConfig();
             CollectHelperConfig();
-            CollectAnimationAutoRepairConfig();
+            modules.OfType<AnimationAutoRepairModule>().First().Collect();
             modules.OfType<PickerModule>().First().Collect();
             CollectSettingsData();
             configService?.Save();

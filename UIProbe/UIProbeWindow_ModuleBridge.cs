@@ -17,10 +17,7 @@ namespace UIProbe
         internal void DrawNestingOverviewTab_Bridge() => DrawNestingOverviewTab();
         internal void DrawImageNormalizerTab_Bridge() => DrawImageNormalizerTab();
         internal void DrawAdaptorTab_Bridge() => DrawAdaptorTab();
-        internal void DrawAnimationAutoRepairTab_Bridge() => DrawAnimationAutoRepairTab();
         internal void DrawFilterNodeScannerTab_Bridge() => DrawFilterNodeScannerTab();
         internal void DrawSettingsTab_Bridge() => DrawSettingsTab();
-
-        internal void DrawAnimationAutoRepairSidebarButton_Bridge() => DrawAnimationAutoRepairSidebarButton();
     }
 }
