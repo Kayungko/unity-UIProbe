@@ -169,9 +169,17 @@
         },
         {
           "id": "T3-3",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-18T00:30:00Z",
+          "completed_at": "2026-06-18T00:54:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "RED 79总/73过/6失(6 个 BridgeReloadHandler 用例干净 NotImplementedException,Ctor_Null_Args_Throw 已过);GREEN 两跑 79/79 Passed;结构 gate high=0",
+            "timestamp": "2026-06-18T00:54:00Z"
+          },
+          "evidence": "BridgeReloadHandler 落 UIProbe/Editor/Infrastructure/Bridge,逻辑可单测(直接调 OnBefore/OnAfter)。OnBeforeAssemblyReload 经 Dispatcher.InterruptRunningJobs 取消并标 Interrupted,再分类:写(ReloadSafe=false)→Error=DOMAIN_RELOAD_INTERRUPTED 交人确认、AutoResendable=false;幂等只读(ReloadSafe=true)→AutoResendable=true 供 Orchestrator 自动重发;随后 Current.Stop() 关 HttpListener 并置 null。OnAfterAssemblyReload 经工厂重建 Bridge(新 serverId,绝不持久化)并 Start。静态 Unity 依赖隔离到同模块新增 BridgeBootstrap.cs([InitializeOnLoad]+AssemblyReloadEvents 订阅+EditorApplication.update+=Dispatcher.Pump),兑现 T3-2 推迟的生产 update→Pump 接线+真实 projectPath(Path.GetDirectoryName(Application.dataPath))/版本注入;batchmode 不自启(Application.isBatchMode 守卫)避免测试占端口。Dispatcher 中断接缝(InterruptRunningJobs + DispatchJob.ReloadSafe/AutoResendable + EnqueueLong reloadSafe 参数)落同模块 MainThreadDispatcher.cs,仅声明写入路径无需跨模块批准。BridgeReloadTests 7 用例(serverId 变化/job 中断分类/写中断码/只读可重发/重载后 /tools/list 可发现/HttpListener 关闭/ctor 守卫)。两跑 79/79,gate high=0。详见 t3-3.md。"
         }
       ],
       "coverage_gate": {

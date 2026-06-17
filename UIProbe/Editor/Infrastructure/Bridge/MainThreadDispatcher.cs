@@ -141,8 +141,10 @@ namespace UIProbe.Editor.Infrastructure.Bridge
         /// <summary>
         /// 入队一个长任务,立即返回 jobId(不阻塞调用方);主线程后续 Pump 执行,
         /// 进度经 IProgress&lt;ToolProgress&gt; 节流上报,结果/状态存 job 表供 GetJob 轮询。
+        /// reloadSafe=true(幂等只读)在 Domain Reload 中断后可由 Orchestrator 自动重发;
+        /// false(写操作)中断后标 DOMAIN_RELOAD_INTERRUPTED 交人确认,不自动重试。
         /// </summary>
-        public string EnqueueLong(Action<IProgress<ToolProgress>, CancellationToken> work)
+        public string EnqueueLong(Action<IProgress<ToolProgress>, CancellationToken> work, bool reloadSafe = true)
         {
             if (work == null) throw new ArgumentNullException(nameof(work));
 
@@ -151,6 +153,7 @@ namespace UIProbe.Editor.Infrastructure.Bridge
             {
                 JobId = jobId,
                 Status = JobStatus.Running,
+                ReloadSafe = reloadSafe,
                 Work = new LongWorkItem
                 {
                     Run = work,
@@ -159,6 +162,24 @@ namespace UIProbe.Editor.Infrastructure.Bridge
             };
             _jobs[jobId] = job;
             return jobId;
+        }
+
+        /// <summary>
+        /// Domain Reload 前由 BridgeReloadHandler 调用:把所有进行中(Running)长任务取消并标 Interrupted,
+        /// 返回受影响 job 供调用方按 ReloadSafe 分类(只读可自动重发 / 写交人确认)。
+        /// </summary>
+        public IReadOnlyList<DispatchJob> InterruptRunningJobs()
+        {
+            var interrupted = new List<DispatchJob>();
+            foreach (KeyValuePair<string, DispatchJob> kv in _jobs)
+            {
+                DispatchJob job = kv.Value;
+                if (job.Status != JobStatus.Running) continue;
+                try { job.Work?.Cancellation?.Cancel(); } catch { /* 已释放 */ }
+                job.Status = JobStatus.Interrupted;
+                interrupted.Add(job);
+            }
+            return interrupted;
         }
 
         /// <summary>按 jobId 查长任务状态;未知 jobId 返回 null。</summary>
@@ -208,6 +229,12 @@ namespace UIProbe.Editor.Infrastructure.Bridge
         public JobStatus Status;
         public ToolProgress Progress;
         public string Error;
+
+        /// <summary>幂等只读(true)中断后可自动重发;写操作(false)中断后交人确认。</summary>
+        public bool ReloadSafe = true;
+
+        /// <summary>Domain Reload 中断后,Orchestrator 可安全自动重发此 job(仅 ReloadSafe 只读)。</summary>
+        public bool AutoResendable;
 
         internal LongWorkItem Work;
     }

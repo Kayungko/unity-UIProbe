@@ -7,8 +7,8 @@
 <!-- 未完成 / 阻塞 / 下一步。永不压缩。 -->
 
 - [ ] 编译/测试基建(机器相关,暂不入库):临时宿主 `E:\uiprobe-compile-host`(junction 挂 UIProbe→Assets/UIProbe;manifest 含 com.unity.test-framework 1.1.33 + com.unity.testtools.codecoverage 1.2.6)。编译:`Unity.exe -batchmode -quit -nographics -projectPath <host> -logFile <log>`;测试:加 `-runTests -testPlatform EditMode -testResults <xml>`(去掉 -quit);覆盖率:再加 `-enableCodeCoverage -coverageResultsPath <dir> -coverageOptions "generateAdditionalMetrics;generateHtmlReport;assemblyFilters:+<asm>" -debugCodeOptimization`
-- [ ] Next: T3-3(Domain Reload 恢复:serverId 信号 + job 中断 + 能力重报,deps T3-2),随后 M3 coverage gate。
-- [ ] 未推送提交累积(570e7f7 / 79ca449 / 待提交 T3-2),push 前须用户明确确认。
+- [ ] Next: M3 coverage gate(范围 +UIProbe.Core.Services;Bridge/Dispatcher 在 Editor 程序集不计入,确认目标 80% 是否仍达标),随后进 M4 Node MCP Server。
+- [ ] T3-3 提交待推送(本地新增,未 push),push 前须用户明确确认。
 
 ## 归档 (Archive)
 
@@ -42,3 +42,7 @@ _尚无快速任务或调试记录。_
 #### T3-2: HTTP Bridge (DONE — 2026-06-17)
 - build: `UIProbeBridge` 落 `UIProbe/Editor/Infrastructure/Bridge`。HttpListener 仅绑 127.0.0.1 随机端口(TcpListener :0 占空闲端口规避 HttpListener 不支持 :0)。GET /health→完整 `HealthStatus`(camelCase 对齐 Node,serverId 进程内 GUID 不持久化);POST /rpc 校验 `SessionToken`(32 字节随机写用户级目录、定长 XOR 比较)经 Dispatcher 投递主线程调 `ToolRegistry.Invoke`,超时→MAIN_THREAD_TIMEOUT(retriable)、其余→EXECUTION_FAILED;/tools/list 逐 descriptor ToJson 手工拼数组、/tools/describe 代理。端口/projectPath/tokenPath 写发现文件 `uiprobe-bridge.json`。RED 72总/63过/9失;GREEN 两跑 72/72;gate high=0。
 - 偏差(用户批准跨模块修复):给 `ToolError/Issue/Change/Risk/LogEntry/ToolSchema` 加 `[Serializable]`——JsonUtility 嵌套自定义类字段未标则静默丢弃,否则 /rpc 结构化错误码/Issue/Change 无法回传(`Rpc_Times_Out_When_Not_Pumped` 即因 `result.Error` 为 null 失败),M4 Node 端受益;`UIProbe.Editor` asmdef 增 `UIProbe.Core.Services` 引用。已扩展 t3-2.md 写入路径 + `--accept-check` 记录。UNITY_BUSY 无 v0.1 只读触发仅验 MAIN_THREAD_TIMEOUT;生产 update→Pump 接线 + 真实 projectPath/版本注入留 T3-3。SessionToken ACL 依赖用户级目录默认 ACL,细粒度收紧留后续。
+
+#### T3-3: Domain Reload 恢复 (DONE — 2026-06-18)
+- build: `BridgeReloadHandler` 落 `UIProbe/Editor/Infrastructure/Bridge`,逻辑可单测(直接调 OnBefore/OnAfter)。OnBeforeAssemblyReload 经 `Dispatcher.InterruptRunningJobs` 取消并标 Interrupted 再分类:写(ReloadSafe=false)→`Error=DOMAIN_RELOAD_INTERRUPTED`+AutoResendable=false 交人确认;幂等只读(ReloadSafe=true)→AutoResendable=true 供 Orchestrator 自动重发;随后 `Current.Stop()` 关 HttpListener 并置 null。OnAfterAssemblyReload 经工厂重建 Bridge(新 serverId,绝不持久化)并 Start。RED 79总/73过/6失(干净 NotImplementedException,ctor 守卫已过);GREEN 两跑 79/79;gate high=0。
+- 偏差(同模块,无需跨模块批准):静态 Unity 依赖隔离到同模块新增 `BridgeBootstrap.cs`(`[InitializeOnLoad]`+`AssemblyReloadEvents` 订阅+`EditorApplication.update+=Dispatcher.Pump`),兑现 T3-2 推迟的生产 update→Pump 接线 + 真实 projectPath(`Path.GetDirectoryName(Application.dataPath)`)/版本注入;`Application.isBatchMode` 守卫使 batchmode 不自启避免测试占端口/写发现文件。Dispatcher 中断接缝(`InterruptRunningJobs` + `DispatchJob.ReloadSafe/AutoResendable` + `EnqueueLong` reloadSafe 参数)落同模块 `MainThreadDispatcher.cs`,仅声明写入路径。v0.1 薄注册表(空注册保 /tools 可达)。验收末条 geometric assertions 为模板伪影,忽略。Editor 内 reload 无法 batchmode 复现,故单测回调逻辑 + 手动实测留后续。
