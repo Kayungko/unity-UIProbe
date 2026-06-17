@@ -141,9 +141,17 @@
       "tasks": [
         {
           "id": "T3-1",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-17T06:08:00Z",
+          "completed_at": "2026-06-17T06:14:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "RED 62总/55过/7失(7 个 MainThreadDispatcher 用例干净 NotImplementedException,ctor 守卫已过);GREEN 两跑 62/62 Passed;结构 gate high=0",
+            "timestamp": "2026-06-17T06:14:00Z"
+          },
+          "evidence": "MainThreadDispatcher 落 UIProbe/Editor/Infrastructure/Bridge,经 IEditorState 接缝注入编译/更新状态、公开 Pump() 手动 drain(测试驱动帧)。Enqueue<T> 后台入并发队列返回可 await Task,超时经 Task.WhenAny+Delay 抛 MainThreadTimeoutException(MAIN_THREAD_TIMEOUT)并 cts.Cancel;IsCompiling/IsUpdating 时写操作回填重入队、只读放行;EnqueueLong 即时返回 jobId + GetJob 轮询(Done/Failed/Interrupted)。IEditorState/生产实现/DispatchJob/JobStatus/JobKind/异常并入单文件(同 T2-1 先例)。EditorApplication.update 订阅与稳定窗口细化留 T3-2。"
         },
         {
           "id": "T3-2",

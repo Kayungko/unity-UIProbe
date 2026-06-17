@@ -18,25 +18,22 @@
 - 5 个程序集(分层):Contract → Infrastructure → Core.Services → Editor(遗留+生产 Adapter 实现) → Tests.Editor。
 - 结转:无阻塞。jobId/写两阶段为占位,真实落地在 M3/M5。
 
+### M2 只读 Service 抽离 (DONE — 2026-06-17)
+
+- 3/3 任务 DONE;coverage gate **passed 88.4%**(376/425,范围 +UIProbe.Core.Services,目标 80%),method 94.4%,54/54 EditMode 全过。PrefabIndexService 93.6% / AssetReferenceService 87.1% / UICheckService 89.7%。
+- T2-1 PrefabIndexService(经 IAssetGateway/IFileSystem/IEditorPrefs 接缝,BuildIndex/LoadCache/Search/GetPrefabDetail;新数据类型落 `Core/Services/PrefabIndexData.cs` 因 `Data/` 编译进 Editor-only)。
+- T2-2 AssetReferenceService(严格从 PrefabIndexService.Current 派生 AND-匹配;补 `IAssetGateway.CollectReferences` + 中立 DTO `AssetReferenceRecord`@Infrastructure;ExportCsv 经 IFileSystem)。
+- T2-3 UICheckService(7 规则统一产契约 `Issue`→可读报告 DTO;补 `IAssetGateway.InspectPrefab` + 中立 `PrefabNodeRecord`@Infrastructure;`IsInteractable` 适配层判定)。三格式/CSV/JSON 黄金样本全绿。
+- 共性偏差:UI 组件检测数据活在 Editor prefab 树,经中立 DTO 接缝从 Core.Services 跨到 Editor;Window 改造统一推后 M3/M4。
+
 ## 近期活动 (Recent Activity)
 
 _尚无快速任务或调试记录。_
 
 ## 当前里程碑 (Current Milestone)
 
-### M2 只读 Service 抽离:PrefabIndex + AssetReference + UICheck(经接缝 + 黄金样本回归)
+### M3 Unity Bridge:HTTP loopback + 主线程 Dispatcher + Domain Reload 恢复
 
-#### T2-1: 抽离 PrefabIndexService (DONE — 2026-06-16)
-- plan: 范围/架构/接口/验收→验证映射已锁定;prefab-index.spec.md 替换为可执行用例。
-- build: PrefabIndexService 经 IAssetGateway/IFileSystem/IEditorPrefs 接缝注入,提供 BuildIndex(增量+IProgress)/LoadCache/SaveCache/Search/GetPrefabDetail(缺失→TOOL_NOT_FOUND)。RED 36总/21过/15失(干净);GREEN 两跑 36/36;三格式黄金样本 diff 全绿;结构 gate high=0。
-- 偏差:新数据类型(PrefabIndex/Item/AssetRef/BuildOptions/LoadCacheResult)落 `Core/Services/PrefabIndexData.cs` 而非计划的 `Data/`——`UIProbe/Data/` 整体编译进 Editor-only 程序集(9/29 文件引用 UnityEditor),Core.Services(全平台)无法引用。未建第 6 个程序集(scope-discipline)。FolderTree 弃用(由 Items.FolderPath 派生,YAGNI)。Window 改造/jobId/Registry 包装按 /plan 推后 M3/M4。
-
-#### T2-2: 抽离 AssetReferenceService (DONE — 2026-06-16)
-- build: AssetReferenceService 严格从 PrefabIndexService.Current 派生(AND-匹配 AssetPath/AssetName/Guid/SpriteName/ReferenceType;无维度→INVALID_PARAMS;未构建→ExecutionFailed;无命中→Success+空列表);ExportCsv 经 IFileSystem 写受控目录返回 reportPath(失败→IO_ERROR)。RED 8/8 干净失败(NotImplementedException);GREEN 两跑 44/44;golden CSV diff 全绿;gate high=0。
-- 完整路径偏差(跨 3 模块):补 unity-adapters 引用采集接缝——`IAssetGateway.CollectReferences` + 中立 DTO `AssetReferenceRecord` 定义在 Infrastructure(避 Infrastructure→Core.Services 循环),生产实现移植自遗留 `UIProbeWindow_Indexer` 的 Image/RawImage/Material/Prefab 采集;prefab-index 加 `AssetRef.Guid` 字段 + `PrefabIndexService.Current` 访问器 + `BuildIndex` 填充 `ReferencedAssets`。旧 prefab_index golden 不变(测试 prefab 无预置引用,RefCount 恒 0)。Window 改造/jobId/分页推后 M3/M4。
-#### T2-3: 抽离 UICheckService (DONE — 2026-06-17)
-- build: UICheckService 经 PrefabIndexService.Current 取目标,经新增节点检视接缝 `IAssetGateway.InspectPrefab`(中立 `PrefabNodeRecord` 置于 Infrastructure 避循环)在 Core.Services 跑 7 条规则(duplicate-name/missing-sprite/missing-font/unnecessary-raycast-target/bad-naming + opt-in empty-text + 关键字驱动 filter-node),统一产契约 `Issue`(单一来源)序列化为可读报告 DTO。索引未构建→ExecutionFailed;无问题→Success+空 Issues+非空 Summary。RED 54/44过/10失(干净 NotImplementedException);GREEN 两跑 54/54;golden JSON 录制→diff 全绿;gate high=0。
-- 偏差:`Data/UIProbeChecker.cs` 不动(`UIProbe/Data/` 编译进 Editor-only 程序集,Core.Services 够不到 → 类型落 `Core/Services/UICheckService.cs`,同 T2-1);省 `MissingCanvasGroupRule`(不在 6 类内)与报告 `RanAt`(无时钟接缝,YAGNI);生产 `UnityAssetGateway.InspectPrefab` 遍历 prefab 树(`IsInteractable=Selectable||ScrollRect` 适配层判定)。Window 改造(DuplicateChecker/FilterNodeScanner 接统一 Service)推后 M3/M4。
-
-#### M2 coverage gate (passed — 2026-06-17)
-- 范围 +UIProbe.Core.Services:**line 88.4%**(376/425,目标 80%),method 94.4%(51/54),54/54 EditMode 全过。PrefabIndexService 93.6% / AssetReferenceService 87.1% / UICheckService 89.7% / ToolRegistry 80.6% / ToolRunnerBase 96.7%;未覆盖余量集中在 OperationTicket(写阶段占位 0%)与各 Service 错误分支。**M2 全部 DONE,下一步 M3。**
+#### T3-1: MainThreadDispatcher (DONE — 2026-06-17)
+- build: MainThreadDispatcher 落 `UIProbe/Editor/Infrastructure/Bridge`。`Enqueue<T>(Func<CancellationToken,T>,kind,timeout)` 后台入并发队列返回可 await Task;`Pump()` 主线程 drain。超时经 `Task.WhenAny(tcs,Task.Delay)` 即便不 Pump 也触发→抛 `MainThreadTimeoutException(MAIN_THREAD_TIMEOUT)` 并 cts.Cancel。`IsCompiling/IsUpdating` 时 `JobKind.Write` 回填重入队、只读放行。`EnqueueLong` 即时返回 jobId + `GetJob` 轮询(Running/Done/Failed/Interrupted)。RED 62总/55过/7失(干净 NotImplementedException);GREEN 两跑 62/62;gate high=0。
+- 偏差:可测接缝 `IEditorState`(注入编译/更新状态,生产 `EditorApplicationState` 包 EditorApplication,测试用假体)+ 公开 `Pump()` 测试直接驱动帧(绕 batchmode 下 update 不稳定);`EditorApplication.update` 订阅 + 编译稳定窗口细化留 T3-2。`IEditorState`/`DispatchJob`/`JobStatus`/`JobKind`/异常并入单文件(同 T2-1)。LongRunning v0.1 单帧跑完不做分帧切片、进度直写不节流(YAGNI,留 v0.2/MCP)。验收末条 geometric assertions 为模板伪影,忽略。
