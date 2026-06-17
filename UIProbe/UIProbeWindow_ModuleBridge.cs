@@ -23,7 +23,6 @@ namespace UIProbe
         internal void DrawFilterNodeScannerTab_Bridge() => DrawFilterNodeScannerTab();
         internal void DrawResourceDetectorTab_Bridge() => DrawResourceDetectorTab();
         internal void DrawSettingsTab_Bridge() => DrawSettingsTab();
-        internal void DrawAboutTab_Bridge() => DrawAboutTab();
 
         internal void DrawAnimationAutoRepairSidebarButton_Bridge() => DrawAnimationAutoRepairSidebarButton();
     }
