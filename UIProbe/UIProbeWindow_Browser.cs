@@ -6,7 +6,7 @@ using System.IO;
 
 namespace UIProbe
 {
-    public partial class UIProbeWindow
+    internal sealed partial class BrowserModule
     {
         // Browser State
         private List<(string Path, UIRecordSession Session)> savedSessions = new List<(string, UIRecordSession)>();
@@ -337,11 +337,11 @@ namespace UIProbe
             // Clear previous
             if (cachedScreenshot != null)
             {
-                DestroyImmediate(cachedScreenshot);
+                Object.DestroyImmediate(cachedScreenshot);
                 cachedScreenshot = null;
             }
             cachedScreenshotIndex = -1;
-            
+
             if (selectedSessionIndex < 0 || selectedSessionIndex >= savedSessions.Count) return;
             
             var (path, session) = savedSessions[selectedSessionIndex];
@@ -361,7 +361,7 @@ namespace UIProbe
             // Clear cached screenshot
             if (cachedScreenshot != null)
             {
-                DestroyImmediate(cachedScreenshot);
+                Object.DestroyImmediate(cachedScreenshot);
                 cachedScreenshot = null;
             }
             cachedScreenshotIndex = -1;

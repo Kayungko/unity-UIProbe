@@ -121,7 +121,7 @@ namespace UIProbe
 
             modules.OfType<IndexerModule>().First().Apply();
             LoadSettingsData();
-            RefreshSessionList();
+            modules.OfType<BrowserModule>().First().Apply();
             modules.OfType<PickerModule>().First().Apply();
             
             // 尝试加载索引缓存（已迁入服务）
