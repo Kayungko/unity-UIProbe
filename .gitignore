@@ -72,3 +72,6 @@ crashlytics-build.properties
 
 # UIProbe AI Agent files
 UIProbe/.agent/
+
+# 本地打包工具（仅本地使用，不随扩展发布到线上库）
+BuildTools/
