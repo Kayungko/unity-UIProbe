@@ -195,6 +195,18 @@ namespace UIProbe
             return evt;
         }
 
+        // 从 Picker 模块迁出时保留的共享层级路径工具（Recorder 仍依赖；Recorder 迁移时随之迁走）
+        private string GetFullPath(Transform t)
+        {
+            string path = t.name;
+            while (t.parent != null)
+            {
+                t = t.parent;
+                path = t.name + "/" + path;
+            }
+            return path;
+        }
+
         private void DrawRecordEventV2(UIRecordEvent evt, int indent)
         {
             GUILayout.BeginHorizontal();

@@ -355,7 +355,9 @@ namespace UIProbe
                 EditorGUILayout.HelpBox("选择在 Play 模式下拾取 UI 元素的输入方式。推荐使用右键以避免触发按钮点击。", MessageType.Info);
                 EditorGUILayout.Space(5);
                 
-                PickerInputMode currentMode = GetConfiguredPickerInputMode();
+                PickerInputMode currentMode = System.Enum.IsDefined(typeof(PickerInputMode), config.picker.inputMode)
+                    ? (PickerInputMode)config.picker.inputMode
+                    : PickerInputMode.RightClick;
                 PickerInputMode newMode = (PickerInputMode)EditorGUILayout.EnumPopup("拾取方式:", currentMode);
                 
                 if (newMode != currentMode)

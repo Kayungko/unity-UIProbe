@@ -40,8 +40,15 @@ namespace UIProbe
         public static void ToggleSelectMode()
         {
             var window = GetWindow<UIProbeWindow>("UI Probe 界面探针");
-            window.isPickerActive = !window.isPickerActive;
+            window.TogglePicker();
             window.Repaint();
+        }
+
+        /// <summary>切换拾取模式（供 F1 菜单项调用）。拾取状态现归 PickerModule 持有。</summary>
+        internal void TogglePicker()
+        {
+            var picker = modules?.OfType<PickerModule>().FirstOrDefault();
+            if (picker != null) picker.IsPickerActive = !picker.IsPickerActive;
         }
 
         private Tab currentTab = Tab.Picker;
@@ -60,7 +67,7 @@ namespace UIProbe
         {
             modules = new List<IUIProbeModule>
             {
-                new PickerModule(),
+                new PickerModule(configService),
                 new IndexerModule(),
                 new RecorderModule(),
                 new BrowserModule(),
@@ -95,7 +102,7 @@ namespace UIProbe
             ApplyIndexerConfig(); // Was LoadAuxData
             LoadSettingsData();
             RefreshSessionList();
-            InitPickerAutoMode();
+            modules.OfType<PickerModule>().First().Apply();
             
             // 尝试加载索引缓存
             LoadIndexCache();
@@ -122,7 +129,7 @@ namespace UIProbe
             CollectImageNormalizerConfig();
             CollectHelperConfig();
             CollectAnimationAutoRepairConfig();
-            CollectPickerConfig();
+            modules.OfType<PickerModule>().First().Collect();
             CollectSettingsData();
             configService?.Save();
         }
@@ -213,10 +220,10 @@ namespace UIProbe
         /// </summary>
         private void OnEditorUpdate()
         {
-            // 只在拾取激活且游戏运行时处理拾取输入
-            if (isPickerActive && Application.isPlaying)
+            if (modules == null) return;
+            foreach (var m in modules)
             {
-                HandlePickerInput();
+                m.OnEditorUpdate();
             }
         }
         
