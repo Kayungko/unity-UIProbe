@@ -155,9 +155,17 @@
         },
         {
           "id": "T3-2",
-          "status": "NOT_STARTED",
+          "status": "DONE",
           "pbvf_phase": null,
-          "pbvf_retry_count": 0
+          "pbvf_retry_count": 0,
+          "started_at": "2026-06-17T07:30:00Z",
+          "completed_at": "2026-06-17T07:52:00Z",
+          "test_snapshot": {
+            "passed": true,
+            "summary": "RED 72总/63过/9失(9 个 Bridge 用例干净 NotImplementedException,ctor 守卫已过);GREEN 两跑 72/72 Passed;结构 gate high=0(accept-check 记录跨模块修复)",
+            "timestamp": "2026-06-17T07:52:00Z"
+          },
+          "evidence": "UIProbeBridge 落 UIProbe/Editor/Infrastructure/Bridge,HttpListener 仅绑 127.0.0.1 随机端口(TcpListener :0 占空闲端口规避 HttpListener 不支持 :0)。GET /health 返回完整 HealthStatus(camelCase 对齐 Node 消费契约,serverId 进程内 GUID 不持久化);POST /rpc 校验 SessionToken(32 字节密码学随机写用户级目录文件,定长 XOR 比较),经 MainThreadDispatcher 投递主线程调 ToolRegistry.Invoke,MainThreadTimeoutException→MAIN_THREAD_TIMEOUT(retriable)、其余异常→EXECUTION_FAILED;GET /tools/list 逐 descriptor ToJson 手工拼数组、/tools/describe 代理 ToolRegistry。端口/projectPath/tokenPath 写发现文件 uiprobe-bridge.json 供 Orchestrator 路由。跨模块必要修复(用户批准):给 ToolError/Issue/Change/Risk/LogEntry/ToolSchema 加 [Serializable],修好 JsonUtility 嵌套字段丢失(否则 /rpc 结构化错误码无法回传),M4 Node 端受益;UIProbe.Editor asmdef 增 UIProbe.Core.Services 引用。BridgeEndpointTests 10 用例(HTTP 经 Task.Run 发、测试线程驱动 Dispatcher.Pump 避死锁)。两跑 72/72,gate high=0。UNITY_BUSY 无 v0.1 只读触发,仅验 MAIN_THREAD_TIMEOUT;生产 EditorApplication.update→Pump 接线与真实 projectPath/版本注入留 T3-3。详见 t3-2.md。"
         },
         {
           "id": "T3-3",

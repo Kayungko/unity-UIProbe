@@ -1,9 +1,12 @@
+using System;
+
 namespace UIProbe.Core.Contract
 {
     /// <summary>
     /// 单条变更描述。Preview 填 PlannedChanges，Execute 填 AppliedChanges。
     /// 字段以 Docs/ToolContract.md §10 为单一来源。
     /// </summary>
+    [Serializable]
     public sealed class Change
     {
         public ChangeType Type;       // create | update | delete | rename | move | import | export

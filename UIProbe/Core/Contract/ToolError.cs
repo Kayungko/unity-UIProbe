@@ -1,9 +1,12 @@
+using System;
+
 namespace UIProbe.Core.Contract
 {
     /// <summary>
     /// 统一错误。C# 异常 / Node 协议错误 / 审计错误共用一套码，AI 可据码决策重试/换工具。
     /// 字段以 Docs/ToolContract.md §6 为单一来源。
     /// </summary>
+    [Serializable]
     public sealed class ToolError
     {
         public string Code;       // 见 ToolErrorCodes

@@ -4,6 +4,7 @@
     "references": [
         "UIProbe.Contract",
         "UIProbe.Infrastructure",
+        "UIProbe.Core.Services",
         "UnityEngine.UI",
         "UnityEditor.UI",
         "Unity.TextMeshPro",

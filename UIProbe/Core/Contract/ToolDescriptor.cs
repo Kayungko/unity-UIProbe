@@ -1,3 +1,5 @@
+using System;
+
 namespace UIProbe.Core.Contract
 {
     /// <summary>
@@ -66,6 +68,7 @@ namespace UIProbe.Core.Contract
     /// 参数 JSON-Schema 的契约层表示。v0.1 以原始 JSON-Schema 字符串承载，
     /// 结构化解析推迟到 ToolRegistry（T1-4）。对应 ToolContract.md 的 ToolSchema 占位。
     /// </summary>
+    [Serializable]
     public sealed class ToolSchema
     {
         public string Json;   // JSON-Schema 文档原文

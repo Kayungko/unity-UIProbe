@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace UIProbe.Core.Contract
@@ -35,6 +36,7 @@ namespace UIProbe.Core.Contract
     }
 
     /// <summary>风险提示项，Preview 阶段呈现给用户/AI。</summary>
+    [Serializable]
     public sealed class Risk
     {
         public Severity Severity;
@@ -42,6 +44,7 @@ namespace UIProbe.Core.Contract
     }
 
     /// <summary>结构化进度/日志行，{ts, level, stage, message, correlationId}。见 ToolContract.md §9。</summary>
+    [Serializable]
     public sealed class LogEntry
     {
         public string Ts;
