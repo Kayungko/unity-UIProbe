@@ -75,3 +75,6 @@ UIProbe/.agent/
 
 # 本地打包工具（仅本地使用，不随扩展发布到线上库）
 BuildTools/
+
+# 本地 Claude 工作约定（仅本地使用，不随扩展上线）
+/CLAUDE.md
