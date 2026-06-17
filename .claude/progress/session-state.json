@@ -128,11 +128,11 @@
         }
       ],
       "coverage_gate": {
-        "status": "pending",
+        "status": "passed",
         "target": 80,
-        "actual": null,
-        "report": "",
-        "checked_at": null
+        "actual": 88.4,
+        "report": "范围 +UIProbe.Core.Services:line 88.4% (376/425), method 94.4% (51/54)。11 类:PrefabIndexService 93.6%, AssetReferenceService 87.1%, UICheckService 89.7%, ToolRegistry 80.6%, ToolRunnerBase 96.7%;未覆盖余量集中在 OperationTicket(写阶段占位 0%)与各 Service 错误分支。54/54 EditMode 全过。",
+        "checked_at": "2026-06-17T06:05:00Z"
       }
     },
     {

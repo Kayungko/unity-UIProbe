@@ -7,7 +7,7 @@
 <!-- 未完成 / 阻塞 / 下一步。永不压缩。 -->
 
 - [ ] 编译/测试基建(机器相关,暂不入库):临时宿主 `E:\uiprobe-compile-host`(junction 挂 UIProbe→Assets/UIProbe;manifest 含 com.unity.test-framework 1.1.33 + com.unity.testtools.codecoverage 1.2.6)。编译:`Unity.exe -batchmode -quit -nographics -projectPath <host> -logFile <log>`;测试:加 `-runTests -testPlatform EditMode -testResults <xml>`(去掉 -quit);覆盖率:再加 `-enableCodeCoverage -coverageResultsPath <dir> -coverageOptions "generateAdditionalMetrics;generateHtmlReport;assemblyFilters:+<asm>" -debugCodeOptimization`
-- [ ] Next: M2 coverage gate(+UIProbe.Core.Services 范围重测 80% 目标),三个只读 Service 已就位。之后进 M3(Unity Bridge:HTTP loopback + 主线程 Dispatcher + Domain Reload 恢复)。
+- [ ] Next: 进 M3(Unity Bridge:HTTP loopback + 主线程 Dispatcher + Domain Reload 恢复,T3-1/T3-2/T3-3),从 /plan 起步。
 
 ## 归档 (Archive)
 
@@ -37,3 +37,6 @@ _尚无快速任务或调试记录。_
 #### T2-3: 抽离 UICheckService (DONE — 2026-06-17)
 - build: UICheckService 经 PrefabIndexService.Current 取目标,经新增节点检视接缝 `IAssetGateway.InspectPrefab`(中立 `PrefabNodeRecord` 置于 Infrastructure 避循环)在 Core.Services 跑 7 条规则(duplicate-name/missing-sprite/missing-font/unnecessary-raycast-target/bad-naming + opt-in empty-text + 关键字驱动 filter-node),统一产契约 `Issue`(单一来源)序列化为可读报告 DTO。索引未构建→ExecutionFailed;无问题→Success+空 Issues+非空 Summary。RED 54/44过/10失(干净 NotImplementedException);GREEN 两跑 54/54;golden JSON 录制→diff 全绿;gate high=0。
 - 偏差:`Data/UIProbeChecker.cs` 不动(`UIProbe/Data/` 编译进 Editor-only 程序集,Core.Services 够不到 → 类型落 `Core/Services/UICheckService.cs`,同 T2-1);省 `MissingCanvasGroupRule`(不在 6 类内)与报告 `RanAt`(无时钟接缝,YAGNI);生产 `UnityAssetGateway.InspectPrefab` 遍历 prefab 树(`IsInteractable=Selectable||ScrollRect` 适配层判定)。Window 改造(DuplicateChecker/FilterNodeScanner 接统一 Service)推后 M3/M4。
+
+#### M2 coverage gate (passed — 2026-06-17)
+- 范围 +UIProbe.Core.Services:**line 88.4%**(376/425,目标 80%),method 94.4%(51/54),54/54 EditMode 全过。PrefabIndexService 93.6% / AssetReferenceService 87.1% / UICheckService 89.7% / ToolRegistry 80.6% / ToolRunnerBase 96.7%;未覆盖余量集中在 OperationTicket(写阶段占位 0%)与各 Service 错误分支。**M2 全部 DONE,下一步 M3。**
